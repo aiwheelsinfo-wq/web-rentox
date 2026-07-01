@@ -97,7 +97,7 @@ const Profile = () => {
       // 2. Check if number is already registered
       const statusResponse = await axios.get(`${endpoints.checkPhoneStatus}?phone_number=${phone}`);
       
-      if (statusResponse.data && statusResponse.data.status === 'registered') {
+      if (statusResponse.data && statusResponse.data.status === 'success') {
         // User exists, login
         loginUser(phone);
         setSuccessMsg('Logged in successfully!');

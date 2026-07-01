@@ -27,7 +27,11 @@ const Search = () => {
     returnTime, setReturnTime,
     setTempBookingId,
     phoneNumber,
-    isLoggedIn
+    isLoggedIn,
+    setFromLat,
+    setFromLng,
+    setToLat,
+    setToLng
   } = useContext(AppContext);
 
   const [fromSuggestions, setFromSuggestions] = useState([]);
@@ -51,25 +55,76 @@ const Search = () => {
     }
   }, [pickupDate, returnDate, setPickupDate, setReturnDate]);
 
+  const fetchPlacesSuggestions = (input, setSuggestions) => {
+    if (!input || input.trim() === '') {
+      setSuggestions([]);
+      return;
+    }
+    if (window.google && window.google.maps && window.google.maps.places) {
+      const service = new window.google.maps.places.AutocompleteService();
+      service.getPlacePredictions(
+        {
+          input: input,
+          componentRestrictions: { country: 'in' },
+          types: ['(cities)']
+        },
+        (predictions, status) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+            setSuggestions(predictions);
+          } else {
+            setSuggestions([]);
+          }
+        }
+      );
+    } else {
+      const filtered = CITIES.filter(c => c.toLowerCase().includes(input.toLowerCase()));
+      setSuggestions(filtered.map(c => ({ description: c, isFallback: true })));
+    }
+  };
+
   const handleFromChange = (e) => {
     const val = e.target.value;
     setFromAddress(val);
-    if (val.trim() === '') {
-      setFromSuggestions([]);
-    } else {
-      const filtered = CITIES.filter(c => c.toLowerCase().includes(val.toLowerCase()));
-      setFromSuggestions(filtered);
-    }
+    fetchPlacesSuggestions(val, setFromSuggestions);
   };
 
   const handleToChange = (e) => {
     const val = e.target.value;
     setToAddress(val);
-    if (val.trim() === '') {
-      setToSuggestions([]);
-    } else {
-      const filtered = CITIES.filter(c => c.toLowerCase().includes(val.toLowerCase()));
-      setToSuggestions(filtered);
+    fetchPlacesSuggestions(val, setToSuggestions);
+  };
+
+  const selectFromSuggestion = (prediction) => {
+    if (prediction.isFallback) {
+      setFromAddress(prediction.description);
+      return;
+    }
+    setFromAddress(prediction.description);
+    if (window.google && window.google.maps) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ placeId: prediction.place_id }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setFromLat(results[0].geometry.location.lat());
+          setFromLng(results[0].geometry.location.lng());
+        }
+      });
+    }
+  };
+
+  const selectToSuggestion = (prediction) => {
+    if (prediction.isFallback) {
+      setToAddress(prediction.description);
+      return;
+    }
+    setToAddress(prediction.description);
+    if (window.google && window.google.maps) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ placeId: prediction.place_id }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setToLat(results[0].geometry.location.lat());
+          setToLng(results[0].geometry.location.lng());
+        }
+      });
     }
   };
 
@@ -224,11 +279,11 @@ const Search = () => {
                   {fromSuggestions.map((item, idx) => (
                     <li
                       key={idx}
-                      onMouseDown={() => setFromAddress(item)}
+                      onMouseDown={() => selectFromSuggestion(item)}
                       className="px-4 py-2.5 hover:bg-gray-50 text-xs font-semibold text-brandCharcoal cursor-pointer flex items-center gap-2"
                     >
                       <i className="fas fa-location-dot text-gray-400"></i>
-                      {item}
+                      {item.description}
                     </li>
                   ))}
                 </ul>
@@ -256,11 +311,11 @@ const Search = () => {
                     {toSuggestions.map((item, idx) => (
                       <li
                         key={idx}
-                        onMouseDown={() => setToAddress(item)}
+                        onMouseDown={() => selectToSuggestion(item)}
                         className="px-4 py-2.5 hover:bg-gray-50 text-xs font-semibold text-brandCharcoal cursor-pointer flex items-center gap-2"
                       >
                         <i className="fas fa-location-dot text-gray-400"></i>
-                        {item}
+                        {item.description}
                       </li>
                     ))}
                   </ul>

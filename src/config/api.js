@@ -10,7 +10,7 @@ export const endpoints = {
   sendOtp: `${API_BASE_URL}/send_otp.php`,
   savePhone: `${API_BASE_URL}/savePhone.php`,
   selectCarCostList: `${API_BASE_URL}/selectCarCostList.php`,
-  getInvoiceData: `${API_BASE_URL}/get_invoice_data.php/get_invoice_data.php`,
+  getInvoiceData: `${API_BASE_URL}/get_invoice_data.php`,
   saveBooking: `${API_BASE_URL}/saveBooking.php`,
   updatePayment: `${API_BASE_URL}/updatePayment.php`,
   bookingStatus: `${API_BASE_URL}/bookingStatus.php`,
@@ -21,6 +21,7 @@ export const endpoints = {
   customerReferral: `${API_BASE_URL}/customer_referral.php`,
   customerReg: `${API_BASE_URL}/customer_reg.php`,
   getCustomerData: `${API_BASE_URL}/get_customer_data.php`,
+  tripLiveMapping: `${API_BASE_URL}/driver2025_src/trip_live_mapping_backend.php`,
 };
 
 // Create axios instance with default configurations

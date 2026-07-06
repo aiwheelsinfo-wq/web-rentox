@@ -5,25 +5,44 @@ export const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
-  // Search parameters
-  const [tripType, setTripType] = useState('One-way'); // One-way, Round-Trip, Local-Duty
-  const [fromAddress, setFromAddress] = useState('Pune, Maharashtra, India');
-  const [toAddress, setToAddress] = useState('Mumbai, Maharashtra, India');
-  const [pickupDate, setPickupDate] = useState('');
-  const [pickupTime, setPickupTime] = useState('10:00 AM');
-  const [returnDate, setReturnDate] = useState('');
-  const [returnTime, setReturnTime] = useState('10:00 AM');
-  
-  // Lat/Lng coordinates for location estimation (similar to customer app)
-  const [fromLat, setFromLat] = useState(18.52043);
-  const [fromLng, setFromLng] = useState(73.856743);
-  const [toLat, setToLat] = useState(19.07609);
-  const [toLng, setToLng] = useState(72.877707);
+
+  // Search parameters persisted to localStorage to prevent refresh data loss
+  const [tripType, setTripType] = useState(() => localStorage.getItem('search_tripType') || 'One-way');
+  const [fromAddress, setFromAddress] = useState(() => localStorage.getItem('search_fromAddress') || 'Pune, Maharashtra, India');
+  const [toAddress, setToAddress] = useState(() => localStorage.getItem('search_toAddress') || 'Mumbai, Maharashtra, India');
+  const [pickupDate, setPickupDate] = useState(() => localStorage.getItem('search_pickupDate') || '');
+  const [pickupTime, setPickupTime] = useState(() => localStorage.getItem('search_pickupTime') || '10:00 AM');
+  const [returnDate, setReturnDate] = useState(() => localStorage.getItem('search_returnDate') || '');
+  const [returnTime, setReturnTime] = useState(() => localStorage.getItem('search_returnTime') || '10:00 AM');
+
+  // Lat/Lng coordinates for location estimation (persisted)
+  const [fromLat, setFromLat] = useState(() => {
+    const saved = localStorage.getItem('search_fromLat');
+    return saved ? parseFloat(saved) : 18.52043;
+  });
+  const [fromLng, setFromLng] = useState(() => {
+    const saved = localStorage.getItem('search_fromLng');
+    return saved ? parseFloat(saved) : 73.856743;
+  });
+  const [toLat, setToLat] = useState(() => {
+    const saved = localStorage.getItem('search_toLat');
+    return saved ? parseFloat(saved) : 19.07609;
+  });
+  const [toLng, setToLng] = useState(() => {
+    const saved = localStorage.getItem('search_toLng');
+    return saved ? parseFloat(saved) : 72.877707;
+  });
 
   // Active selections
-  const [selectedCar, setSelectedCar] = useState(null);
-  const [tempBookingId, setTempBookingId] = useState('');
+  const [selectedCar, setSelectedCar] = useState(() => {
+    const saved = localStorage.getItem('search_selectedCar');
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch (_) {
+      return null;
+    }
+  });
+  const [tempBookingId, setTempBookingId] = useState(() => localStorage.getItem('search_tempBookingId') || '');
 
   // Persist authentication state
   useEffect(() => {
@@ -33,6 +52,63 @@ export const AppProvider = ({ children }) => {
       setIsLoggedIn(true);
     }
   }, []);
+
+  // Sync state values back to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('search_tripType', tripType);
+  }, [tripType]);
+
+  useEffect(() => {
+    localStorage.setItem('search_fromAddress', fromAddress);
+  }, [fromAddress]);
+
+  useEffect(() => {
+    localStorage.setItem('search_toAddress', toAddress);
+  }, [toAddress]);
+
+  useEffect(() => {
+    localStorage.setItem('search_pickupDate', pickupDate);
+  }, [pickupDate]);
+
+  useEffect(() => {
+    localStorage.setItem('search_pickupTime', pickupTime);
+  }, [pickupTime]);
+
+  useEffect(() => {
+    localStorage.setItem('search_returnDate', returnDate);
+  }, [returnDate]);
+
+  useEffect(() => {
+    localStorage.setItem('search_returnTime', returnTime);
+  }, [returnTime]);
+
+  useEffect(() => {
+    localStorage.setItem('search_fromLat', String(fromLat));
+  }, [fromLat]);
+
+  useEffect(() => {
+    localStorage.setItem('search_fromLng', String(fromLng));
+  }, [fromLng]);
+
+  useEffect(() => {
+    localStorage.setItem('search_toLat', String(toLat));
+  }, [toLat]);
+
+  useEffect(() => {
+    localStorage.setItem('search_toLng', String(toLng));
+  }, [toLng]);
+
+  useEffect(() => {
+    if (selectedCar) {
+      localStorage.setItem('search_selectedCar', JSON.stringify(selectedCar));
+    } else {
+      localStorage.removeItem('search_selectedCar');
+    }
+  }, [selectedCar]);
+
+  useEffect(() => {
+    localStorage.setItem('search_tempBookingId', tempBookingId);
+  }, [tempBookingId]);
 
   const loginUser = (phone) => {
     localStorage.setItem('cust_phone_number', phone);

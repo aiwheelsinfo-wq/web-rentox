@@ -74,11 +74,26 @@ const Invoice = () => {
     }
   };
 
+  const calculateDays = () => {
+    if (!pickupDate || !returnDate) return 1;
+    const dep = new Date(pickupDate + 'T00:00:00');
+    const ret = new Date(returnDate + 'T00:00:00');
+    const diffTime = Math.abs(ret - dep);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays <= 0 ? 1 : diffDays;
+  };
+
+  const days = calculateDays();
   const tripFare = selectedCar ? parseFloat(selectedCar.discounted_price || selectedCar.baseAmount) : 0;
-  const advanceAmount = tripFare * 0.25;
-  const gstAmount = tripFare * 0.05;
-  const payableNow = advanceAmount + gstAmount;
-  const remainingBalance = tripFare * 0.75;
+  
+  // Daily KM Limit (default to 250 if not specified by selected car)
+  const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || 250) : 250;
+  const roundTripAdvance = dailyLimit * 2 * days;
+
+  const payableNow = tripType === 'Round-Trip' ? roundTripAdvance : (tripFare * 0.25) + (tripFare * 0.05);
+  const advanceAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare * 0.25;
+  const gstAmount = tripType === 'Round-Trip' ? 0 : tripFare * 0.05;
+  const remainingBalance = tripType === 'Round-Trip' ? 0 : tripFare * 0.75;
 
   const handlePayNow = (e) => {
     e.preventDefault();
@@ -123,12 +138,14 @@ const Invoice = () => {
     body.append('base_charge', selectedCar.baseAmount);
     body.append('driver_ta', selectedCar.driverAllowance || '0');
     body.append('toll_charge', '0');
-    body.append('total_amount', tripFare.toString());
+    const finalTotalAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare;
+    body.append('total_amount', finalTotalAmount.toFixed(2));
     body.append('payment_type', 'Advance');
     body.append('agent_commission', '0');
     body.append('city', city);
-    body.append('agni_amount', platformCommission.toFixed(2));
-    body.append('vendor_amount', vendorEarnings.toFixed(2));
+    const isLocalTaxi = tripType === 'Local-taxi';
+    body.append('agni_amount', isLocalTaxi ? '0.00' : (finalTotalAmount * 0.10).toFixed(2));
+    body.append('vendor_amount', isLocalTaxi ? finalTotalAmount.toFixed(2) : (finalTotalAmount * 0.90).toFixed(2));
     body.append('user_type', 'customer');
     body.append('customer_mob', custMobile);
     body.append('gst', includeGst.toString());
@@ -136,6 +153,10 @@ const Invoice = () => {
     body.append('business_name', businessName);
     body.append('business_address', businessAddress);
     body.append('business_pincode', businessPincode);
+    if (tripType === 'Round-Trip') {
+      body.append('return_date', returnDate);
+      body.append('return_time', returnTime);
+    }
     if (tripType === 'One-way' && tempBookingId) {
       body.append('bookingId', tempBookingId);
     }
@@ -176,7 +197,7 @@ const Invoice = () => {
             amount: payableNow.toFixed(2)
           });
           if (verifyResponse.data && verifyResponse.data.success === true) {
-            navigate('/history');
+            navigate(`/booking-success?id=${bookingId}`);
           } else {
             setErrorMsg('Payment successful, but failed to update status on server. Please contact support.');
           }
@@ -377,7 +398,7 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    PAY ADVANCE ₹{Math.round(payableNow)} <i className="fas fa-arrow-right"></i>
+                    PAY ADVANCE {"\u20B9"}{Math.round(payableNow)} <i className="fas fa-arrow-right"></i>
                   </>
                 )}
               </button>
@@ -437,45 +458,87 @@ const Invoice = () => {
 
               {/* Detailed Invoice Breakdown */}
               <div className="flex flex-col gap-2.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Base Trip Rate</span>
-                  <span className="font-semibold text-brandCharcoal">₹{Math.round(tripFare)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Driver Allowance</span>
-                  <span className="text-gray-400">Included</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Tolls & Taxes (One-Way)</span>
-                  <span className="text-gray-400">Included</span>
-                </div>
-                <hr className="border-gray-100 my-1" />
-                <div className="flex justify-between text-sm font-extrabold">
-                  <span className="text-brandCharcoal">Total Trip Fare</span>
-                  <span className="text-brandCharcoal">₹{Math.round(tripFare)}</span>
-                </div>
+                {tripType === 'Round-Trip' ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Rate per KM</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{selectedCar.kmRate}/km</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Daily KM Limit</span>
+                      <span className="font-semibold text-brandCharcoal">{dailyLimit} KM/day</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Total Duration</span>
+                      <span className="font-semibold text-brandCharcoal">{days} Days</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Driver Allowance</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{selectedCar.driverAllowance || 300}/day</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Base Trip Rate</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(tripFare)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Driver Allowance</span>
+                      <span className="text-gray-400">Included</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Tolls & Taxes (One-Way)</span>
+                      <span className="text-gray-400">Included</span>
+                    </div>
+                    <hr className="border-gray-100 my-1" />
+                    <div className="flex justify-between text-sm font-extrabold">
+                      <span className="text-brandCharcoal">Total Trip Fare</span>
+                      <span className="text-brandCharcoal">{"\u20B9"}{Math.round(tripFare)}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Breakdown Panel */}
               <div className="bg-brandBgLight rounded-xl p-4 border border-brandAmber/20 mt-2 flex flex-col gap-2.5">
                 <span className="text-3xs font-extrabold text-brandAmber uppercase tracking-wider">Advance Checkout Breakdown</span>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Advance (25%)</span>
-                  <span className="font-semibold text-brandCharcoal">₹{Math.round(advanceAmount)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">GST (5%)</span>
-                  <span className="font-semibold text-brandCharcoal">₹{Math.round(gstAmount)}</span>
-                </div>
-                <hr className="border-brandAmber/20" />
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-green-700">Payable Now (30%)</span>
-                  <span className="text-base font-black text-green-700">₹{Math.round(payableNow)}</span>
-                </div>
-                <div className="flex justify-between text-3xs text-gray-400 mt-1">
-                  <span>Balance payable to Driver:</span>
-                  <span className="font-bold">₹{Math.round(remainingBalance)}</span>
-                </div>
+                {tripType === 'Round-Trip' ? (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Booking Advance</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(roundTripAdvance)}</span>
+                    </div>
+                    <hr className="border-brandAmber/20" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-green-700">Payable Now</span>
+                      <span className="text-base font-black text-green-700">{"\u20B9"}{Math.round(payableNow)}</span>
+                    </div>
+                    <div className="text-3xs text-gray-400 mt-2 leading-relaxed">
+                      *Remaining balance will be calculated based on actual distance run ({"\u20B9"}{selectedCar.kmRate}/km) and toll/permit receipts at trip end.
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Advance (25%)</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(advanceAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">GST (5%)</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(gstAmount)}</span>
+                    </div>
+                    <hr className="border-brandAmber/20" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-green-700">Payable Now (30%)</span>
+                      <span className="text-base font-black text-green-700">{"\u20B9"}{Math.round(payableNow)}</span>
+                    </div>
+                    <div className="flex justify-between text-3xs text-gray-400 mt-1">
+                      <span>Balance payable to Driver:</span>
+                      <span className="font-bold">{"\u20B9"}{Math.round(remainingBalance)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -492,7 +555,7 @@ const Invoice = () => {
             <div>
               <h3 className="text-base font-extrabold text-brandCharcoal">Confirm Advance Payment</h3>
               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                You are paying a secure booking deposit of **₹{Math.round(payableNow)}** (25% Advance + 5% GST) to lock this {selectedCar.carType} trip.
+                You are paying a secure booking deposit of <strong>{"\u20B9"}{Math.round(payableNow)}</strong> to lock this {selectedCar.carType} trip.
               </p>
             </div>
             <div className="flex gap-3 mt-2">

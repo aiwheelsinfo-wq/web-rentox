@@ -74,7 +74,7 @@ const Search = () => {
     if (window.google && window.google.maps && window.google.maps.places) {
       const service = new window.google.maps.places.AutocompleteService();
       service.getPlacePredictions(
-        { input, componentRestrictions: { country: 'in' }, types: ['(cities)'] },
+        { input, componentRestrictions: { country: 'in' } },
         (predictions, status) => {
           if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
             setSuggestions(predictions);

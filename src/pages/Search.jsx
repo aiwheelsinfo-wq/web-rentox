@@ -152,7 +152,7 @@ const Search = () => {
     }
     if (!isLoggedIn) { navigate('/profile'); return; }
 
-    if (tripType === 'Local-taxi') {
+    if (tripType === 'Local-taxi' || tripType === 'One-way' || tripType === 'Round-Trip') {
       const isPointInPolygon = (lat, lng, polygonCoordsStr) => {
         if (!polygonCoordsStr) return true; // Fallback to bounding box only (same as Flutter)
         try {
@@ -249,8 +249,14 @@ const Search = () => {
             return isPickupIn && isDropIn;
           });
 
-          if (!validCity) {
+          if (tripType === 'Local-taxi' && !validCity) {
             setErrorMsg('Local Taxi rides must stay strictly within the same city boundaries (e.g. Pune limits or Mumbai limits). Please choose One-way or Round-Trip for intercity travel.');
+            setLoading(false);
+            return;
+          }
+
+          if ((tripType === 'One-way' || tripType === 'Round-Trip') && validCity) {
+            setErrorMsg(`This route is within the ${validCity.name} city limits. Please choose Local Taxi for travel within the same city.`);
             setLoading(false);
             return;
           }
@@ -264,10 +270,18 @@ const Search = () => {
                               (toLower.includes('mumbai') || toLower.includes('thane') || toLower.includes('dadar'));
         const matchesNashik = fromLower.includes('nashik') && toLower.includes('nashik');
         
-        if (!matchesPune && !matchesMumbai && !matchesNashik) {
-          setErrorMsg('Local Taxi is limited to Pune, Mumbai, or Nashik city limits only. Please choose One-way for intercity trips.');
-          setLoading(false);
-          return;
+        if (tripType === 'Local-taxi') {
+          if (!matchesPune && !matchesMumbai && !matchesNashik) {
+            setErrorMsg('Local Taxi is limited to Pune, Mumbai, or Nashik city limits only. Please choose One-way for intercity trips.');
+            setLoading(false);
+            return;
+          }
+        } else {
+          if (matchesPune || matchesMumbai || matchesNashik) {
+            setErrorMsg('This route is within city limits. Please choose Local Taxi for travel within the same city.');
+            setLoading(false);
+            return;
+          }
         }
       }
     }

@@ -286,7 +286,10 @@ const Invoice = () => {
                   <input
                     type="tel"
                     value={custMobile}
-                    onChange={(e) => setCustMobile(e.target.value)}
+                    onChange={(e) => {
+                      const onlyNums = e.target.value.replace(/[^0-9]/g, '');
+                      setCustMobile(onlyNums);
+                    }}
                     maxLength={10}
                     required
                     placeholder="10-digit number"

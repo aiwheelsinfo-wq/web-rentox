@@ -709,7 +709,10 @@ const Profile = () => {
                       <input
                         type="tel"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => {
+                          const onlyNums = e.target.value.replace(/[^0-9]/g, '');
+                          setPhone(onlyNums);
+                        }}
                         maxLength={10}
                         required
                         placeholder="Enter 10-digit mobile number"

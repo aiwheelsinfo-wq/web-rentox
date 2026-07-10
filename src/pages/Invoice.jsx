@@ -141,7 +141,7 @@ const Invoice = () => {
     body.append('trip_type', tripType);
     body.append('car_type', selectedCar.carType);
     body.append('from_address', fromAddress);
-    body.append('to_address', toAddress);
+    body.append('to_address', tripType === 'Local-Duty' ? '' : toAddress);
     body.append('distance', selectedCar.packageKm || '100');
     body.append('date', pickupDate);
     body.append('tripTime', pickupTime);

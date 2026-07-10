@@ -327,12 +327,18 @@ const History = () => {
                     <div className="flex gap-3">
                       <div className="flex flex-col items-center pt-1">
                         <span className="w-2 h-2 rounded-full bg-[#F5A623]" />
-                        <span className="w-[2px] flex-1 my-1 bg-[repeating-linear-gradient(to_bottom,#E8E4DA_0,#E8E4DA_4px,transparent_4px,transparent_8px)]" />
-                        <i className="fas fa-location-dot text-[#E85D4C] text-[10px]"></i>
+                        {booking.to_address && booking.to_address.trim() !== '' && (
+                          <>
+                            <span className="w-[2px] flex-1 my-1 bg-[repeating-linear-gradient(to_bottom,#E8E4DA_0,#E8E4DA_4px,transparent_4px,transparent_8px)]" />
+                            <i className="fas fa-location-dot text-[#E85D4C] text-[10px]"></i>
+                          </>
+                        )}
                       </div>
                       <div className="flex-1 flex flex-col gap-3 text-sm">
                         <p className="font-semibold text-[#1C1F26] leading-snug">{booking.from_address}</p>
-                        <p className="font-semibold text-[#1C1F26] leading-snug">{booking.to_address}</p>
+                        {booking.to_address && booking.to_address.trim() !== '' && (
+                          <p className="font-semibold text-[#1C1F26] leading-snug">{booking.to_address}</p>
+                        )}
                       </div>
                     </div>
 

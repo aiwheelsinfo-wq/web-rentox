@@ -598,13 +598,15 @@ const BookingStatus = () => {
                     <p className="font-semibold text-[#1C1F26] mt-0.5 text-sm">{booking.from_address}</p>
                   </div>
                 </div>
-                <div className="flex gap-2.5">
-                  <i className="fas fa-location-dot text-[#E85D4C] text-xs mt-0.5"></i>
-                  <div>
-                    <span className="text-[#9B9484] text-[10px] uppercase font-bold tracking-widest">DESTINATION ADDRESS</span>
-                    <p className="font-semibold text-[#1C1F26] mt-0.5 text-sm">{booking.to_address}</p>
+                {booking.to_address && booking.to_address.trim() !== '' && (
+                  <div className="flex gap-2.5">
+                    <i className="fas fa-location-dot text-[#E85D4C] text-xs mt-0.5"></i>
+                    <div>
+                      <span className="text-[#9B9484] text-[10px] uppercase font-bold tracking-widest">DESTINATION ADDRESS</span>
+                      <p className="font-semibold text-[#1C1F26] mt-0.5 text-sm">{booking.to_address}</p>
+                    </div>
                   </div>
-                </div>
+                )}
                 <hr className="border-[#E8E4DA]" />
                 <div className="flex justify-between text-xs font-semibold">
                   <span className="text-[#9B9484] uppercase"><i className="fas fa-calendar-alt text-[#C9C2B2] mr-1.5"></i>Travel Date</span>

@@ -74,18 +74,24 @@ const BookingSuccess = () => {
             <div className="flex gap-3">
               <div className="flex flex-col items-center mt-1">
                 <i className="fas fa-circle-dot text-brandBlue text-xs"></i>
-                <div className="w-[1.5px] h-8 bg-gray-200 my-1"></div>
-                <i className="fas fa-location-dot text-red-500 text-xs"></i>
+                {booking.to_address && booking.to_address.trim() !== '' && (
+                  <>
+                    <div className="w-[1.5px] h-8 bg-gray-200 my-1"></div>
+                    <i className="fas fa-location-dot text-red-500 text-xs"></i>
+                  </>
+                )}
               </div>
               <div className="flex flex-col gap-3 flex-1 text-xs">
                 <div>
                   <span className="text-gray-400 uppercase font-bold tracking-wide text-3xs">From</span>
                   <p className="text-gray-700 font-semibold truncate">{booking.from_address}</p>
                 </div>
-                <div>
-                  <span className="text-gray-400 uppercase font-bold tracking-wide text-3xs">To</span>
-                  <p className="text-gray-700 font-semibold truncate">{booking.to_address}</p>
-                </div>
+                {booking.to_address && booking.to_address.trim() !== '' && (
+                  <div>
+                    <span className="text-gray-400 uppercase font-bold tracking-wide text-3xs">To</span>
+                    <p className="text-gray-700 font-semibold truncate">{booking.to_address}</p>
+                  </div>
+                )}
               </div>
             </div>
 

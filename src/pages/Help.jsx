@@ -45,7 +45,7 @@ const FAQ_DATA = [
       },
       {
         q: 'What is included in the Total Trip Fare for One-Way trips?',
-        a: 'The One-Way fare is inclusive of the base travel charges, driver allowance (TA), toll charges, and GST. There are no hidden fees or surcharges added later.'
+        a: 'The One-Way fare is inclusive of the base travel charges, driver allowance (TA), toll charges, and GST. .'
       },
       {
         q: 'Why does Round-Trip only charge an advance amount?',
@@ -206,12 +206,12 @@ const Help = () => {
                 </div>
                 <div>
                   <p className="text-[10px] text-[#9B9484] uppercase font-bold tracking-wider">EMAIL SUPPORT</p>
-                  <p className="mt-0.5">support@agnicarrental.com</p>
+                  <p className="mt-0.5">rentoxcar@gmail.com</p>
                 </div>
               </a>
 
               <a
-                href="tel:+919999999999"
+                href="tel:+91 8591836955"
                 className="flex items-center gap-3.5 rounded-xl border border-[#E8E4DA] bg-white p-3 hover:shadow-md transition-all text-left text-xs font-bold text-[#1C1F26] decoration-none"
               >
                 <div className="w-9 h-9 rounded-lg bg-[#FDF3E1] text-[#B4750C] flex items-center justify-center flex-shrink-0">
@@ -219,7 +219,7 @@ const Help = () => {
                 </div>
                 <div>
                   <p className="text-[10px] text-[#9B9484] uppercase font-bold tracking-wider">CALL CUSTOMER CARE</p>
-                  <p className="mt-0.5">+91 99999 99999</p>
+                  <p className="mt-0.5">+91  8591836955</p>
                 </div>
               </a>
 

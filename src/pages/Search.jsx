@@ -170,7 +170,7 @@ const Search = () => {
             const lngI = parseFloat(pi.lng);
             const lngJ = parseFloat(pj.lng);
             if ((latI < y && latJ >= y || latJ < y && latI >= y) &&
-                (lngI + (y - latI) / (latJ - latI) * (lngJ - lngI) < x)) {
+              (lngI + (y - latI) / (latJ - latI) * (lngJ - lngI) < x)) {
               oddNodes = !oddNodes;
             }
             j = i;
@@ -266,10 +266,10 @@ const Search = () => {
         const fromLower = fromAddress.toLowerCase();
         const toLower = toAddress.toLowerCase();
         const matchesPune = fromLower.includes('pune') && toLower.includes('pune');
-        const matchesMumbai = (fromLower.includes('mumbai') || fromLower.includes('thane') || fromLower.includes('dadar')) && 
-                              (toLower.includes('mumbai') || toLower.includes('thane') || toLower.includes('dadar'));
+        const matchesMumbai = (fromLower.includes('mumbai') || fromLower.includes('thane') || fromLower.includes('dadar')) &&
+          (toLower.includes('mumbai') || toLower.includes('thane') || toLower.includes('dadar'));
         const matchesNashik = fromLower.includes('nashik') && toLower.includes('nashik');
-        
+
         if (tripType === 'Local-taxi') {
           if (!matchesPune && !matchesMumbai && !matchesNashik) {
             setErrorMsg('Local Taxi is limited to Pune, Mumbai, or Nashik city limits only. Please choose One-way for intercity trips.');
@@ -325,7 +325,7 @@ const Search = () => {
 
   const stats = [
     { icon: 'fa-headset', title: '24/7 Customer Support', desc: "We're here to help you" },
-    { icon: 'fa-users', title: 'Trusted by 10,000+ Users', desc: 'Join our happy customers' },
+    { icon: 'fa-users', title: 'Trusted by 10,00+ Drivers', desc: 'Join our happy customers' },
     { icon: 'fa-bolt', title: 'Quick & Easy Booking', desc: 'Book in less than 2 minutes' },
     { icon: 'fa-shield-halved', title: 'Secure Payments', desc: '100% Safe & Secure' },
   ];
@@ -356,7 +356,7 @@ const Search = () => {
           <div className="agni-fade max-w-[640px]">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 border border-white/22 rounded-full mb-5 backdrop-blur-md">
               <i className="fas fa-car-side text-[#7ab8ff] text-xs"></i>
-              <span className="text-[10px] sm:text-xs font-bold text-sky-50 tracking-wider uppercase">AGNI CAR RENTAL</span>
+              <span className="text-[10px] sm:text-xs font-bold text-sky-50 tracking-wider uppercase">RENTOX CAR RENTAL</span>
             </div>
 
             <h1 className="agni-hero-title font-extrabold text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-2">
@@ -389,13 +389,7 @@ const Search = () => {
         </div>
 
         {/* Rating badge, floating over the image on the right */}
-        <div className="hidden lg:flex absolute right-6 top-12 bg-white/95 rounded-2xl p-4 items-center gap-3 shadow-2xl backdrop-blur-md border border-white/20">
-          <i className="fas fa-star text-[#FFB300] text-2xl"></i>
-          <div>
-            <div className="text-lg font-extrabold text-[#0B1F3A] leading-none">4.8/5</div>
-            <div className="text-[10px] text-gray-400 mt-1 font-semibold">Customer Rating</div>
-          </div>
-        </div>
+       
       </div>
 
       {/* ── SEARCH CARD (overlaps hero) ─────────────────────────────── */}
@@ -580,7 +574,7 @@ const Search = () => {
               <div className="hidden lg:flex items-center gap-6">
                 {[
                   { icon: 'fa-mobile-screen', color: '#008CFF', title: 'Easy Booking', sub: 'Quick & hassle-free' },
-                  { icon: 'fa-circle-check', color: '#22C55E', title: 'No Hidden Charges', sub: '100% Transparent' },
+                  
                   { icon: 'fa-bolt', color: '#FFB300', title: 'Instant Confirmation', sub: 'Get details instantly' },
                 ].map((b, i) => (
                   <div key={i} className="flex items-center gap-2.5">
@@ -616,7 +610,7 @@ const Search = () => {
         <div className="text-center mb-10">
           <span className="text-xs font-bold text-[#008CFF] tracking-widest uppercase">WHY RIDE WITH US</span>
           <h2 className="font-extrabold text-2xl sm:text-3xl text-[#0B1F3A] mt-2 mb-0">
-            Why Choose Agni Car Rental?
+            Why Choose Rentox Car Rental?
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -648,7 +642,7 @@ const Search = () => {
           ))}
         </div>
         <div className="border-t border-white/5 py-4 text-center">
-          <p className="m-0 text-[10px] text-gray-500 tracking-wider">© 2026 AGNI CAR RENTAL. ALL RIGHTS RESERVED.</p>
+          <p className="m-0 text-[10px] text-gray-500 tracking-wider">© 2025 RENTOX CAR RENTAL. ALL RIGHTS RESERVED.</p>
         </div>
       </div>
     </div>

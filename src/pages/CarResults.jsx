@@ -101,7 +101,7 @@ const CarResults = () => {
   }, [fromAddress, toAddress, tripType, fromLat, fromLng, toLat, toLng]);
 
   // Block One-Way / Round-Trip when road distance < 50 km (exempt local taxi and local duty)
-  const isBelowMinDistance = distChecked && distanceKm !== null && distanceKm < 50 && tripType !== 'Local-taxi' && tripType !== 'Local-Duty';
+  const isBelowMinDistance = false;
 
   useEffect(() => {
     fetchCars();

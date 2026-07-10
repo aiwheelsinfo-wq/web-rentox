@@ -155,8 +155,16 @@ const CarResults = () => {
 
         const response = await axios.get(url);
         if (Array.isArray(response.data)) {
-          setCars(response.data);
-          setFilteredCars(response.data);
+          let fetchedCars = response.data;
+          if (tripType === 'Local-Duty') {
+            fetchedCars = fetchedCars.map(car => ({
+              ...car,
+              discounted_price: car.baseAmount,
+              discount_percentage: 0
+            }));
+          }
+          setCars(fetchedCars);
+          setFilteredCars(fetchedCars);
         } else {
           setErrorMsg('Invalid response received from the server.');
         }

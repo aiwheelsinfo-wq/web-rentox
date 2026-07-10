@@ -90,10 +90,23 @@ const Invoice = () => {
   const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || 250) : 250;
   const roundTripAdvance = dailyLimit * 2 * days;
 
-  const payableNow = tripType === 'Round-Trip' ? roundTripAdvance : (tripFare * 0.25) + (tripFare * 0.05);
-  const advanceAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare * 0.25;
-  const gstAmount = tripType === 'Round-Trip' ? 0 : tripFare * 0.05;
-  const remainingBalance = tripType === 'Round-Trip' ? 0 : tripFare * 0.75;
+  let payableNow, advanceAmount, gstAmount, remainingBalance;
+  if (tripType === 'Round-Trip') {
+    payableNow = roundTripAdvance;
+    advanceAmount = roundTripAdvance;
+    gstAmount = 0;
+    remainingBalance = 0;
+  } else if (tripType === 'Local-Duty') {
+    payableNow = 250;
+    advanceAmount = 250;
+    gstAmount = 0;
+    remainingBalance = Math.max(0, tripFare - 250);
+  } else {
+    payableNow = (tripFare * 0.25) + (tripFare * 0.05);
+    advanceAmount = tripFare * 0.25;
+    gstAmount = tripFare * 0.05;
+    remainingBalance = tripFare * 0.75;
+  }
 
   const handlePayNow = (e) => {
     e.preventDefault();
@@ -104,6 +117,7 @@ const Invoice = () => {
     if (!city.trim()) return setErrorMsg('Please enter your city.');
     if (!pincode.trim() || pincode.trim().length !== 6) return setErrorMsg('Please enter a valid 6-digit pincode.');
     if (!custMobile.trim() || custMobile.trim().length !== 10) return setErrorMsg('Please enter a valid 10-digit customer mobile.');
+    if (!/^\d+$/.test(custMobile)) return setErrorMsg('Mobile number must contain only numbers.');
 
     if (includeGst) {
       if (!gstNumber.trim() || gstNumber.trim().length !== 15) return setErrorMsg('Please enter a valid 15-digit GST number.');
@@ -284,11 +298,16 @@ const Invoice = () => {
                 <div className="md:col-span-2">
                   <label className="block text-3xs font-extrabold text-gray-400 uppercase mb-2">CONTACT NUMBER</label>
                   <input
-                    type="tel"
+                    type="text"
                     value={custMobile}
                     onChange={(e) => {
-                      const onlyNums = e.target.value.replace(/[^0-9]/g, '');
-                      setCustMobile(onlyNums);
+                      const val = e.target.value;
+                      setCustMobile(val);
+                      if (val && !/^\d+$/.test(val)) {
+                        setErrorMsg('Only numbers are allowed. Please remove any alphabets or special characters.');
+                      } else {
+                        setErrorMsg('');
+                      }
                     }}
                     maxLength={10}
                     required
@@ -519,6 +538,22 @@ const Invoice = () => {
                     </div>
                     <div className="text-3xs text-gray-400 mt-2 leading-relaxed">
                       *Remaining balance will be calculated based on actual distance run ({"\u20B9"}{selectedCar.kmRate}/km) and toll/permit receipts at trip end.
+                    </div>
+                  </>
+                ) : tripType === 'Local-Duty' ? (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Flat Booking Advance</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}250</span>
+                    </div>
+                    <hr className="border-brandAmber/20" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-green-700">Payable Now</span>
+                      <span className="text-base font-black text-green-700">{"\u20B9"}{Math.round(payableNow)}</span>
+                    </div>
+                    <div className="flex justify-between text-3xs text-gray-400 mt-1">
+                      <span>Balance payable to Driver:</span>
+                      <span className="font-bold">{"\u20B9"}{Math.round(remainingBalance)}</span>
                     </div>
                   </>
                 ) : (

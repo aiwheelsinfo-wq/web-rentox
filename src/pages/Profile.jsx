@@ -144,6 +144,11 @@ const Profile = () => {
       return;
     }
 
+    if (!/^\d+$/.test(phone)) {
+      setErrorMsg('Mobile number must contain only numeric digits.');
+      return;
+    }
+
     setLoading(true);
     const otpVal = Math.floor(1000 + Math.random() * 9000).toString();
     setGeneratedOtp(otpVal);
@@ -707,11 +712,16 @@ const Profile = () => {
                         +91
                       </span>
                       <input
-                        type="tel"
+                        type="text"
                         value={phone}
                         onChange={(e) => {
-                          const onlyNums = e.target.value.replace(/[^0-9]/g, '');
-                          setPhone(onlyNums);
+                          const val = e.target.value;
+                          setPhone(val);
+                          if (val && !/^\d+$/.test(val)) {
+                            setErrorMsg('Only numbers are allowed. Please remove any alphabets or special characters.');
+                          } else {
+                            setErrorMsg('');
+                          }
                         }}
                         maxLength={10}
                         required

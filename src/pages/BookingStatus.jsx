@@ -56,6 +56,7 @@ const BookingStatus = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('Change of plans');
   const [copiedOtp, setCopiedOtp] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -701,21 +702,31 @@ const BookingStatus = () => {
                 const details = getAdvanceReceiptDetails();
                 if (!details) return null;
                 return (
-                  <div className="bg-[#E8F3F0] border border-[#BFE1D8] rounded-2xl p-6 shadow-sm flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <span className="text-[10px] font-bold text-[#0F766E] uppercase tracking-wider block">Advance Paid</span>
-                      <span className="text-xl font-extrabold text-[#0F766E] mt-1 block">
-                        ₹{details.advancePaid.toFixed(2)}
-                      </span>
+                  <div className="bg-[#E8F3F0] border border-[#BFE1D8] rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <span className="text-[10px] font-bold text-[#0F766E] uppercase tracking-wider block">Advance Paid</span>
+                        <span className="text-xl font-extrabold text-[#0F766E] mt-1 block">
+                          ₹{details.advancePaid.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="w-[1px] h-10 bg-[#BFE1D8]"></div>
+                      <div className="flex-1 text-right">
+                        <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">
+                          {details.isCompleted ? 'Balance Due' : 'Est. Balance'}
+                        </span>
+                        <span className={`text-xl font-extrabold mt-1 block ${details.remaining > 0 ? 'text-[#C4432F]' : 'text-[#0F766E]'}`}>
+                          ₹{details.remaining.toFixed(2)}{!details.isCompleted && <span className="text-xs font-normal text-[#9B9484] ml-1">(Est.)</span>}
+                        </span>
+                      </div>
                     </div>
-                    <div className="w-[1px] h-10 bg-[#BFE1D8]"></div>
-                    <div className="flex-1 text-right">
-                      <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">
-                        {details.isCompleted ? 'Balance Due' : 'Est. Balance'}
-                      </span>
-                      <span className={`text-xl font-extrabold mt-1 block ${details.remaining > 0 ? 'text-[#C4432F]' : 'text-[#0F766E]'}`}>
-                        ₹{details.remaining.toFixed(2)}{!details.isCompleted && <span className="text-xs font-normal text-[#9B9484] ml-1">(Est.)</span>}
-                      </span>
+                    <div className="flex justify-end border-t border-dashed border-[#BFE1D8] pt-3">
+                      <button
+                        onClick={() => setShowReceiptModal(true)}
+                        className="text-[#0F766E] hover:text-[#0D625B] text-xs font-bold flex items-center gap-1.5 transition-colors"
+                      >
+                        <i className="fas fa-receipt"></i> View Receipt
+                      </button>
                     </div>
                   </div>
                 );
@@ -978,6 +989,136 @@ const BookingStatus = () => {
                 className="flex-1 bg-[#E85D4C] text-white hover:bg-[#D64D3C] text-xs font-bold py-3 rounded-xl transition-all shadow-sm"
               >
                 Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Advance Receipt Modal */}
+      {showReceiptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-[#E8E4DA] overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="px-6 py-5 bg-[#F7F4EE] border-b border-[#E8E4DA] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-[#1C1F26] uppercase tracking-wider">Advance Payment Receipt</h3>
+                <span className="inline-flex items-center gap-1 bg-[#E8F3F0] text-[#0F766E] text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0F766E]"></span> SUCCESS
+                </span>
+              </div>
+              <button 
+                onClick={() => setShowReceiptModal(false)}
+                className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors shadow-sm"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 flex flex-col gap-4 text-sm text-[#1C1F26]">
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500 font-medium">Booking ID</span>
+                <span className="font-semibold">#{booking.id}</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500 font-medium">Date & Time</span>
+                <span className="font-semibold">{booking.date} • {booking.time}</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500 font-medium">Car Type</span>
+                <span className="font-semibold">{booking.car_type}</span>
+              </div>
+              <div className="flex justify-between items-start py-1">
+                <span className="text-gray-500 font-medium">Route</span>
+                <span className="font-semibold text-right max-w-[200px] break-words">
+                  {booking.from_address} to {booking.to_address || 'Local Duty'}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500 font-medium">Trip Type</span>
+                <span className="font-semibold">{booking.trip_type}</span>
+              </div>
+
+              {(() => {
+                const isRoundTrip = (booking.trip_type || '').toLowerCase().includes('round');
+                const isLocalDuty = (booking.trip_type || '').toLowerCase().includes('local-duty');
+                const totalFare = parseFloat(booking.total_amount || 0);
+                const details = getAdvanceReceiptDetails();
+                if (!details) return null;
+
+                if (isRoundTrip) {
+                  let days = 1;
+                  try {
+                    const startStr  = booking.booked_start_date  || booking.date || '';
+                    const returnStr = booking.booked_return_date || booking.return_date || '';
+                    if (startStr && returnStr) {
+                      const s = new Date(startStr);
+                      const r = new Date(returnStr);
+                      const d = Math.round((r - s) / (1000 * 60 * 60 * 24)) + 1;
+                      if (d > 0) days = d;
+                    }
+                  } catch (_) {}
+                  return (
+                    <>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500 font-medium">Number of Days</span>
+                        <span className="font-semibold">{days} Days</span>
+                      </div>
+                      <div className="border-t border-dashed border-[#E8E4DA] my-2"></div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-800 font-bold">Paid Advance Now</span>
+                        <span className="text-lg font-black text-[#0F766E]">₹{details.advancePaid.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500 font-medium">Remaining Balance</span>
+                        <span className="font-semibold text-gray-700">Pay to Driver at Trip End</span>
+                      </div>
+                    </>
+                  );
+                } else {
+                  const baseAdvance = isLocalDuty ? details.advancePaid : (totalFare * 0.25);
+                  const gst = isLocalDuty ? 0.0 : (totalFare * 0.05);
+                  return (
+                    <>
+                      <div className="border-t border-dashed border-[#E8E4DA] my-2"></div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500 font-medium">Total Trip Fare</span>
+                        <span className="font-semibold">₹{totalFare.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500 font-medium">{isLocalDuty ? 'Advance' : 'Advance (25%)'}</span>
+                        <span className="font-semibold">₹{baseAdvance.toFixed(2)}</span>
+                      </div>
+                      {!isLocalDuty && (
+                        <div className="flex justify-between items-center py-1">
+                          <span className="text-gray-500 font-medium">GST (5%)</span>
+                          <span className="font-semibold">₹{gst.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-dashed border-[#E8E4DA] my-2"></div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-800 font-bold">{isLocalDuty ? 'Paid Amount Now' : 'Paid Amount Now (30%)'}</span>
+                        <span className="text-lg font-black text-[#0F766E]">₹{details.advancePaid.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500 font-medium">Remaining Balance ({isLocalDuty ? 'Est.' : '75%'})</span>
+                        <span className="font-semibold">₹{details.remaining.toFixed(2)}</span>
+                      </div>
+                    </>
+                  );
+                }
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-[#F7F4EE] border-t border-[#E8E4DA] flex justify-end">
+              <button
+                onClick={() => setShowReceiptModal(false)}
+                className="bg-[#1C1F26] text-white hover:bg-[#2C303A] text-xs font-bold px-5 py-2.5 rounded-xl transition-all"
+              >
+                Close Receipt
               </button>
             </div>
           </div>

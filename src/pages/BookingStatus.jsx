@@ -379,7 +379,7 @@ const BookingStatus = () => {
           <tr><td>Bill No:</td><td>${booking.invoice_no || booking.id}</td></tr>
           <tr><td>Passenger:</td><td>${booking.name || 'Valued Customer'}</td></tr>
           <tr><td>Trip Type:</td><td>${booking.trip_type}</td></tr>
-          <tr><td>Vehicle:</td><td>${booking.car_type}${booking.vehicle_number ? ' - ' + booking.vehicle_number : ''}</td></tr>
+          <tr><td>Vehicle:</td><td>${booking.car_type}${booking.vehicle_id ? ' - ' + booking.vehicle_id : ''}</td></tr>
           <tr><td>From</td><td>${booking.from_address}</td></tr>
           ${isLocalDuty ? '' : `<tr><td>To</td><td>${booking.to_address}</td></tr>`}
           <tr><td>Date:</td><td>${booking.date}</td></tr>
@@ -686,12 +686,12 @@ const BookingStatus = () => {
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-bold text-[#9B9484] uppercase tracking-widest">VEHICLE DETAILS</span>
-                    <h4 className="text-sm font-bold text-[#1C1F26] mt-0.5">{driver.vehicle_name}</h4>
+                    <h4 className="text-sm font-bold text-[#1C1F26] mt-0.5">{driver.vehicle_name || booking.car_type}</h4>
                     <span
                       className="inline-block bg-[#1C1F26] text-white text-[11px] px-2.5 py-1 rounded font-bold uppercase tracking-wider mt-1.5"
                       style={{ fontFamily: "'IBM Plex Mono', monospace" }}
                     >
-                      {driver.vehicle_id}
+                      {booking.vehicle_id || driver.vehicle_id || 'Allocating...'}
                     </span>
                   </div>
                 </div>

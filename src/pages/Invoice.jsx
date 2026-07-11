@@ -101,6 +101,11 @@ const Invoice = () => {
     advanceAmount = 250;
     gstAmount = 0;
     remainingBalance = Math.max(0, tripFare - 250);
+  } else if (tripType === 'Local-taxi') {
+    payableNow = 0;
+    advanceAmount = 0;
+    gstAmount = 0;
+    remainingBalance = tripFare;
   } else {
     payableNow = (tripFare * 0.25) + (tripFare * 0.05);
     advanceAmount = tripFare * 0.25;
@@ -132,6 +137,38 @@ const Invoice = () => {
   const submitBookingAndPayment = async () => {
     setShowConfirmModal(false);
     setLoading(true);
+
+    if (tripType === 'Local-taxi') {
+      try {
+        const response = await axios.post(endpoints.saveLocalTaxi, {
+          booking_number: custMobile,
+          phone_number: phoneNumber,
+          name: name,
+          email: email,
+          city: city,
+          pincode: pincode,
+          from_address: fromAddress,
+          to_address: toAddress || '',
+          car_type: selectedCar.carType,
+          total_amount: tripFare,
+          distance: selectedCar.packageKm || '40'
+        }, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.data && response.data.status === 'success' && response.data.booking_id) {
+          const savedBookingId = response.data.booking_id.toString();
+          navigate(`/booking-success?id=${savedBookingId}`);
+        } else {
+          setErrorMsg(response.data.message || 'Failed to save booking. Please try again.');
+          setLoading(false);
+        }
+      } catch (e) {
+        setErrorMsg('Error communicating with the server. Please try again.');
+        setLoading(false);
+      }
+      return;
+    }
 
     const vendorEarnings = tripFare * 0.90;
     const platformCommission = tripFare * 0.10;
@@ -420,7 +457,7 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    PAY ADVANCE {"\u20B9"}{Math.round(payableNow)} <i className="fas fa-arrow-right"></i>
+                    {tripType === 'Local-taxi' ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
                   </>
                 )}
               </button>
@@ -591,9 +628,19 @@ const Invoice = () => {
               <i className="fas fa-credit-card text-brandAmber text-lg"></i>
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-brandCharcoal">Confirm Advance Payment</h3>
+              <h3 className="text-base font-extrabold text-brandCharcoal">
+                {tripType === 'Local-taxi' ? 'Confirm Booking' : 'Confirm Advance Payment'}
+              </h3>
               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                You are paying a secure booking deposit of <strong>{"\u20B9"}{Math.round(payableNow)}</strong> to lock this {selectedCar.carType} trip.
+                {tripType === 'Local-taxi' ? (
+                  <>
+                    Confirm your booking for this <strong>{selectedCar.carType}</strong> trip. No advance payment is required.
+                  </>
+                ) : (
+                  <>
+                    You are paying a secure booking deposit of <strong>{"\u20B9"}{Math.round(payableNow)}</strong> to lock this {selectedCar.carType} trip.
+                  </>
+                )}
               </p>
             </div>
             <div className="flex gap-3 mt-2">
@@ -607,7 +654,7 @@ const Invoice = () => {
                 onClick={submitBookingAndPayment}
                 className="flex-1 bg-brandBlue text-white hover:bg-blue-600 text-xs font-bold py-3 rounded-xl transition-all shadow-sm"
               >
-                Pay Now
+                {tripType === 'Local-taxi' ? 'Confirm' : 'Pay Now'}
               </button>
             </div>
           </div>

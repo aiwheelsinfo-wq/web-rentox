@@ -207,20 +207,18 @@ const BookingStatus = () => {
     const formattedStartDate = `${startingDate} ${startingTime}`;
     const formattedEndDate = `${closingDate} ${closingTime}`;
 
-    // —— Round-Trip specific calculations ——
+    // —— Calculate days based on booking start and return dates ——
     let days = 1;
-    if (isRoundTrip) {
-      try {
-        const startStr  = booking.booked_start_date  || booking.date || '';
-        const returnStr = booking.booked_return_date || booking.return_date || '';
-        if (startStr && returnStr) {
-          const s = new Date(startStr);
-          const r = new Date(returnStr);
-          const d = Math.round((r - s) / (1000 * 60 * 60 * 24)) + 1;
-          if (d > 0) days = d;
-        }
-      } catch (_) {}
-    }
+    try {
+      const startStr  = booking.booked_start_date  || booking.date || '';
+      const returnStr = booking.booked_return_date || booking.return_date || '';
+      if (startStr && returnStr) {
+        const s = new Date(startStr);
+        const r = new Date(returnStr);
+        const d = Math.round((r - s) / (1000 * 60 * 60 * 24)) + 1;
+        if (d > 0) days = d;
+      }
+    } catch (_) {}
 
     let maxKm = 0;
     let baseAmount = 0;
@@ -299,16 +297,19 @@ const BookingStatus = () => {
     } 
     else if (isOneWay) {
       const distance = parseFloat(booking.distance || 0);
-      const driverAllowanceVal = distance < 200 ? 300 : 400;
-      driverTotal = 0;
+      // Day 1 has no driver allowance, Day 2 onwards has driver allowance
+      const singleDayAllowance = distance < 200 ? 300 : 400;
+      const driverAllowanceVal = days > 1 ? singleDayAllowance * (days - 1) : 0;
+      driverTotal = driverAllowanceVal;
 
       baseAmount = parseFloat(booking.total_amount || 0);
       if (baseAmount === 0) {
-        baseAmount = (distance * kmRate) + driverAllowanceVal;
+        baseAmount = (distance * kmRate) + singleDayAllowance;
       }
 
       gstAmount = baseAmount * gstPercent / 100;
-      netTotal = baseAmount + gstAmount + parkingCharge;
+      // Add driver allowance to netTotal if it's a multi-day trip
+      netTotal = baseAmount + gstAmount + parkingCharge + (days > 1 ? driverTotal : 0);
 
       baseChargeVal = parseFloat(booking.base_charge || 0);
       if (baseChargeVal === 0) {

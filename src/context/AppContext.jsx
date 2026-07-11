@@ -3,8 +3,8 @@ import React, { createContext, useState, useEffect } from 'react';
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState(() => localStorage.getItem('cust_phone_number') || '');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('cust_phone_number'));
 
   // Search parameters persisted to localStorage to prevent refresh data loss
   const [tripType, setTripType] = useState(() => localStorage.getItem('search_tripType') || 'One-way');
@@ -43,15 +43,6 @@ export const AppProvider = ({ children }) => {
     }
   });
   const [tempBookingId, setTempBookingId] = useState(() => localStorage.getItem('search_tempBookingId') || '');
-
-  // Persist authentication state
-  useEffect(() => {
-    const savedPhone = localStorage.getItem('cust_phone_number');
-    if (savedPhone) {
-      setPhoneNumber(savedPhone);
-      setIsLoggedIn(true);
-    }
-  }, []);
 
   // Sync state values back to localStorage on change
   useEffect(() => {

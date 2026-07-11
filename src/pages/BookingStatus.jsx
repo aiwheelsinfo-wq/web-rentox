@@ -534,6 +534,72 @@ const BookingStatus = () => {
     return 'bg-[#F1EFE9] text-[#9B9484]';
   };
 
+  const getAdvanceReceiptDetails = () => {
+    if (!booking) return null;
+
+    const isRoundTrip = (booking.trip_type || '').toLowerCase().includes('round');
+    const isLocalDuty = (booking.trip_type || '').toLowerCase().includes('local-duty');
+    const isCompleted = booking.booking_status.toLowerCase().includes('complet');
+
+    const totalFare = parseFloat(booking.total_amount || 0);
+    let advancePaid = parseFloat(booking.paid_amount || 0);
+
+    if (booking.payment_type === 'Advance' && advancePaid === 0) {
+      if (isLocalDuty) {
+        advancePaid = 250.0;
+      } else {
+        advancePaid = totalFare * 0.25;
+      }
+    }
+
+    let remaining = totalFare - advancePaid;
+
+    if (isRoundTrip) {
+      let days = 1;
+      try {
+        const startStr  = booking.booked_start_date  || booking.date || '';
+        const returnStr = booking.booked_return_date || booking.return_date || '';
+        if (startStr && returnStr) {
+          const s = new Date(startStr);
+          const r = new Date(returnStr);
+          const d = Math.round((r - s) / (1000 * 60 * 60 * 24)) + 1;
+          if (d > 0) days = d;
+        }
+      } catch (_) {}
+
+      const startingKm  = parseFloat(booking.starting_km || 0);
+      const closingKm   = parseFloat(booking.closing_km  || 0);
+      const totalKm     = closingKm - startingKm;
+      const kmRate      = parseFloat(booking.kmRate || 0);
+      const dailyLimit  = parseFloat(booking.daily_limit || 250);
+      const gstPercent  = parseFloat(booking.gstPercent || 5);
+      const parkingCharge  = parseFloat(booking.parking_charge || 0);
+      const tollCharge     = parseFloat(booking.toll_charge     || 0);
+      const permitCharge   = parseFloat(booking.permit_charge   || 0);
+      const driverAllowance = parseFloat(booking.driver_allowance || 0);
+      const agent_commission = parseFloat(booking.agent_commission || 0);
+
+      const maxKm = Math.max(totalKm, dailyLimit * days);
+      const commissionRate = (agent_commission > 0 && days > 0 && dailyLimit > 0) 
+        ? Math.round(agent_commission / (dailyLimit * days)) 
+        : 0;
+      const effectiveKmRate = kmRate + commissionRate;
+      const baseAmount = maxKm * effectiveKmRate;
+
+      const gstAmount = baseAmount * (gstPercent / 100);
+      const driverTotal = driverAllowance * days;
+      const netTotal = baseAmount + gstAmount + parkingCharge + tollCharge + permitCharge + driverTotal;
+
+      remaining = netTotal - advancePaid;
+    }
+
+    return {
+      advancePaid,
+      remaining: Math.max(0, remaining),
+      isCompleted
+    };
+  };
+
   return (
     <div className="min-h-screen" style={{ ...pageBg, fontFamily: "'Inter', sans-serif" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
@@ -628,6 +694,33 @@ const BookingStatus = () => {
                 </div>
               )}
             </div>
+
+            {/* Advance Payment Receipt */}
+            {booking && (booking.payment_type === 'Advance' || parseFloat(booking.paid_amount || 0) > 0) && (
+              (() => {
+                const details = getAdvanceReceiptDetails();
+                if (!details) return null;
+                return (
+                  <div className="bg-[#E8F3F0] border border-[#BFE1D8] rounded-2xl p-6 shadow-sm flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <span className="text-[10px] font-bold text-[#0F766E] uppercase tracking-wider block">Advance Paid</span>
+                      <span className="text-xl font-extrabold text-[#0F766E] mt-1 block">
+                        ₹{details.advancePaid.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="w-[1px] h-10 bg-[#BFE1D8]"></div>
+                    <div className="flex-1 text-right">
+                      <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">
+                        {details.isCompleted ? 'Balance Due' : 'Est. Balance'}
+                      </span>
+                      <span className={`text-xl font-extrabold mt-1 block ${details.remaining > 0 ? 'text-[#C4432F]' : 'text-[#0F766E]'}`}>
+                        ₹{details.remaining.toFixed(2)}{!details.isCompleted && <span className="text-xs font-normal text-[#9B9484] ml-1">(Est.)</span>}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
 
             {/* OTP Card — shown when driver is assigned */}
             {otp && (
@@ -777,10 +870,8 @@ const BookingStatus = () => {
               </button>
             )}
 
-            {/* Invoice/Receipt Download Option - Visible for all confirmed/pending and completed bookings */}
-            {!booking.booking_status.toLowerCase().includes('temp') &&
-             !booking.booking_status.toLowerCase().includes('cancel') &&
-             !booking.booking_status.toLowerCase().includes('fail') && (
+            {/* Completed Invoice Download Option */}
+            {booking.booking_status.toLowerCase().includes('complet') && (
               <button
                 onClick={handleDownloadInvoice}
                 className="bg-[#0F766E] hover:bg-[#0C5F58] text-white font-bold text-xs py-4 rounded-2xl transition-all shadow-sm w-full flex items-center justify-center gap-2"

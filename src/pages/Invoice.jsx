@@ -484,18 +484,24 @@ const Invoice = () => {
               <div className="flex gap-3">
                 <div className="flex flex-col items-center">
                   <i className="fas fa-circle-dot text-brandBlue text-xs"></i>
-                  <div className="w-[1.5px] h-10 bg-gray-100"></div>
-                  <i className="fas fa-location-dot text-red-500 text-xs"></i>
+                  {tripType !== 'Local-Duty' && (
+                    <>
+                      <div className="w-[1.5px] h-10 bg-gray-100"></div>
+                      <i className="fas fa-location-dot text-red-500 text-xs"></i>
+                    </>
+                  )}
                 </div>
                 <div className="flex-1 flex flex-col gap-5 text-2xs">
                   <div>
                     <span className="text-gray-400 uppercase tracking-wider font-extrabold">PICKUP ADDRESS</span>
                     <p className="font-semibold text-brandCharcoal truncate mt-0.5">{fromAddress}</p>
                   </div>
-                  <div>
-                    <span className="text-gray-400 uppercase tracking-wider font-extrabold">DESTINATION ADDRESS</span>
-                    <p className="font-bold text-brandCharcoal truncate mt-0.5">{toAddress}</p>
-                  </div>
+                  {tripType !== 'Local-Duty' && (
+                    <div>
+                      <span className="text-gray-400 uppercase tracking-wider font-extrabold">DESTINATION ADDRESS</span>
+                      <p className="font-bold text-brandCharcoal truncate mt-0.5">{toAddress}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

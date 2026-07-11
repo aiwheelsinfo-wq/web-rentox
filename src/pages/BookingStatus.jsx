@@ -300,7 +300,7 @@ const BookingStatus = () => {
     else if (isOneWay) {
       const distance = parseFloat(booking.distance || 0);
       const driverAllowanceVal = distance < 200 ? 300 : 400;
-      driverTotal = driverAllowanceVal;
+      driverTotal = 0;
 
       baseAmount = parseFloat(booking.total_amount || 0);
       if (baseAmount === 0) {

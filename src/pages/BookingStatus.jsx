@@ -179,6 +179,7 @@ const BookingStatus = () => {
 
   const handleDownloadInvoice = () => {
     const printWindow = window.open('', '_blank');
+    const isRoundTrip = (booking.trip_type || '').toLowerCase().includes('round');
     const isOneWay = (booking.trip_type || '').toLowerCase().includes('one-way') || (booking.trip_type || '').toLowerCase().includes('oneway');
     const isLocalDuty = (booking.trip_type || '').toLowerCase().includes('local-duty');
     const isLocalTaxi = (booking.trip_type || '').toLowerCase().includes('local-taxi');

@@ -777,8 +777,10 @@ const BookingStatus = () => {
               </button>
             )}
 
-            {/* Completed Invoice Download Option */}
-            {booking.booking_status.toLowerCase().includes('complet') && (
+            {/* Invoice/Receipt Download Option - Visible for all confirmed/pending and completed bookings */}
+            {!booking.booking_status.toLowerCase().includes('temp') &&
+             !booking.booking_status.toLowerCase().includes('cancel') &&
+             !booking.booking_status.toLowerCase().includes('fail') && (
               <button
                 onClick={handleDownloadInvoice}
                 className="bg-[#0F766E] hover:bg-[#0C5F58] text-white font-bold text-xs py-4 rounded-2xl transition-all shadow-sm w-full flex items-center justify-center gap-2"

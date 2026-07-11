@@ -416,12 +416,10 @@ const BookingStatus = () => {
               ${tr('Total Days', days, '')}
             ` : ''}
 
-            ${(!isLocalTaxi) ? `
-              ${tr('Parking',        '', parkingCharge > 0 ? parkingCharge.toFixed(2) : '0.00')}
-              ${tr('Toll',           '', tollCharge   > 0 ? tollCharge.toFixed(2)    : '0.00')}
-              ${tr('Permit Charge',  '', permitCharge > 0 ? permitCharge.toFixed(2)  : '0.00')}
-              ${tr('Driver Allowance', '', driverTotal > 0 ? driverTotal.toFixed(2) : '0.00')}
-            ` : ''}
+            ${tr('Parking',        '', parkingCharge > 0 ? parkingCharge.toFixed(1) : '0.0')}
+            ${tr('Toll',           '', tollCharge   > 0 ? tollCharge.toFixed(1)    : '0.0')}
+            ${tr('Permit Charge',  '', permitCharge > 0 ? permitCharge.toFixed(1)  : '0.0')}
+            ${tr('Driver Allowance', '', driverTotal > 0 ? driverTotal.toFixed(1) : '')}
 
             ${isOneWay ? `
               ${tr('Base Amount', '', baseChargeVal.toFixed(2))}
@@ -436,7 +434,7 @@ const BookingStatus = () => {
 
             <tr class="total-row">
               <td colspan="2" style="padding:8px 10px; border:1px solid #ddd; font-size:14px; font-weight:bold;">TOTAL</td>
-              <td style="padding:8px 10px; border:1px solid #ddd; font-size:14px; font-weight:bold; text-align:right;">${netTotal.toFixed(2)}</td>
+              <td style="padding:8px 10px; border:1px solid #ddd; font-size:14px; font-weight:bold; text-align:right;">${netTotal.toFixed(1)}</td>
             </tr>
             <tr class="advance-row">
               <td colspan="2" style="padding:8px 10px; border:1px solid #ddd;">Advanced Amount</td>
@@ -449,7 +447,7 @@ const BookingStatus = () => {
           </tbody>
         </table>
 
-        <p style="font-size:11px; color:#1a56db;">Agent Commission is included in the above amount</p>
+        <p style="font-size:11px; color:#555; margin-top:5px;">Agent Commission is included in the above amount</p>
 
         <div class="bank-section">
           <h3>Bank Details:</h3>

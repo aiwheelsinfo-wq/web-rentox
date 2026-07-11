@@ -179,9 +179,11 @@ const BookingStatus = () => {
 
   const handleDownloadInvoice = () => {
     const printWindow = window.open('', '_blank');
-    const isRoundTrip = (booking.trip_type || '').toLowerCase().includes('round');
+    const isOneWay = (booking.trip_type || '').toLowerCase().includes('one-way') || (booking.trip_type || '').toLowerCase().includes('oneway');
+    const isLocalDuty = (booking.trip_type || '').toLowerCase().includes('local-duty');
+    const isLocalTaxi = (booking.trip_type || '').toLowerCase().includes('local-taxi');
 
-    // â”€â”€ Shared values â”€â”€
+    // —— Shared values ——
     const invoiceDate = booking.invoice_date || booking.date || new Date().toISOString().split('T')[0];
     const startingKm  = parseFloat(booking.starting_km || 0);
     const closingKm   = parseFloat(booking.closing_km  || 0);
@@ -194,8 +196,17 @@ const BookingStatus = () => {
     const permitCharge   = parseFloat(booking.permit_charge   || 0);
     const driverAllowance = parseFloat(booking.driver_allowance || 0);
     const advancedAmount  = parseFloat(booking.paid_amount || 0);
+    const agent_commission = parseFloat(booking.agent_commission || 0);
 
-    // â”€â”€ Round-Trip specific calculations (match Flutter car_invoice.dart) â”€â”€
+    const startingDate = booking.starting_date || booking.date || '0000-00-00';
+    const startingTime = booking.starting_time || booking.time || '00:00:00';
+    const closingDate = booking.closing_date || booking.return_date || '0000-00-00';
+    const closingTime = booking.closing_time || booking.return_time || '00:00:00';
+
+    const formattedStartDate = `${startingDate} ${startingTime}`;
+    const formattedEndDate = `${closingDate} ${closingTime}`;
+
+    // —— Round-Trip specific calculations ——
     let days = 1;
     if (isRoundTrip) {
       try {
@@ -210,15 +221,104 @@ const BookingStatus = () => {
       } catch (_) {}
     }
 
-    const maxKm        = isRoundTrip ? Math.max(totalKm, dailyLimit * days) : totalKm;
-    const baseAmount   = isRoundTrip ? (maxKm * kmRate) : parseFloat(booking.total_amount || 0);
-    const driverTotal  = isRoundTrip ? (driverAllowance * days) : driverAllowance;
-    const gstAmount    = isRoundTrip
-      ? (baseAmount * gstPercent / 100)
-      : (parseFloat(booking.total_amount || 0) * gstPercent / (100 + gstPercent));
-    const netTotal     = isRoundTrip
-      ? (baseAmount + gstAmount + parkingCharge + tollCharge + permitCharge + driverTotal)
-      : parseFloat(booking.total_amount || 0);
+    let maxKm = 0;
+    let baseAmount = 0;
+    let driverTotal = 0;
+    let gstAmount = 0;
+    let netTotal = 0;
+    let baseChargeVal = 0;
+
+    let packageBaseWithCommission = 0;
+    let extraKm = 0;
+    let extrakmAmount = 0;
+    let extraHours = 0;
+    let extraHoursAmount = 0;
+    let driverAllowanceLD = 0;
+
+    if (isLocalDuty) {
+      const packageKm = parseFloat(booking.packageKm || 0);
+      const packageHours = parseFloat(booking.packageHours || 0);
+      const extraKmPrice = parseFloat(booking.extra_km_price || 0);
+      const extraHoursPrice = parseFloat(booking.extra_hours_price || 0);
+      const packageBaseFare = parseFloat(booking.packageBaseFare || booking.baseAmount || 0);
+
+      extraKm = totalKm > packageKm ? totalKm - packageKm : 0;
+      extrakmAmount = extraKm * extraKmPrice;
+
+      let durationHours = 0;
+      try {
+        const startDT = new Date(`${startingDate}T${startingTime}`);
+        const endDT = new Date(`${closingDate}T${closingTime}`);
+        const diffMs = endDT - startDT;
+        if (!isNaN(diffMs)) {
+          const diffMins = Math.floor(diffMs / (1000 * 60));
+          durationHours = Math.floor(diffMins / 60);
+          const remMins = diffMins % 60;
+          if (remMins > 30) {
+            durationHours += 1;
+          }
+        }
+      } catch (_) {}
+
+      extraHours = durationHours > packageHours ? durationHours - packageHours : 0;
+      extraHoursAmount = extraHours * extraHoursPrice;
+
+      try {
+        const startHour = parseInt(startingTime.split(':')[0], 10);
+        const endHour = parseInt(closingTime.split(':')[0], 10);
+        const endMin = parseInt(closingTime.split(':')[1], 10);
+        if (startHour < 5 || endHour > 23 || (endHour === 23 && endMin > 30)) {
+          driverAllowanceLD = driverAllowance;
+        }
+      } catch (_) {}
+
+      const totalBeforeGst = packageBaseFare + extrakmAmount + extraHoursAmount + agent_commission;
+      gstAmount = totalBeforeGst * gstPercent / 100;
+      netTotal = totalBeforeGst + gstAmount + parkingCharge + tollCharge + permitCharge + driverAllowanceLD;
+
+      packageBaseWithCommission = packageBaseFare + agent_commission;
+      baseAmount = packageBaseFare;
+      driverTotal = driverAllowanceLD;
+    } 
+    else if (isRoundTrip) {
+      maxKm = Math.max(totalKm, dailyLimit * days);
+      const driverAllowanceXdays = driverAllowance * days;
+      driverTotal = driverAllowanceXdays;
+
+      let commissionRateVal = 0;
+      if (agent_commission > 0 && days > 0 && dailyLimit > 0) {
+        commissionRateVal = Math.round(agent_commission / (dailyLimit * days));
+      }
+      const baseKmCharge = maxKm * kmRate;
+      const agentCommissionAmount = maxKm * commissionRateVal;
+      baseAmount = baseKmCharge + agentCommissionAmount;
+
+      gstAmount = baseAmount * gstPercent / 100;
+      netTotal = baseAmount + gstAmount + parkingCharge + tollCharge + permitCharge + driverAllowanceXdays;
+    } 
+    else if (isOneWay) {
+      const distance = parseFloat(booking.distance || 0);
+      const driverAllowanceVal = distance < 200 ? 300 : 400;
+      driverTotal = driverAllowanceVal;
+
+      baseAmount = parseFloat(booking.total_amount || 0);
+      if (baseAmount === 0) {
+        baseAmount = (distance * kmRate) + driverAllowanceVal;
+      }
+
+      gstAmount = baseAmount * gstPercent / 100;
+      netTotal = baseAmount + gstAmount + parkingCharge;
+
+      baseChargeVal = parseFloat(booking.base_charge || 0);
+      if (baseChargeVal === 0) {
+        baseChargeVal = baseAmount - agent_commission;
+      }
+    } 
+    else if (isLocalTaxi) {
+      netTotal = parseFloat(booking.total_amount || 0);
+      gstAmount = 0;
+    }
+
     const balanceAmount = Math.max(0, netTotal - advancedAmount);
 
     // Helper to format a table row
@@ -279,7 +379,7 @@ const BookingStatus = () => {
           <tr><td>Trip Type:</td><td>${booking.trip_type}</td></tr>
           <tr><td>Vehicle:</td><td>${booking.car_type}${booking.vehicle_number ? ' - ' + booking.vehicle_number : ''}</td></tr>
           <tr><td>From</td><td>${booking.from_address}</td></tr>
-          <tr><td>To</td><td>${booking.to_address}</td></tr>
+          ${isLocalDuty ? '' : `<tr><td>To</td><td>${booking.to_address}</td></tr>`}
           <tr><td>Date:</td><td>${booking.date}</td></tr>
           ${booking.gst_number ? `<tr><td>GSTIN:</td><td>${booking.gst_number}</td></tr>` : ''}
           ${booking.business_name ? `<tr><td>Business:</td><td>${booking.business_name}</td></tr>` : ''}
@@ -290,29 +390,51 @@ const BookingStatus = () => {
             <tr>
               <th style="width:40%;">Description</th>
               <th style="width:35%;">Details</th>
-              <th style="width:25%; text-align:right;">Amount (\u20B9)</th>
+              <th style="width:25%; text-align:right;">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
-            ${tr('Starting Date', (booking.booked_start_date || booking.date || '') + ' ' + (booking.time || ''), '')}
-            ${tr('Ending Date',   (booking.booked_return_date || booking.return_date || '') + ' ' + (booking.return_time || ''), '')}
-            ${tr('Starting Km', startingKm || '', '')}
-            ${tr('Ending Km',   closingKm  || '', '')}
-            ${tr('Total Km',    totalKm.toFixed(2), '')}
-            ${isRoundTrip
-              ? tr('Total Km charge', `${maxKm.toFixed(1)} x ${kmRate.toFixed(1)}`, baseAmount.toFixed(1))
-              : tr('Base Trip Charge', `${booking.distance || 0} km @ \u20B9${kmRate}/km`, baseAmount.toFixed(1))
-            }
-            ${isRoundTrip ? tr('Total Days', days, '') : ''}
-            ${tr('Parking',        '', parkingCharge > 0 ? parkingCharge.toFixed(1) : '')}
-            ${tr('Toll',           '', tollCharge   > 0 ? tollCharge.toFixed(1)    : '')}
-            ${tr('Permit Charge',  '', permitCharge > 0 ? permitCharge.toFixed(1)  : '')}
-            ${tr('Driver Allowance', '', driverTotal > 0 ? driverTotal.toFixed(1) : '')}
-            ${booking.gst_number ? tr('GSTIN', booking.gst_number, '') : ''}
-            ${tr(`GST ${gstPercent.toFixed(1)}%`, '', gstAmount.toFixed(1))}
+            ${tr('Starting Date', formattedStartDate, '')}
+            ${tr('Ending Date',   formattedEndDate, '')}
+
+            ${(isLocalDuty || isRoundTrip) ? `
+              ${tr('Starting Km', startingKm || '', '')}
+              ${tr('Ending Km',   closingKm  || '', '')}
+              ${tr('Total Km',    totalKm.toFixed(2), '')}
+            ` : ''}
+
+            ${isLocalDuty ? `
+              ${tr('Package', `${booking.packageHours || 0} Hours - ${booking.packageKm || 0} Km`, packageBaseWithCommission.toFixed(2))}
+              ${tr('Extra Km', `Rs ${booking.extra_km_price || 0} * ${extraKm.toFixed(1)} Km`, extrakmAmount.toFixed(2))}
+              ${tr('Extra Hrs', `Rs ${booking.extra_hours_price || 0} * ${extraHours} Hrs`, extraHoursAmount.toFixed(2))}
+            ` : ''}
+
+            ${isRoundTrip ? `
+              ${tr('Total Km charge', `${maxKm.toFixed(1)} x ${(kmRate + (agent_commission > 0 && days > 0 && dailyLimit > 0 ? (agent_commission / (dailyLimit * days)) : 0)).toFixed(1)}`, baseAmount.toFixed(2))}
+              ${tr('Total Days', days, '')}
+            ` : ''}
+
+            ${(!isLocalTaxi) ? `
+              ${tr('Parking',        '', parkingCharge > 0 ? parkingCharge.toFixed(2) : '0.00')}
+              ${tr('Toll',           '', tollCharge   > 0 ? tollCharge.toFixed(2)    : '0.00')}
+              ${tr('Permit Charge',  '', permitCharge > 0 ? permitCharge.toFixed(2)  : '0.00')}
+              ${tr('Driver Allowance', '', driverTotal > 0 ? driverTotal.toFixed(2) : '0.00')}
+            ` : ''}
+
+            ${isOneWay ? `
+              ${tr('Base Amount', '', baseChargeVal.toFixed(2))}
+              ${tr('Agent Commission', '', agent_commission.toFixed(2))}
+              ${tr('Total Charge', '', baseAmount.toFixed(2))}
+            ` : ''}
+
+            ${(!isLocalTaxi) ? `
+              ${tr('GSTIN', '27AABPG5706A3ZB', '')}
+              ${tr(`GST ${gstPercent.toFixed(1)}%`, '', gstAmount.toFixed(2))}
+            ` : ''}
+
             <tr class="total-row">
               <td colspan="2" style="padding:8px 10px; border:1px solid #ddd; font-size:14px; font-weight:bold;">TOTAL</td>
-              <td style="padding:8px 10px; border:1px solid #ddd; font-size:14px; font-weight:bold; text-align:right;">${netTotal.toFixed(1)}</td>
+              <td style="padding:8px 10px; border:1px solid #ddd; font-size:14px; font-weight:bold; text-align:right;">${netTotal.toFixed(2)}</td>
             </tr>
             <tr class="advance-row">
               <td colspan="2" style="padding:8px 10px; border:1px solid #ddd;">Advanced Amount</td>

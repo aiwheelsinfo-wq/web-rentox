@@ -464,7 +464,7 @@ const BookingStatus = () => {
         </div>
 
         <div class="footer-note">
-          Kindly issue a crossed cheque in favour of AGNI CAR RENTAL "Subject To Mumbai Jurisdiction"
+          Kindly issue a crossed cheque in favour of RENTOXCAR RENTAL "Subject To Mumbai Jurisdiction"
         </div>
 
         <script>

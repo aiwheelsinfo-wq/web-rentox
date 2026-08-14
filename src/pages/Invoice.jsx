@@ -245,7 +245,7 @@ const Invoice = () => {
       key: activeKey,
       amount: Math.round(payableNow * 100), // in paise
       currency: "INR",
-      name: "Agni Car Rental",
+      name: "Rentox Car Rental",
       description: `Advance Booking for Trip #${bookingId}`,
       image: "https://agnicarrental.com/admin2025/images/pnglogoagni.png",
       handler: async function (response) {

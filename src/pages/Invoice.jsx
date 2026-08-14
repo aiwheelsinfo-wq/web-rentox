@@ -230,9 +230,19 @@ const Invoice = () => {
     }
   };
 
-  const launchRazorpayModal = (bookingId) => {
+  const launchRazorpayModal = async (bookingId) => {
+    let activeKey = RAZORPAY_KEY;
+    try {
+      const configRes = await axios.get(endpoints.getPaymentConfig);
+      if (configRes.data && configRes.data.success && configRes.data.razorpay_key) {
+        activeKey = configRes.data.razorpay_key;
+      }
+    } catch (e) {
+      console.error("Failed to load active Razorpay configuration, using fallback test key:", e);
+    }
+
     const options = {
-      key: RAZORPAY_KEY,
+      key: activeKey,
       amount: Math.round(payableNow * 100), // in paise
       currency: "INR",
       name: "Agni Car Rental",

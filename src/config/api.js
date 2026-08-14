@@ -6,6 +6,7 @@ export const API_BASE_URL = 'https://agnicarrental.com/2025';
 export const RAZORPAY_KEY = 'rzp_test_GIqSfPJk12gAgz'; // Test Key matching the Flutter customer app configuration
 
 export const endpoints = {
+  getPaymentConfig: `${API_BASE_URL}/get_razorpay_config.php`,
   checkPhoneStatus: `${API_BASE_URL}/check_phone_status.php`,
   sendOtp: `${API_BASE_URL}/send_otp.php`,
   savePhone: `${API_BASE_URL}/savePhone.php`,

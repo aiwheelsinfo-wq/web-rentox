@@ -210,16 +210,15 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      const regBody = new URLSearchParams();
-      regBody.append('name', regName);
-      regBody.append('email', regEmail);
-      regBody.append('phone_number', phone);
-      regBody.append('agent_id', 'Not Filled');
-      regBody.append('city', 'Not Filled');
-      regBody.append('pincode', '0');
-
-      const response = await axios.post(endpoints.customerReg, regBody, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      const response = await axios.post(endpoints.customerReg, {
+        name: regName,
+        email: regEmail,
+        phone_number: phone,
+        agent_id: 'Not Filled',
+        city: 'Not Filled',
+        pincode: '0'
+      }, {
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (response.data && response.data.status === 'success') {

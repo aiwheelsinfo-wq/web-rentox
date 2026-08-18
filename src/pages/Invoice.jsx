@@ -88,11 +88,13 @@ const Invoice = () => {
   };
 
   const days = calculateDays();
-  const tripFare = selectedCar ? parseFloat(selectedCar.discounted_price || selectedCar.baseAmount) : 0;
+  const rawBaseFare = selectedCar ? parseFloat(selectedCar.discounted_price || selectedCar.baseAmount) : 0;
+  const currentCommission = userRole === 'agent' ? (parseFloat(agentCommission) || 0) : 0;
+  const tripFare = rawBaseFare + currentCommission;
   
   // Daily KM Limit (default to 250 if not specified by selected car)
   const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || 250) : 250;
-  const roundTripAdvance = dailyLimit * 2 * days;
+  const roundTripAdvance = (dailyLimit * 2 * days) + currentCommission;
 
   let payableNow, advanceAmount, gstAmount, remainingBalance;
   if (tripType === 'Round-Trip') {
@@ -101,12 +103,12 @@ const Invoice = () => {
     gstAmount = 0;
     remainingBalance = 0;
   } else if (tripType === 'Local-Duty') {
-    payableNow = 250;
+    payableNow = 250 + currentCommission;
     advanceAmount = 250;
     gstAmount = 0;
     remainingBalance = Math.max(0, tripFare - 250);
   } else if (tripType === 'Local-taxi') {
-    payableNow = 0;
+    payableNow = currentCommission;
     advanceAmount = 0;
     gstAmount = 0;
     remainingBalance = tripFare;
@@ -615,8 +617,14 @@ const Invoice = () => {
                   <>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Base Trip Rate</span>
-                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(tripFare)}</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(rawBaseFare)}</span>
                     </div>
+                    {userRole === 'agent' && currentCommission > 0 && (
+                      <div className="flex justify-between text-amber-700 font-bold">
+                        <span className="flex items-center gap-1"><i className="fas fa-coins text-xs"></i> Agent Commission</span>
+                        <span>+ {"\u20B9"}{Math.round(currentCommission)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-gray-500">Driver Allowance</span>
                       <span className="text-gray-400">Included</span>

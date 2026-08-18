@@ -34,7 +34,7 @@ const heroBgStyle = {
 const Profile = () => {
   useTicketFonts();
   const navigate = useNavigate();
-  const { isLoggedIn, phoneNumber, loginUser, logoutUser } = useContext(AppContext);
+  const { isLoggedIn, phoneNumber, loginUser, logoutUser, userRole, setUserRole } = useContext(AppContext);
 
   const [phone, setPhone] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -43,6 +43,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [pendingLoginPhone, setPendingLoginPhone] = useState('');
 
   const [profileData, setProfileData] = useState(null);
   const [fetchingProfile, setFetchingProfile] = useState(false);
@@ -187,8 +189,8 @@ const Profile = () => {
       const statusResponse = await axios.get(`${endpoints.checkPhoneStatus}?phone_number=${phone}`);
 
       if (statusResponse.data && statusResponse.data.status === 'success') {
-        loginUser(phone);
-        setSuccessMsg('Logged in successfully!');
+        setPendingLoginPhone(phone);
+        setShowRoleModal(true);
       } else {
         setShowRegForm(true);
       }
@@ -231,8 +233,8 @@ const Profile = () => {
           });
         }
 
-        loginUser(phone);
-        setSuccessMsg('Account registered and logged in successfully!');
+        setPendingLoginPhone(phone);
+        setShowRoleModal(true);
       } else {
         setErrorMsg(response.data.message || 'Failed to complete registration.');
       }
@@ -792,7 +794,64 @@ const Profile = () => {
               <span className="text-xs font-bold text-[#6B7280]">{item.label}</span>
             </div>
           ))}
-        </div>
+        {/* Role Selection Modal Overlay */}
+        {showRoleModal && (
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-gray-100 animate-fadeIn text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-amber-600 text-2xl shadow-inner">
+                <i className="fas fa-user-shield"></i>
+              </div>
+              <h3 className="text-xl font-black text-brandCharcoal uppercase tracking-tight mb-2">
+                Select Your Account Mode
+              </h3>
+              <p className="text-xs text-gray-500 mb-6 font-medium">
+                Choose how you want to use Rentox today:
+              </p>
+
+              <div className="grid grid-cols-1 gap-4 mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    loginUser(pendingLoginPhone || phone, 'customer');
+                    setShowRoleModal(false);
+                    setSuccessMsg('Logged in as Customer successfully!');
+                  }}
+                  className="p-4 bg-gray-50 hover:bg-brandBlue/5 border-2 border-gray-200 hover:border-brandBlue rounded-2xl flex items-center justify-between text-left transition-all group"
+                >
+                  <div>
+                    <div className="font-extrabold text-sm text-brandCharcoal group-hover:text-brandBlue">
+                      👤 Customer Mode
+                    </div>
+                    <div className="text-3xs text-gray-400 font-semibold mt-0.5">
+                      Book cabs directly for personal rides
+                    </div>
+                  </div>
+                  <i className="fas fa-chevron-right text-gray-300 group-hover:text-brandBlue text-xs"></i>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    loginUser(pendingLoginPhone || phone, 'agent');
+                    setShowRoleModal(false);
+                    setSuccessMsg('Logged in as Agent Mode successfully!');
+                  }}
+                  className="p-4 bg-amber-50 hover:bg-amber-100/60 border-2 border-amber-300 hover:border-amber-500 rounded-2xl flex items-center justify-between text-left transition-all group"
+                >
+                  <div>
+                    <div className="font-extrabold text-sm text-amber-900">
+                      💼 Agent Mode
+                    </div>
+                    <div className="text-3xs text-amber-700 font-semibold mt-0.5">
+                      Book rides with customizable agent commission
+                    </div>
+                  </div>
+                  <i className="fas fa-chevron-right text-amber-500 text-xs"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

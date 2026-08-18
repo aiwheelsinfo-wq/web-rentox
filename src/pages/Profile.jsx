@@ -486,26 +486,26 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* 7. AGENT ACCOUNT CARD (Lightweight SaaS Style) */}
+                {/* 7. AGENT ACCOUNT CARD (Sleek Lightweight Style) */}
                 <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-base font-bold">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-sm font-bold">
                         <i className="fas fa-user-shield"></i>
                       </div>
-                      <span className={`text-4xs font-extrabold uppercase px-2.5 py-1 rounded-md ${
+                      <span className={`text-4xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
                         userRole === 'agent'
-                          ? 'bg-amber-400 text-brandCharcoal'
-                          : 'bg-gray-100 text-gray-600'
+                          ? 'bg-amber-50 text-amber-800 border-amber-200/70 font-extrabold'
+                          : 'bg-gray-50 text-gray-500 border-gray-200/60'
                       }`}>
-                        {userRole === 'agent' ? 'AGENT MODE' : 'CUSTOMER'}
+                        {userRole === 'agent' ? 'Agent Mode' : 'Customer'}
                       </span>
                     </div>
 
-                    <h4 className="text-sm font-bold text-brandCharcoal mt-2">Agent Account</h4>
-                    <p className="text-4xs font-medium text-gray-400 mt-0.5">
+                    <h4 className="text-xs font-bold text-brandCharcoal">Agent Account</h4>
+                    <p className="text-4xs text-gray-400 mt-1 leading-snug">
                       {userRole === 'agent'
-                        ? 'Commission input is enabled at checkout'
+                        ? 'Commission enabled at checkout'
                         : 'Standard customer ride booking'
                       }
                     </p>
@@ -513,14 +513,10 @@ const Profile = () => {
 
                   <button
                     onClick={() => setUserRole(userRole === 'agent' ? 'customer' : 'agent')}
-                    className={`mt-4 w-full py-2 px-3 rounded-xl text-3xs font-bold transition-all flex items-center justify-center gap-1.5 border ${
-                      userRole === 'agent'
-                        ? 'bg-amber-400 text-brandCharcoal border-amber-400 hover:bg-amber-300 font-extrabold'
-                        : 'bg-white text-brandCharcoal border-gray-200 hover:bg-gray-50'
-                    }`}
+                    className="mt-4 w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-gray-900 text-white hover:bg-gray-800 shadow-2xs h-9"
                   >
-                    <i className="fas fa-arrows-rotate text-3xs"></i>
-                    Switch to {userRole === 'agent' ? 'Customer Mode' : 'Agent Mode'}
+                    <i className="fas fa-arrows-rotate text-3xs text-amber-400"></i>
+                    {userRole === 'agent' ? 'Switch to Customer' : 'Switch to Agent'}
                   </button>
                 </div>
 

@@ -794,6 +794,8 @@ const Profile = () => {
               <span className="text-xs font-bold text-[#6B7280]">{item.label}</span>
             </div>
           ))}
+        </div>
+
         {/* Role Selection Modal Overlay */}
         {showRoleModal && (
           <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">

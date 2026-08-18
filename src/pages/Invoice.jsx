@@ -17,7 +17,11 @@ const Invoice = () => {
     selectedCar,
     tempBookingId,
     phoneNumber,
-    isLoggedIn
+    isLoggedIn,
+    userRole,
+    setUserRole,
+    agentCommission,
+    setAgentCommission
   } = useContext(AppContext);
 
   const [name, setName] = useState('');
@@ -192,12 +196,12 @@ const Invoice = () => {
     const finalTotalAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare;
     body.append('total_amount', finalTotalAmount.toFixed(2));
     body.append('payment_type', 'Advance');
-    body.append('agent_commission', '0');
+    body.append('agent_commission', userRole === 'agent' ? String(agentCommission || 0) : '0');
     body.append('city', city);
     const isLocalTaxi = tripType === 'Local-taxi';
     body.append('agni_amount', isLocalTaxi ? '0.00' : (finalTotalAmount * 0.10).toFixed(2));
     body.append('vendor_amount', isLocalTaxi ? finalTotalAmount.toFixed(2) : (finalTotalAmount * 0.90).toFixed(2));
-    body.append('user_type', 'customer');
+    body.append('user_type', userRole === 'agent' ? 'agent' : 'customer');
     body.append('customer_mob', custMobile);
     body.append('gst', includeGst.toString());
     body.append('gst_number', gstNumber);
@@ -309,6 +313,61 @@ const Invoice = () => {
               {errorMsg}
             </div>
           )}
+
+          {/* Role Mode Selector & Agent Commission Card */}
+          <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-2xl p-5 text-white shadow-md">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-user-shield text-brandYellow text-base"></i>
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-300">Booking Role</span>
+              </div>
+              <div className="flex bg-gray-800 p-1 rounded-xl border border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setUserRole('customer')}
+                  className={`px-3 py-1.5 rounded-lg text-3xs font-black uppercase transition-all ${
+                    userRole === 'customer'
+                      ? 'bg-brandBlue text-white shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserRole('agent')}
+                  className={`px-3 py-1.5 rounded-lg text-3xs font-black uppercase transition-all ${
+                    userRole === 'agent'
+                      ? 'bg-amber-500 text-black shadow-sm font-black'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Agent Mode
+                </button>
+              </div>
+            </div>
+
+            {userRole === 'agent' && (
+              <div className="mt-3 pt-3 border-t border-gray-700/60 flex flex-col gap-2">
+                <label className="text-3xs font-extrabold text-amber-400 uppercase flex items-center justify-between">
+                  <span><i className="fas fa-coins mr-1"></i> Agent Commission (₹)</span>
+                  <span className="text-gray-400 font-normal">Included in fare</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={agentCommission}
+                    onChange={(e) => setAgentCommission(parseFloat(e.target.value) || 0)}
+                    placeholder="Enter agent commission"
+                    className="w-full bg-gray-800/90 border border-amber-500/40 rounded-xl py-2.5 pl-8 pr-4 text-xs font-bold text-amber-300 outline-none focus:border-amber-400 transition-all"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <h2 className="text-base font-extrabold text-brandCharcoal border-b border-gray-100 pb-3 mb-5 uppercase tracking-wider">

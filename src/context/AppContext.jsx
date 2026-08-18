@@ -101,15 +101,32 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('search_tempBookingId', tempBookingId);
   }, [tempBookingId]);
 
-  const loginUser = (phone) => {
+  const [userRole, setUserRole] = useState(() => localStorage.getItem('user_role') || 'customer');
+  const [agentCommission, setAgentCommission] = useState(() => parseFloat(localStorage.getItem('agent_commission') || '0'));
+
+  useEffect(() => {
+    localStorage.setItem('user_role', userRole);
+  }, [userRole]);
+
+  useEffect(() => {
+    localStorage.setItem('agent_commission', String(agentCommission));
+  }, [agentCommission]);
+
+  const loginUser = (phone, role = 'customer') => {
     localStorage.setItem('cust_phone_number', phone);
+    localStorage.setItem('user_role', role);
     setPhoneNumber(phone);
+    setUserRole(role);
     setIsLoggedIn(true);
   };
 
   const logoutUser = () => {
     localStorage.removeItem('cust_phone_number');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('agent_commission');
     setPhoneNumber('');
+    setUserRole('customer');
+    setAgentCommission(0);
     setIsLoggedIn(false);
   };
 
@@ -119,6 +136,10 @@ export const AppProvider = ({ children }) => {
       isLoggedIn,
       loginUser,
       logoutUser,
+      userRole,
+      setUserRole,
+      agentCommission,
+      setAgentCommission,
       tripType,
       setTripType,
       fromAddress,

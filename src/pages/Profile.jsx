@@ -475,12 +475,42 @@ const Profile = () => {
                   <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#9B9484]">Account Status</p>
                 </div>
 
-                <div className="rounded-2xl border border-[#E8E4DA] p-5 text-white shadow-sm relative overflow-hidden" style={heroBgStyle}>
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 relative z-10">
-                    <i className="fas fa-car-side text-white text-lg"></i>
+                <div className={`rounded-2xl border p-5 shadow-sm relative overflow-hidden transition-all ${
+                  userRole === 'agent'
+                    ? 'border-amber-400 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-amber-300'
+                    : 'border-[#E8E4DA] bg-white text-[#1C1F26]'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
+                      userRole === 'agent' ? 'bg-amber-500/20 text-amber-400' : 'bg-[#EAF1FB] text-[#2854A6]'
+                    }`}>
+                      <i className={`fas ${userRole === 'agent' ? 'fa-user-tie' : 'fa-user-check'} text-base`}></i>
+                    </div>
+                    <span className={`text-3xs font-black uppercase px-2.5 py-1 rounded-full ${
+                      userRole === 'agent' ? 'bg-amber-500 text-black font-black' : 'bg-[#2854A6] text-white'
+                    }`}>
+                      {userRole === 'agent' ? 'Agent Mode' : 'Customer'}
+                    </span>
                   </div>
-                  <p className="text-2xl font-bold relative z-10" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Ready to Ride</p>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#F5A623] relative z-10">Fast booking access</p>
+
+                  <p className="text-xl font-bold uppercase tracking-tight mt-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {userRole === 'agent' ? 'Agent Account' : 'Customer Account'}
+                  </p>
+                  <p className={`mt-1 text-[10px] font-semibold ${userRole === 'agent' ? 'text-amber-200/80' : 'text-[#9B9484]'}`}>
+                    {userRole === 'agent' ? 'Commission input enabled at checkout' : 'Standard customer ride booking'}
+                  </p>
+
+                  <button
+                    onClick={() => setUserRole(userRole === 'agent' ? 'customer' : 'agent')}
+                    className={`mt-4 w-full py-2.5 px-3 rounded-xl text-3xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-sm ${
+                      userRole === 'agent'
+                        ? 'bg-amber-400 text-black hover:bg-amber-300'
+                        : 'bg-[#1C1F26] text-white hover:bg-gray-800'
+                    }`}
+                  >
+                    <i className="fas fa-arrows-rotate text-2xs"></i>
+                    Switch to {userRole === 'agent' ? 'Customer Mode' : 'Agent Mode'}
+                  </button>
                 </div>
               </div>
 

@@ -317,57 +317,80 @@ const Invoice = () => {
             </div>
           )}
 
-          {/* Role Mode Selector & Agent Commission Card */}
-          <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-2xl p-5 text-white shadow-md">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <i className="fas fa-user-shield text-brandYellow text-base"></i>
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-300">Booking Role</span>
+          {/* Booking Role & Agent Commission Card (Lightweight SaaS Style) */}
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col gap-4">
+            {/* Booking Role Header Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold">
+                  <i className="fas fa-user-shield"></i>
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-brandCharcoal tracking-tight">Booking Role</h3>
+                  <p className="text-4xs text-gray-400 font-medium">Select account mode for this checkout</p>
+                </div>
               </div>
-              <div className="flex bg-gray-800 p-1 rounded-xl border border-gray-700">
+
+              {/* Segmented Control */}
+              <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200/70 h-11 self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setUserRole('customer')}
-                  className={`px-3 py-1.5 rounded-lg text-3xs font-black uppercase transition-all ${
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all h-9 flex items-center gap-1.5 ${
                     userRole === 'customer'
-                      ? 'bg-brandBlue text-white shadow-sm'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-white text-brandCharcoal shadow-sm border border-gray-200/50'
+                      : 'text-gray-500 hover:text-brandCharcoal'
                   }`}
                 >
+                  <i className="fas fa-user text-3xs"></i>
                   Customer
                 </button>
                 <button
                   type="button"
                   onClick={() => setUserRole('agent')}
-                  className={`px-3 py-1.5 rounded-lg text-3xs font-black uppercase transition-all ${
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all h-9 flex items-center gap-1.5 ${
                     userRole === 'agent'
-                      ? 'bg-amber-500 text-black shadow-sm font-black'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-amber-400 text-brandCharcoal shadow-sm font-extrabold'
+                      : 'text-gray-500 hover:text-brandCharcoal'
                   }`}
                 >
+                  <i className="fas fa-briefcase text-3xs"></i>
                   Agent Mode
                 </button>
               </div>
             </div>
 
+            {/* Agent Commission Section (Visible only when Agent Mode is selected) */}
             {userRole === 'agent' && (
-              <div className="mt-3 pt-3 border-t border-gray-700/60 flex flex-col gap-2">
-                <label className="text-3xs font-extrabold text-amber-400 uppercase flex items-center justify-between">
-                  <span><i className="fas fa-coins mr-1"></i> Agent Commission (₹)</span>
-                  <span className="text-gray-400 font-normal">Included in fare</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">₹</span>
+              <div className="pt-3.5 border-t border-gray-100 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-brandCharcoal">
+                    <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-3xs font-black">
+                      ₹
+                    </span>
+                    <span>Agent Commission</span>
+                  </div>
+                  <span className="text-4xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md">
+                    Included in total fare
+                  </span>
+                </div>
+
+                <div className="relative flex items-center">
+                  <span className="absolute left-3.5 text-gray-500 font-bold text-xs">₹</span>
                   <input
                     type="number"
                     min="0"
                     step="1"
                     value={agentCommission}
                     onChange={(e) => setAgentCommission(parseFloat(e.target.value) || 0)}
-                    placeholder="Enter agent commission"
-                    className="w-full bg-gray-800/90 border border-amber-500/40 rounded-xl py-2.5 pl-8 pr-4 text-xs font-bold text-amber-300 outline-none focus:border-amber-400 transition-all"
+                    placeholder="0"
+                    className="w-full bg-gray-50/80 border border-gray-200 rounded-xl py-2.5 pl-8 pr-4 text-sm font-extrabold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11"
                   />
                 </div>
+                <p className="text-4xs text-gray-400 font-medium flex items-center gap-1">
+                  <i className="fas fa-info-circle text-amber-500 text-3xs"></i>
+                  Commission is added to the total trip fare (advance payment stays fixed).
+                </p>
               </div>
             )}
           </div>

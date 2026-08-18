@@ -195,14 +195,15 @@ const Invoice = () => {
     body.append('base_charge', selectedCar.baseAmount);
     body.append('driver_ta', selectedCar.driverAllowance || '0');
     body.append('toll_charge', '0');
+    const baseFareForVendor = tripType === 'Round-Trip' ? roundTripAdvance : rawBaseFare;
     const finalTotalAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare;
     body.append('total_amount', finalTotalAmount.toFixed(2));
     body.append('payment_type', 'Advance');
     body.append('agent_commission', userRole === 'agent' ? String(agentCommission || 0) : '0');
     body.append('city', city);
     const isLocalTaxi = tripType === 'Local-taxi';
-    body.append('agni_amount', isLocalTaxi ? '0.00' : (finalTotalAmount * 0.10).toFixed(2));
-    body.append('vendor_amount', isLocalTaxi ? finalTotalAmount.toFixed(2) : (finalTotalAmount * 0.90).toFixed(2));
+    body.append('agni_amount', isLocalTaxi ? '0.00' : (baseFareForVendor * 0.10).toFixed(2));
+    body.append('vendor_amount', isLocalTaxi ? baseFareForVendor.toFixed(2) : (baseFareForVendor * 0.90).toFixed(2));
     body.append('user_type', userRole === 'agent' ? 'agent' : 'customer');
     body.append('customer_mob', custMobile);
     body.append('gst', includeGst.toString());

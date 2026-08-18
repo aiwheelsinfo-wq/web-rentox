@@ -94,29 +94,29 @@ const Invoice = () => {
   
   // Daily KM Limit (default to 250 if not specified by selected car)
   const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || 250) : 250;
-  const roundTripAdvance = (dailyLimit * 2 * days) + currentCommission;
+  const roundTripAdvance = dailyLimit * 2 * days;
 
   let payableNow, advanceAmount, gstAmount, remainingBalance;
   if (tripType === 'Round-Trip') {
     payableNow = roundTripAdvance;
     advanceAmount = roundTripAdvance;
     gstAmount = 0;
-    remainingBalance = 0;
+    remainingBalance = Math.max(0, tripFare - roundTripAdvance);
   } else if (tripType === 'Local-Duty') {
-    payableNow = 250 + currentCommission;
+    payableNow = 250;
     advanceAmount = 250;
     gstAmount = 0;
     remainingBalance = Math.max(0, tripFare - 250);
   } else if (tripType === 'Local-taxi') {
-    payableNow = currentCommission;
+    payableNow = 0;
     advanceAmount = 0;
     gstAmount = 0;
     remainingBalance = tripFare;
   } else {
-    payableNow = (tripFare * 0.25) + (tripFare * 0.05);
-    advanceAmount = tripFare * 0.25;
-    gstAmount = tripFare * 0.05;
-    remainingBalance = tripFare * 0.75;
+    advanceAmount = rawBaseFare * 0.25;
+    gstAmount = rawBaseFare * 0.05;
+    payableNow = advanceAmount + gstAmount;
+    remainingBalance = tripFare - advanceAmount;
   }
 
   const handlePayNow = (e) => {

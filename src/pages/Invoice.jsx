@@ -722,6 +722,19 @@ const Invoice = () => {
                   </>
                 )}
               </div>
+
+              {(tripType === 'One-Way' || tripType === 'Round-Trip') && (
+                <div className="bg-amber-50/80 rounded-xl p-3.5 border border-amber-200/60 mt-3 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-3xs uppercase tracking-wide">
+                    <i className="fas fa-info-circle text-amber-600"></i>
+                    <span>Driver Allowance Terms & Conditions</span>
+                  </div>
+                  <ul className="text-4xs text-amber-950/80 font-medium space-y-1 pl-3.5 list-disc">
+                    <li>Early Morning Allowance (1:00 AM – 6:00 AM): ₹300 extra to be paid to the driver.</li>
+                    <li>Late Arrival Allowance (after 11:45 PM): ₹300 extra to be paid to the driver.</li>
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -661,7 +661,7 @@ const Invoice = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Driver Allowance</span>
-                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{selectedCar.driverAllowance || 300}/day</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{selectedCar.driverAllowance || 400}/day</span>
                     </div>
                   </>
                 ) : (

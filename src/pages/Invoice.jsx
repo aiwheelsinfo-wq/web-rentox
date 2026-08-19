@@ -87,14 +87,41 @@ const Invoice = () => {
     return diffDays <= 0 ? 1 : diffDays;
   };
 
+  const isEarlyMorning = (timeStr) => {
+    if (!timeStr) return false;
+    try {
+      const clean = timeStr.trim().toUpperCase();
+      let hour = -1;
+      let minute = 0;
+      if (clean.includes('AM') || clean.includes('PM')) {
+        const parts = clean.replace('AM', '').replace('PM', '').trim().split(':');
+        hour = parseInt(parts[0], 10);
+        if (parts.length > 1) minute = parseInt(parts[1], 10);
+        if (clean.includes('AM')) {
+          if (hour === 12) hour = 0;
+        } else if (clean.includes('PM')) {
+          if (hour !== 12) hour += 12;
+        }
+      } else {
+        const parts = clean.split(':');
+        hour = parseInt(parts[0], 10);
+        if (parts.length > 1) minute = parseInt(parts[1], 10);
+      }
+      return (hour >= 1 && hour < 6) || (hour === 6 && minute === 0);
+    } catch (_) {
+      return false;
+    }
+  };
+
   const days = calculateDays();
+  const earlyMorningFee = (isEarlyMorning(pickupTime) && (tripType === 'One-Way' || tripType === 'Round-Trip')) ? 300 : 0;
   const rawBaseFare = selectedCar ? parseFloat(selectedCar.discounted_price || selectedCar.baseAmount) : 0;
   const currentCommission = userRole === 'agent' ? (parseFloat(agentCommission) || 0) : 0;
-  const tripFare = rawBaseFare + currentCommission;
+  const tripFare = rawBaseFare + currentCommission + earlyMorningFee;
   
   // Daily KM Limit (default to 250 if not specified by selected car)
   const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || 250) : 250;
-  const roundTripAdvance = dailyLimit * 2 * days;
+  const roundTripAdvance = (dailyLimit * 2 * days) + earlyMorningFee;
 
   let payableNow, advanceAmount, gstAmount, remainingBalance;
   if (tripType === 'Round-Trip') {
@@ -113,8 +140,8 @@ const Invoice = () => {
     gstAmount = 0;
     remainingBalance = tripFare;
   } else {
-    advanceAmount = rawBaseFare * 0.25;
-    gstAmount = rawBaseFare * 0.05;
+    advanceAmount = (rawBaseFare + earlyMorningFee) * 0.25;
+    gstAmount = (rawBaseFare + earlyMorningFee) * 0.05;
     payableNow = advanceAmount + gstAmount;
     remainingBalance = tripFare - advanceAmount;
   }
@@ -653,6 +680,12 @@ const Invoice = () => {
                       <span className="text-gray-500">Driver Allowance</span>
                       <span className="text-gray-400">Included</span>
                     </div>
+                    {earlyMorningFee > 0 && (
+                      <div className="flex justify-between text-amber-800 font-semibold">
+                        <span className="flex items-center gap-1"><i className="fas fa-sun text-xs text-amber-500"></i> Early Morning Allowance (1AM-6AM)</span>
+                        <span>+ {"\u20B9"}300</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-gray-500">Tolls & Taxes (One-Way)</span>
                       <span className="text-gray-400">Included</span>

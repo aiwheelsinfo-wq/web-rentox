@@ -37,6 +37,7 @@ const Invoice = () => {
   const [businessAddress, setBusinessAddress] = useState('');
   const [businessPincode, setBusinessPincode] = useState('');
 
+  const [commissionRatePerKm, setCommissionRatePerKm] = useState(0.0);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -116,12 +117,20 @@ const Invoice = () => {
   const days = calculateDays();
   const earlyMorningFee = (isEarlyMorning(pickupTime) && (tripType === 'One-Way' || tripType === 'Round-Trip')) ? 300 : 0;
   const rawBaseFare = selectedCar ? parseFloat(selectedCar.discounted_price || selectedCar.baseAmount) : 0;
-  const currentCommission = userRole === 'agent' ? (parseFloat(agentCommission) || 0) : 0;
+  
+  // Daily KM Limit (default to 300 for Round-Trip matching Flutter app)
+  const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || (tripType === 'Round-Trip' ? 300 : 250)) : (tripType === 'Round-Trip' ? 300 : 250);
+  
+  // Commission calculation
+  const currentCommission = userRole === 'agent' 
+    ? (tripType === 'Round-Trip' ? (commissionRatePerKm * dailyLimit * days) : (parseFloat(agentCommission) || 0))
+    : 0;
+
   const tripFare = rawBaseFare + currentCommission + earlyMorningFee;
   
-  // Daily KM Limit (default to 250 if not specified by selected car)
-  const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || 250) : 250;
-  const roundTripAdvance = (dailyLimit * 2 * days) + earlyMorningFee;
+  // Round trip advance: Base advance (₹4/KM) + Agent Commission + early morning fee
+  const roundTripBaseAdvance = dailyLimit * 4.0 * days;
+  const roundTripAdvance = roundTripBaseAdvance + currentCommission + earlyMorningFee;
 
   let payableNow, advanceAmount, gstAmount, remainingBalance;
   if (tripType === 'Round-Trip') {
@@ -219,18 +228,28 @@ const Invoice = () => {
     body.append('email', email);
     body.append('userNumber', phoneNumber);
     body.append('pincode', pincode);
-    body.append('base_charge', selectedCar.baseAmount);
-    body.append('driver_ta', selectedCar.driverAllowance || '0');
     body.append('toll_charge', '0');
-    const baseFareForVendor = tripType === 'Round-Trip' ? roundTripAdvance : rawBaseFare;
     const finalTotalAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare;
     body.append('total_amount', finalTotalAmount.toFixed(2));
     body.append('payment_type', 'Advance');
-    body.append('agent_commission', userRole === 'agent' ? String(agentCommission || 0) : '0');
+    body.append('agent_commission', userRole === 'agent' ? currentCommission.toFixed(2) : '0');
     body.append('city', city);
     const isLocalTaxi = tripType === 'Local-taxi';
-    body.append('agni_amount', isLocalTaxi ? '0.00' : (baseFareForVendor * 0.10).toFixed(2));
-    body.append('vendor_amount', isLocalTaxi ? baseFareForVendor.toFixed(2) : (baseFareForVendor * 0.90).toFixed(2));
+    if (tripType === 'Round-Trip') {
+      const dailyAllowance = (400 * days) + earlyMorningFee;
+      const baseFareTotal = dailyLimit * parseFloat(selectedCar.kmRate || 13) * days;
+      const rentoxEarning = dailyLimit * 2.0 * days;
+      const vendorEarning = (dailyLimit * 11.0 * days) + dailyAllowance;
+      body.append('base_charge', baseFareTotal.toFixed(2));
+      body.append('driver_ta', dailyAllowance.toFixed(2));
+      body.append('agni_amount', rentoxEarning.toFixed(2));
+      body.append('vendor_amount', vendorEarning.toFixed(2));
+    } else {
+      body.append('base_charge', selectedCar.baseAmount);
+      body.append('driver_ta', selectedCar.driverAllowance || '0');
+      body.append('agni_amount', isLocalTaxi ? '0.00' : (rawBaseFare * 0.10).toFixed(2));
+      body.append('vendor_amount', isLocalTaxi ? rawBaseFare.toFixed(2) : (rawBaseFare * 0.90).toFixed(2));
+    }
     body.append('user_type', userRole === 'agent' ? 'agent' : 'customer');
     body.append('customer_mob', custMobile);
     body.append('gst', includeGst.toString());
@@ -395,28 +414,53 @@ const Invoice = () => {
                     <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-3xs font-black">
                       ₹
                     </span>
-                    <span>Agent Commission</span>
+                    <span>Agent Commission {tripType === 'Round-Trip' ? '(Per KM)' : ''}</span>
                   </div>
                   <span className="text-4xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md">
                     Included in total fare
                   </span>
                 </div>
 
-                <div className="relative flex items-center">
-                  <span className="absolute left-3.5 text-gray-500 font-bold text-xs">₹</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={agentCommission}
-                    onChange={(e) => setAgentCommission(parseFloat(e.target.value) || 0)}
-                    placeholder="0"
-                    className="w-full bg-gray-50/80 border border-gray-200 rounded-xl py-2.5 pl-8 pr-4 text-sm font-extrabold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11"
-                  />
-                </div>
+                {tripType === 'Round-Trip' ? (
+                  <div className="flex flex-col gap-2">
+                    <select
+                      value={commissionRatePerKm}
+                      onChange={(e) => {
+                        const rate = parseFloat(e.target.value) || 0;
+                        setCommissionRatePerKm(rate);
+                        setAgentCommission(rate * dailyLimit * days);
+                      }}
+                      className="w-full bg-gray-50/80 border border-gray-200 rounded-xl py-2 px-3 text-xs font-bold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11 cursor-pointer"
+                    >
+                      <option value={0.0}>₹0 / KM (No Commission)</option>
+                      <option value={1.0}>₹1 / KM (+₹{(1.0 * dailyLimit * days).toLocaleString('en-IN')})</option>
+                      <option value={2.0}>₹2 / KM (+₹{(2.0 * dailyLimit * days).toLocaleString('en-IN')})</option>
+                      <option value={3.0}>₹3 / KM (+₹{(3.0 * dailyLimit * days).toLocaleString('en-IN')})</option>
+                    </select>
+                    <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-2.5 text-3xs text-amber-900 font-semibold flex items-center justify-between">
+                      <span>Formula: ₹{commissionRatePerKm}/KM × {dailyLimit} KM/day × {days} Days</span>
+                      <span className="font-extrabold text-xs text-amber-800">+₹{Math.round(currentCommission).toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3.5 text-gray-500 font-bold text-xs">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={agentCommission}
+                      onChange={(e) => setAgentCommission(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full bg-gray-50/80 border border-gray-200 rounded-xl py-2.5 pl-8 pr-4 text-sm font-extrabold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11"
+                    />
+                  </div>
+                )}
                 <p className="text-4xs text-gray-400 font-medium flex items-center gap-1">
                   <i className="fas fa-info-circle text-amber-500 text-3xs"></i>
-                  Commission is added to the total trip fare (advance payment stays fixed).
+                  {tripType === 'Round-Trip'
+                    ? 'Commission is added to both Total Fare and Advance Payable now.'
+                    : 'Commission is added to the total trip fare.'}
                 </p>
               </div>
             )}
@@ -661,8 +705,20 @@ const Invoice = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Driver Allowance</span>
-                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{selectedCar.driverAllowance || 400}/day</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{(400 * days).toLocaleString('en-IN')} (₹400/day)</span>
                     </div>
+                    {earlyMorningFee > 0 && (
+                      <div className="flex justify-between text-amber-800 font-semibold">
+                        <span className="flex items-center gap-1"><i className="fas fa-sun text-xs text-amber-500"></i> Early Morning Fee (1AM-6AM)</span>
+                        <span>+ {"\u20B9"}300</span>
+                      </div>
+                    )}
+                    {userRole === 'agent' && currentCommission > 0 && (
+                      <div className="flex justify-between text-amber-700 font-bold">
+                        <span className="flex items-center gap-1"><i className="fas fa-coins text-xs"></i> Agent Commission</span>
+                        <span>+ {"\u20B9"}{Math.round(currentCommission).toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>
@@ -673,7 +729,7 @@ const Invoice = () => {
                     {userRole === 'agent' && currentCommission > 0 && (
                       <div className="flex justify-between text-amber-700 font-bold">
                         <span className="flex items-center gap-1"><i className="fas fa-coins text-xs"></i> Agent Commission</span>
-                        <span>+ {"\u20B9"}{Math.round(currentCommission)}</span>
+                        <span>+ {"\u20B9"}{Math.round(currentCommission).toLocaleString('en-IN')}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
@@ -693,7 +749,7 @@ const Invoice = () => {
                     <hr className="border-gray-100 my-1" />
                     <div className="flex justify-between text-sm font-extrabold">
                       <span className="text-brandCharcoal">Total Trip Fare</span>
-                      <span className="text-brandCharcoal">{"\u20B9"}{Math.round(tripFare)}</span>
+                      <span className="text-brandCharcoal">{"\u20B9"}{Math.round(tripFare).toLocaleString('en-IN')}</span>
                     </div>
                   </>
                 )}
@@ -705,13 +761,25 @@ const Invoice = () => {
                 {tripType === 'Round-Trip' ? (
                   <>
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Booking Advance</span>
-                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(roundTripAdvance)}</span>
+                      <span className="text-gray-500">Base Advance (₹4/KM)</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(roundTripBaseAdvance).toLocaleString('en-IN')}</span>
                     </div>
+                    {userRole === 'agent' && currentCommission > 0 && (
+                      <div className="flex justify-between text-xs text-amber-700 font-semibold">
+                        <span>Agent Commission</span>
+                        <span>+ {"\u20B9"}{Math.round(currentCommission).toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+                    {earlyMorningFee > 0 && (
+                      <div className="flex justify-between text-xs text-amber-800">
+                        <span>Early Morning Fee</span>
+                        <span>+ {"\u20B9"}300</span>
+                      </div>
+                    )}
                     <hr className="border-brandAmber/20" />
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-green-700">Payable Now</span>
-                      <span className="text-base font-black text-green-700">{"\u20B9"}{Math.round(payableNow)}</span>
+                      <span className="text-xs font-bold text-green-700">Total Advance Payable</span>
+                      <span className="text-base font-black text-green-700">{"\u20B9"}{Math.round(payableNow).toLocaleString('en-IN')}</span>
                     </div>
                     <div className="text-3xs text-gray-400 mt-2 leading-relaxed">
                       *Remaining balance will be calculated based on actual distance run ({"\u20B9"}{selectedCar.kmRate}/km) and toll/permit receipts at trip end.

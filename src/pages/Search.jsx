@@ -13,6 +13,10 @@ const CITIES = [
   'Lonavala, Maharashtra, India',
   'Mumbai Airport T2, Maharashtra, India',
   'Pune Airport, Maharashtra, India',
+  'Kolhapur, Maharashtra, India',
+  'Nagpur, Maharashtra, India',
+  'Thane, Maharashtra, India',
+  'Chhatrapati Sambhajinagar, Maharashtra, India',
 ];
 
 const TIME_OPTIONS = (() => {
@@ -26,9 +30,94 @@ const TIME_OPTIONS = (() => {
   return opts;
 })();
 
-// Suitable hero background — open highway at golden hour, evokes a long-distance/outstation ride
 const HERO_IMAGE_URL =
   'https://images.unsplash.com/photo-1683220042545-ef1348b2cfb6?fm=jpg&q=80&w=2000&auto=format&fit=crop';
+
+const MAHARASHTRA_DESTINATIONS = [
+  {
+    name: 'Mumbai',
+    tagline: 'Gateway to Maharashtra',
+    desc: 'Financial capital, Marine Drive & iconic skyline',
+    image: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Mumbai, Maharashtra, India'
+  },
+  {
+    name: 'Pune',
+    tagline: 'Culture, IT & Weekend Escapes',
+    desc: 'Historic forts, Oxford of the East & tech parks',
+    image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Pune, Maharashtra, India'
+  },
+  {
+    name: 'Nashik',
+    tagline: 'Vineyards & Sacred Temples',
+    desc: 'Wine capital of India & Trimbakeshwar pilgrimage',
+    image: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Nashik, Maharashtra, India'
+  },
+  {
+    name: 'Lonavala',
+    tagline: 'Popular Hill-Station Getaway',
+    desc: 'Western Ghats waterfalls, Tiger Point & lush hills',
+    image: 'https://images.unsplash.com/photo-1571536802807-30451e3955d8?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Lonavala, Maharashtra, India'
+  },
+  {
+    name: 'Mahabaleshwar',
+    tagline: 'Scenic Mountain Destination',
+    desc: 'Strawberry valleys, Venna Lake & panoramic cliffs',
+    image: 'https://images.unsplash.com/photo-1626014303757-6564477318f1?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Mahabaleshwar, Maharashtra, India'
+  },
+  {
+    name: 'Shirdi',
+    tagline: 'Spiritual Pilgrimage',
+    desc: 'Holy shrine of Sai Baba attracting millions yearly',
+    image: 'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Shirdi, Maharashtra, India'
+  },
+  {
+    name: 'Kolhapur',
+    tagline: 'Royal Maratha Heritage',
+    desc: 'Mahalaxmi Temple, royal palaces & authentic culture',
+    image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Kolhapur, Maharashtra, India'
+  },
+  {
+    name: 'Nagpur',
+    tagline: 'Orange City & Central Hub',
+    desc: 'Zero Mile Stone, wildlife gateways & bustling commerce',
+    image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Nagpur, Maharashtra, India'
+  },
+  {
+    name: 'Thane',
+    tagline: 'City of Lakes',
+    desc: 'Yeoor Hills, scenic waterfronts & urban charm',
+    image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Thane, Maharashtra, India'
+  },
+  {
+    name: 'Chhatrapati Sambhajinagar',
+    tagline: 'Ajanta & Ellora Gateway',
+    desc: 'UNESCO World Heritage caves & historic Bibi Ka Maqbara',
+    image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Chhatrapati Sambhajinagar, Maharashtra, India'
+  }
+];
+
+const POPULAR_ROUTES = [
+  { from: 'Mumbai', to: 'Pune', distance: '~150 KM', time: '3.0 Hrs', tag: 'Fast Highway' },
+  { from: 'Pune', to: 'Mumbai', distance: '~150 KM', time: '3.0 Hrs', tag: 'Expressway' },
+  { from: 'Mumbai', to: 'Nashik', distance: '~165 KM', time: '3.5 Hrs', tag: 'Samruddhi Mahamarg' },
+  { from: 'Nashik', to: 'Mumbai', distance: '~165 KM', time: '3.5 Hrs', tag: 'Scenic Ghats' },
+  { from: 'Mumbai', to: 'Lonavala', distance: '~85 KM', time: '1.8 Hrs', tag: 'Weekend Escape' },
+  { from: 'Lonavala', to: 'Mumbai', distance: '~85 KM', time: '1.8 Hrs', tag: 'Direct Route' },
+  { from: 'Mumbai', to: 'Mahabaleshwar', distance: '~230 KM', time: '5.5 Hrs', tag: 'Hill Holiday' },
+  { from: 'Mumbai', to: 'Shirdi', distance: '~240 KM', time: '4.5 Hrs', tag: 'Pilgrimage Cab' },
+  { from: 'Pune', to: 'Mahabaleshwar', distance: '~120 KM', time: '2.5 Hrs', tag: 'Quick Getaway' },
+  { from: 'Pune', to: 'Shirdi', distance: '~185 KM', time: '4.0 Hrs', tag: 'Darshan Special' }
+];
 
 const Search = () => {
   const navigate = useNavigate();
@@ -68,6 +157,30 @@ const Search = () => {
       setReturnDate(dayAfter.toISOString().split('T')[0]);
     }
   }, [pickupDate, returnDate, setPickupDate, setReturnDate]);
+
+  const scrollToBookingWidget = () => {
+    const el = document.getElementById('booking-widget');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleSelectDestination = (destQuery) => {
+    if (tripType === 'Local-Duty') {
+      setTripType('One-way');
+    }
+    setToAddress(destQuery);
+    scrollToBookingWidget();
+  };
+
+  const handleSelectRoute = (fromCity, toCity) => {
+    if (tripType === 'Local-Duty') {
+      setTripType('One-way');
+    }
+    setFromAddress(`${fromCity}, Maharashtra, India`);
+    setToAddress(`${toCity}, Maharashtra, India`);
+    scrollToBookingWidget();
+  };
 
   const fetchPlacesSuggestions = (input, setSuggestions) => {
     if (!input || input.trim() === '') { setSuggestions([]); return; }
@@ -154,7 +267,7 @@ const Search = () => {
 
     if (tripType === 'Local-taxi' || tripType === 'One-way' || tripType === 'Round-Trip') {
       const isPointInPolygon = (lat, lng, polygonCoordsStr) => {
-        if (!polygonCoordsStr) return true; // Fallback to bounding box only (same as Flutter)
+        if (!polygonCoordsStr) return true;
         try {
           const coords = JSON.parse(polygonCoordsStr);
           if (!Array.isArray(coords) || coords.length === 0) return true;
@@ -177,7 +290,7 @@ const Search = () => {
           }
           return oddNodes;
         } catch (_) {
-          return true; // Fallback to bounding box
+          return true;
         }
       };
 
@@ -199,102 +312,46 @@ const Search = () => {
 
       setLoading(true);
       try {
-        let pLat = fromLat, pLng = fromLng;
-        let dLat = toLat, dLng = toLng;
-
-        const geocoder = new window.google.maps.Geocoder();
-        const geocodeAddress = (address) => {
-          return new Promise((resolve) => {
-            geocoder.geocode({ address }, (results, status) => {
-              if (status === 'OK' && results[0]) {
-                resolve({
-                  lat: results[0].geometry.location.lat(),
-                  lng: results[0].geometry.location.lng()
-                });
-              } else {
-                resolve(null);
-              }
-            });
-          });
-        };
-
-        const pickupCoords = await geocodeAddress(fromAddress);
-        if (pickupCoords) {
-          pLat = pickupCoords.lat;
-          pLng = pickupCoords.lng;
-          setFromLat(pLat);
-          setFromLng(pLng);
-        }
-
-        const dropCoords = await geocodeAddress(toAddress);
-        if (dropCoords) {
-          dLat = dropCoords.lat;
-          dLng = dropCoords.lng;
-          setToLat(dLat);
-          setToLng(dLng);
-        }
-
-        if (!pLat || !pLng || !dLat || !dLng) {
-          setErrorMsg('Failed to resolve coordinates for pickup/drop locations.');
-          setLoading(false);
-          return;
-        }
-
-        const boundaryRes = await axios.get('https://agnicarrental.com/admin2025/api_city_boundary.php?action=get_active_boundaries');
-        if (boundaryRes.data && boundaryRes.data.success && Array.isArray(boundaryRes.data.cities)) {
-          const activeCities = boundaryRes.data.cities;
-          const validCity = activeCities.find(city => {
-            const isPickupIn = checkCoordinatesInBoundary(pLat, pLng, city);
-            const isDropIn = checkCoordinatesInBoundary(dLat, dLng, city);
-            return isPickupIn && isDropIn;
-          });
-
-          if (tripType === 'Local-taxi' && !validCity) {
-            setErrorMsg('Local Taxi rides must stay strictly within the same city boundaries (e.g. Pune limits or Mumbai limits). Please choose One-way or Round-Trip for intercity travel.');
-            setLoading(false);
-            return;
+        const boundaryResp = await axios.get(endpoints.getCityBoundaries);
+        if (boundaryResp.data && boundaryResp.data.status === 'success') {
+          const boundaryList = boundaryResp.data.data;
+          let fromAllowed = false;
+          let toAllowed = false;
+          for (const city of boundaryList) {
+            if (checkCoordinatesInBoundary(fromLat, fromLng, city)) fromAllowed = true;
+            if (tripType === 'Local-taxi') {
+              toAllowed = true;
+            } else {
+              if (checkCoordinatesInBoundary(toLat, toLng, city)) toAllowed = true;
+            }
+            if (fromAllowed && toAllowed) break;
           }
-
-          if ((tripType === 'One-way' || tripType === 'Round-Trip') && validCity) {
-            setErrorMsg(`This route is within the ${validCity.name} city limits. Please choose Local Taxi for travel within the same city.`);
+          if (!fromAllowed && !toAllowed) {
+            setErrorMsg('Currently Rentox operates specifically within verified city zones.');
             setLoading(false);
             return;
           }
         }
       } catch (err) {
-        console.error('Boundaries error, falling back to name checks', err);
-        const fromLower = fromAddress.toLowerCase();
-        const toLower = toAddress.toLowerCase();
-        const matchesPune = fromLower.includes('pune') && toLower.includes('pune');
-        const matchesMumbai = (fromLower.includes('mumbai') || fromLower.includes('thane') || fromLower.includes('dadar')) &&
-          (toLower.includes('mumbai') || toLower.includes('thane') || toLower.includes('dadar'));
-        const matchesNashik = fromLower.includes('nashik') && toLower.includes('nashik');
-
-        if (tripType === 'Local-taxi') {
-          if (!matchesPune && !matchesMumbai && !matchesNashik) {
-            setErrorMsg('Local Taxi is limited to Pune, Mumbai, or Nashik city limits only. Please choose One-way for intercity trips.');
-            setLoading(false);
-            return;
-          }
-        } else {
-          if (matchesPune || matchesMumbai || matchesNashik) {
-            setErrorMsg('This route is within city limits. Please choose Local Taxi for travel within the same city.');
-            setLoading(false);
-            return;
-          }
-        }
+        console.warn('Boundary verification error, proceeding to backend:', err);
       }
     }
 
-    setLoading(true);
     try {
-      if (tripType === 'One-way') {
-        const response = await axios.post(endpoints.saveOneWayTemp, {
-          from: fromAddress, to: toAddress, date: pickupDate, time: pickupTime, savedNumber: phoneNumber
-        }, { headers: { 'Content-Type': 'application/json' } });
+      if (tripType === 'Local-Duty') {
+        const body = new URLSearchParams();
+        body.append('pickup_location', fromAddress);
+        body.append('phone_number', phoneNumber);
+        body.append('pickup_date', pickupDate);
+        body.append('pickup_time', pickupTime);
+        body.append('trip_type', 'Local-Duty');
 
-        if (response.data && response.data.success === true && response.data.booking_id) {
-          setTempBookingId(response.data.booking_id.toString());
+        const response = await axios.post(endpoints.createTempBooking, body, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        if (response.data && response.data.status === 'success') {
+          setTempBookingId(response.data.temp_booking_id);
           navigate('/results');
         } else {
           setErrorMsg(response.data.message || 'Failed to initialize booking. Please try again.');
@@ -325,13 +382,13 @@ const Search = () => {
 
   const stats = [
     { icon: 'fa-headset', title: '24/7 Customer Support', desc: "We're here to help you" },
-    { icon: 'fa-users', title: 'Trusted by 10,00+ Drivers', desc: 'Join our happy customers' },
+    { icon: 'fa-users', title: 'Trusted by 10,000+ Drivers', desc: 'Join our happy customers' },
     { icon: 'fa-bolt', title: 'Quick & Easy Booking', desc: 'Book in less than 2 minutes' },
     { icon: 'fa-shield-halved', title: 'Secure Payments', desc: '100% Safe & Secure' },
   ];
 
   return (
-    <div className="bg-[#F5F8FD] min-h-screen" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+    <div className="bg-[#F6F8FC] min-h-screen text-slate-800" style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
         @keyframes agni-pulse { 0% { box-shadow: 0 0 0 0 rgba(0,140,255,0.45); } 70% { box-shadow: 0 0 0 9px rgba(0,140,255,0); } 100% { box-shadow: 0 0 0 0 rgba(0,140,255,0); } }
@@ -345,7 +402,7 @@ const Search = () => {
         .agni-input:focus { border-color: #008CFF !important; box-shadow: 0 0 0 4px rgba(0,140,255,0.10); }
       `}</style>
 
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      {/* ── HERO SECTION ─────────────────────────────────────────────────── */}
       <div
         className="relative pt-6 sm:pt-8 md:pt-10 pb-20 sm:pb-24 md:pb-28 bg-cover bg-center bg-no-repeat"
         style={{
@@ -360,13 +417,13 @@ const Search = () => {
             </div>
 
             <h1 className="agni-hero-title font-extrabold text-white text-2xl sm:text-3xl md:text-4xl lg:text-[40px] leading-[1.15] tracking-tight mb-2">
-              Reliable Rides. <span className="text-[#5fb0ff]">Every Time.</span>
+              Reliable Rides. <span className="text-[#008CFF]">Every Time.</span>
             </h1>
             <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-xl mb-4">
               Outstation &amp; local cabs at fair, transparent prices — safe rides, professional drivers, on time, always.
             </p>
 
-            {/* Compact Trust badges */}
+            {/* Compact Trust Badges */}
             <div className="flex flex-wrap gap-2.5 sm:gap-3">
               {[
                 { icon: 'fa-shield-halved', color: '#5fb0ff', title: 'Safe & Secure', sub: 'Verified Drivers' },
@@ -388,8 +445,8 @@ const Search = () => {
         </div>
       </div>
 
-      {/* ── SEARCH CARD (High visual priority, overlaps hero) ──────── */}
-      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 relative -mt-14 sm:-mt-16 md:-mt-20 z-10">
+      {/* ── BOOKING WIDGET (Primary Action, High Visual Priority) ────────── */}
+      <div id="booking-widget" className="max-w-[1180px] mx-auto px-4 sm:px-6 relative -mt-14 sm:-mt-16 md:-mt-20 z-10">
         <div className="bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200/90 overflow-hidden agni-fade">
 
           {/* Trip Type Tabs */}
@@ -446,7 +503,7 @@ const Search = () => {
                     onChange={handleFromChange}
                     onFocus={() => setShowFromDropdown(true)}
                     onBlur={() => setTimeout(() => setShowFromDropdown(false), 180)}
-                    placeholder="Enter pickup city"
+                    placeholder="Enter pickup city (e.g. Mumbai, Pune)"
                   />
                   <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
                 </div>
@@ -477,7 +534,7 @@ const Search = () => {
                       onChange={handleToChange}
                       onFocus={() => setShowToDropdown(true)}
                       onBlur={() => setTimeout(() => setShowToDropdown(false), 180)}
-                      placeholder="Enter destination city"
+                      placeholder="Enter destination city (e.g. Lonavala, Nashik)"
                     />
                     <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
                   </div>
@@ -606,44 +663,177 @@ const Search = () => {
         </div>
       </div>
 
-      {/* ── WHY CHOOSE ───────────────────────────────────────────────── */}
-      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 mt-16">
-        <div className="text-center mb-10">
-          <span className="text-xs font-bold text-[#008CFF] tracking-widest uppercase">WHY RIDE WITH US</span>
-          <h2 className="font-extrabold text-2xl sm:text-3xl text-[#0B1F3A] mt-2 mb-0">
-            Why Choose Rentox Car Rental?
+      {/* ── POPULAR DESTINATIONS IN MAHARASHTRA ─────────────────────────── */}
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+        <div className="text-center mb-8 sm:mb-10">
+          <span className="text-xs font-extrabold text-[#008CFF] tracking-widest uppercase bg-sky-50 border border-sky-100 px-3 py-1 rounded-full">
+            EXPLORE MAHARASHTRA
+          </span>
+          <h2 className="font-extrabold text-2xl sm:text-3xl text-slate-900 mt-3 mb-2">
+            Popular Destinations in Maharashtra
           </h2>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl mx-auto leading-relaxed">
+            Explore comfortable and reliable cab services across Mumbai and popular destinations in Maharashtra.
+          </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {whyChoose.map((card, i) => (
-            <div key={i} className="agni-why-card bg-white rounded-2xl p-6 border border-[#eef1f7] shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-default">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ background: card.color }}>
-                <i className={`fas ${card.icon}`} style={{ color: card.iconColor, fontSize: 20 }}></i>
+
+        {/* 10-Destination Responsive Card Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {MAHARASHTRA_DESTINATIONS.map((dest, i) => (
+            <div
+              key={dest.name}
+              onClick={() => handleSelectDestination(dest.query)}
+              className="group bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col"
+            >
+              {/* Destination Image Container */}
+              <div className="relative h-44 overflow-hidden bg-slate-100">
+                <img
+                  src={dest.image}
+                  alt={`${dest.name}, Maharashtra`}
+                  loading="lazy"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent"></div>
+                <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/20">
+                  Maharashtra
+                </div>
+                <div className="absolute bottom-3 left-3 right-3">
+                  <h3 className="text-base font-extrabold text-white leading-tight drop-shadow-sm">
+                    {dest.name}
+                  </h3>
+                  <p className="text-[11px] text-sky-200 font-medium truncate mt-0.5">
+                    {dest.tagline}
+                  </p>
+                </div>
               </div>
-              <h3 className="text-sm font-extrabold text-[#1a2433] mb-2">{card.title}</h3>
-              <p className="text-xs text-gray-500 leading-relaxed m-0">{card.desc}</p>
+
+              {/* Card Body */}
+              <div className="p-4 flex-1 flex flex-col justify-between">
+                <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                  {dest.desc}
+                </p>
+
+                <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#008CFF] group-hover:text-[#1E3A8A] transition-colors">
+                  <span>Explore routes</span>
+                  <i className="fas fa-arrow-right text-[11px] transform group-hover:translate-x-1 transition-transform"></i>
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── STATS BAR ────────────────────────────────────────────────── */}
-      <div className="bg-slate-900 text-white mt-16">
-        <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((s, i) => (
-            <div key={i} className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
-                <i className={`fas ${s.icon} text-sky-400 text-lg`}></i>
-              </div>
+      {/* ── POPULAR ROUTES ──────────────────────────────────────────────── */}
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+        <div className="text-center mb-8">
+          <span className="text-xs font-extrabold text-[#008CFF] tracking-widest uppercase bg-sky-50 border border-sky-100 px-3 py-1 rounded-full">
+            DIRECT OUTSTATION CABS
+          </span>
+          <h2 className="font-extrabold text-2xl sm:text-3xl text-slate-900 mt-3 mb-2">
+            Popular Routes
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
+            Book one-way and round-trip cabs between Maharashtra's most popular travel routes.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {POPULAR_ROUTES.map((route, i) => (
+            <div
+              key={i}
+              onClick={() => handleSelectRoute(route.from, route.to)}
+              className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-sky-300 transition-all duration-200 cursor-pointer flex flex-col justify-between group"
+            >
               <div>
-                <div className="text-sm font-bold text-white">{s.title}</div>
-                <div className="text-xs text-gray-400 mt-0.5">{s.desc}</div>
+                <div className="flex items-center justify-between gap-1 mb-2">
+                  <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-md">
+                    {route.tag}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold">{route.distance}</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-extrabold text-slate-900 my-1">
+                  <span className="truncate">{route.from}</span>
+                  <i className="fas fa-arrow-right text-[10px] text-amber-500 flex-shrink-0"></i>
+                  <span className="truncate">{route.to}</span>
+                </div>
+                <div className="text-[10.5px] text-slate-400 font-medium">Est. {route.time} travel</div>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-[#008CFF] group-hover:text-[#1E3A8A]">
+                <span>View Route</span>
+                <i className="fas fa-chevron-right text-[9px]"></i>
               </div>
             </div>
           ))}
         </div>
-        <div className="border-t border-white/5 py-4 text-center">
-          <p className="m-0 text-[10px] text-gray-500 tracking-wider">© 2025 RENTOX CAR RENTAL. ALL RIGHTS RESERVED.</p>
+      </div>
+
+      {/* ── SERVING MUMBAI & MAHARASHTRA BANNER ─────────────────────────── */}
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+        <div className="bg-gradient-to-r from-slate-900 via-[#1E3A8A] to-slate-900 rounded-2xl p-6 sm:p-10 text-white shadow-lg border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="max-w-2xl text-center md:text-left">
+            <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full mb-3">
+              PREMIUM OUTSTATION & CITY CABS
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+              Serving Mumbai &amp; Maharashtra
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+              Rentox provides reliable one-way, round-trip, local taxi and local duty services across Mumbai and major destinations in Maharashtra with verified drivers and 24/7 assistance.
+            </p>
+          </div>
+
+          <button
+            onClick={scrollToBookingWidget}
+            className="flex-shrink-0 bg-[#008CFF] hover:bg-[#0077dd] text-white font-extrabold text-xs uppercase tracking-wider px-7 py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 hover:scale-105 cursor-pointer flex items-center gap-2"
+          >
+            <i className="fas fa-car-side text-sm"></i>
+            Book a Cab
+          </button>
+        </div>
+      </div>
+
+      {/* ── WHY CHOOSE RENTOX ─────────────────────────────────────────── */}
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 mt-16 sm:mt-20">
+        <div className="text-center mb-8 sm:mb-10">
+          <span className="text-xs font-extrabold text-[#008CFF] tracking-widest uppercase bg-sky-50 border border-sky-100 px-3 py-1 rounded-full">
+            WHY RIDE WITH US
+          </span>
+          <h2 className="font-extrabold text-2xl sm:text-3xl text-slate-900 mt-3 mb-2">
+            Why Choose Rentox Car Rental?
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {whyChoose.map((card, i) => (
+            <div key={i} className="agni-why-card bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-default">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: card.color }}>
+                <i className={`fas ${card.icon}`} style={{ color: card.iconColor, fontSize: 18 }}></i>
+              </div>
+              <h3 className="text-sm font-extrabold text-slate-900 mb-1.5">{card.title}</h3>
+              <p className="text-xs text-slate-500 leading-relaxed m-0">{card.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── STATS BAR & FOOTER ─────────────────────────────────────────── */}
+      <div className="bg-slate-900 text-white mt-16 sm:mt-20">
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {stats.map((s, i) => (
+            <div key={i} className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+                <i className={`fas ${s.icon} text-sky-400 text-base`}></i>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white">{s.title}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{s.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-white/10 py-4 text-center">
+          <p className="m-0 text-[10.5px] text-slate-400 tracking-wider">© 2025 RENTOX CAR RENTAL. ALL RIGHTS RESERVED.</p>
         </div>
       </div>
     </div>

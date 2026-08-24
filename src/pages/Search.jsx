@@ -347,74 +347,76 @@ const Search = () => {
 
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <div
-        className="relative py-12 md:py-20 lg:py-24 bg-cover bg-center bg-no-repeat"
+        className="relative pt-6 sm:pt-8 md:pt-10 pb-20 sm:pb-24 md:pb-28 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: `linear-gradient(100deg, rgba(8,20,40,0.92) 0%, rgba(8,20,40,0.8) 40%, rgba(8,20,40,0.4) 75%, rgba(8,20,40,0.15) 100%), url(${HERO_IMAGE_URL})`,
         }}
       >
         <div className="max-w-[1180px] mx-auto px-4 sm:px-6">
-          <div className="agni-fade max-w-[640px]">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 border border-white/22 rounded-full mb-5 backdrop-blur-md">
+          <div className="agni-fade max-w-[700px]">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full mb-3 backdrop-blur-md">
               <i className="fas fa-car-side text-[#7ab8ff] text-xs"></i>
               <span className="text-[10px] sm:text-xs font-bold text-sky-50 tracking-wider uppercase">RENTOX CAR RENTAL</span>
             </div>
 
-            <h1 className="agni-hero-title font-extrabold text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-2">
-              Reliable Rides. <br />
-              <span className="text-[#5fb0ff]">Every Time.</span>
+            <h1 className="agni-hero-title font-extrabold text-white text-2xl sm:text-3xl md:text-4xl lg:text-[40px] leading-[1.15] tracking-tight mb-2">
+              Reliable Rides. <span className="text-[#5fb0ff]">Every Time.</span>
             </h1>
-            <p className="text-sm sm:text-base text-gray-300 leading-relaxed max-w-lg mb-8">
+            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-xl mb-4">
               Outstation &amp; local cabs at fair, transparent prices — safe rides, professional drivers, on time, always.
             </p>
 
-            {/* Trust badges */}
-            <div className="flex flex-wrap gap-4 sm:gap-6 mt-6">
+            {/* Compact Trust badges */}
+            <div className="flex flex-wrap gap-2.5 sm:gap-3">
               {[
                 { icon: 'fa-shield-halved', color: '#5fb0ff', title: 'Safe & Secure', sub: 'Verified Drivers' },
                 { icon: 'fa-tag', color: '#FFC94D', title: 'Best Prices', sub: 'Transparent Pricing' },
                 { icon: 'fa-headset', color: '#4ADE80', title: '24/7 Support', sub: "We're here for you" },
               ].map((b, i) => (
-                <div key={i} className="flex items-center gap-3 bg-black/25 border border-white/10 rounded-2xl p-3 pr-4 backdrop-blur-sm">
-                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white flex-shrink-0">
-                    <i className={`fas ${b.icon}`} style={{ color: b.color, fontSize: '14px' }}></i>
+                <div key={i} className="flex items-center gap-2.5 bg-black/30 border border-white/15 rounded-xl py-1.5 px-3 backdrop-blur-sm">
+                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white flex-shrink-0 text-xs">
+                    <i className={`fas ${b.icon}`} style={{ color: b.color }}></i>
                   </div>
                   <div>
-                    <div className="text-xs sm:text-sm font-bold text-white">{b.title}</div>
-                    <div className="text-[10px] sm:text-xs text-gray-400">{b.sub}</div>
+                    <div className="text-xs font-bold text-white leading-tight">{b.title}</div>
+                    <div className="text-[10px] text-gray-300">{b.sub}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-
-        {/* Rating badge, floating over the image on the right */}
-       
       </div>
 
-      {/* ── SEARCH CARD (overlaps hero) ─────────────────────────────── */}
-      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 relative -mt-16 sm:-mt-20 z-10">
-        <div className="bg-white rounded-3xl shadow-xl border border-[#e8eef8] overflow-hidden agni-fade">
+      {/* ── SEARCH CARD (High visual priority, overlaps hero) ──────── */}
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 relative -mt-14 sm:-mt-16 md:-mt-20 z-10">
+        <div className="bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200/90 overflow-hidden agni-fade">
 
           {/* Trip Type Tabs */}
-          <div className="grid grid-cols-2 md:flex border-b border-gray-100 bg-[#fafcff] p-1 gap-1">
+          <div className="grid grid-cols-2 md:flex border-b border-gray-100 bg-slate-50/80 p-1 gap-1">
             {tripTabs.map((tab) => {
               const active = tripType === tab.key;
               return (
                 <button
                   key={tab.key}
-                  className="agni-tab-btn"
+                  type="button"
+                  className="agni-tab-btn cursor-pointer rounded-xl"
                   onClick={() => setTripType(tab.key)}
                   style={{
-                    flex: 1, padding: '12px 10px', border: 'none', background: active ? 'white' : 'transparent',
-                    cursor: 'pointer', textAlign: 'center', position: 'relative',
+                    flex: 1,
+                    padding: '9px 8px',
+                    border: 'none',
+                    background: active ? 'white' : 'transparent',
+                    textAlign: 'center',
+                    position: 'relative',
                     borderBottom: active ? '2px solid #008CFF' : '2px solid transparent',
-                    transition: 'all 0.2s',
+                    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <i className={`fas ${tab.icon}`} style={{ color: active ? '#008CFF' : '#8a99aa', fontSize: 13 }}></i>
-                    <span className="text-[12px] sm:text-[13px] font-bold" style={{ color: active ? '#008CFF' : '#5a6a7a' }}>{tab.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <i className={`fas ${tab.icon}`} style={{ color: active ? '#008CFF' : '#64748B', fontSize: 12 }}></i>
+                    <span className="text-[12px] sm:text-[13px] font-bold" style={{ color: active ? '#008CFF' : '#334155' }}>{tab.label}</span>
                   </div>
                   <div className="text-[9px] sm:text-[10px] text-gray-400 mt-0.5">{tab.sub}</div>
                 </button>
@@ -423,30 +425,30 @@ const Search = () => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSearch} className="p-4 sm:p-6 md:p-8">
+          <form onSubmit={handleSearch} className="p-4 sm:p-5 md:p-6">
             {errorMsg && (
-              <div className="mb-4 bg-[#FEF2F2] border border-[#FECACA] color-[#DC2626] rounded-xl p-3 px-4 text-xs font-semibold flex items-center gap-2">
-                <i className="fas fa-exclamation-circle text-red-600"></i> <span className="text-red-700">{errorMsg}</span>
+              <div className="mb-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-3 px-4 text-xs font-semibold flex items-center gap-2">
+                <i className="fas fa-exclamation-circle text-rose-600"></i> <span>{errorMsg}</span>
               </div>
             )}
 
             {/* FROM / TO row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-4 mb-3.5 relative">
               {/* FROM */}
               <div className="relative">
-                <label className="block text-[10px] font-extrabold text-gray-400 tracking-wider mb-2 uppercase">FROM</label>
+                <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">FROM</label>
                 <div className="relative">
                   <span className="agni-route-dot-from absolute left-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#008CFF] z-10"></span>
                   <input
                     type="text"
-                    className="agni-input w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-900 placeholder-gray-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                    className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
                     value={fromAddress}
                     onChange={handleFromChange}
                     onFocus={() => setShowFromDropdown(true)}
                     onBlur={() => setTimeout(() => setShowFromDropdown(false), 180)}
                     placeholder="Enter pickup city"
                   />
-                  <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
+                  <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
                 </div>
                 {showFromDropdown && fromSuggestions.length > 0 && (
                   <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
@@ -465,19 +467,19 @@ const Search = () => {
               {/* TO */}
               {tripType !== 'Local-Duty' ? (
                 <div className="relative">
-                  <label className="block text-[10px] font-extrabold text-gray-400 tracking-wider mb-2 uppercase">TO</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">TO</label>
                   <div className="relative">
-                    <i className="fas fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-red-500 text-sm"></i>
+                    <i className="fas fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-rose-500 text-sm"></i>
                     <input
                       type="text"
-                      className="agni-input w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-900 placeholder-gray-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                      className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
                       value={toAddress}
                       onChange={handleToChange}
                       onFocus={() => setShowToDropdown(true)}
                       onBlur={() => setTimeout(() => setShowToDropdown(false), 180)}
                       placeholder="Enter destination city"
                     />
-                    <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
+                    <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
                   </div>
                   {showToDropdown && toSuggestions.length > 0 && (
                     <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
@@ -493,9 +495,9 @@ const Search = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex items-end pb-3">
-                  <p className="text-xs text-gray-400 font-medium flex items-center gap-1.5">
-                    <i className="fas fa-circle-info text-gray-300 text-sm"></i>
+                <div className="flex items-end pb-2">
+                  <p className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                    <i className="fas fa-circle-info text-slate-300 text-sm"></i>
                     Local duty — pick your area at the next step.
                   </p>
                 </div>
@@ -503,15 +505,15 @@ const Search = () => {
             </div>
 
             {/* DATE / TIME row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 mb-3.5">
               {/* Travel Date */}
               <div>
-                <label className="block text-[10px] font-extrabold text-gray-400 tracking-wider mb-2 uppercase">TRAVEL DATE</label>
+                <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">TRAVEL DATE</label>
                 <div className="relative">
-                  <i className="fas fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                  <i className="fas fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
                   <input
                     type="date"
-                    className="agni-input w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-900 outline-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                    className="agni-input w-full pl-10 pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
                     value={pickupDate}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setPickupDate(e.target.value)}
@@ -521,31 +523,31 @@ const Search = () => {
 
               {/* Pickup Time */}
               <div>
-                <label className="block text-[10px] font-extrabold text-gray-400 tracking-wider mb-2 uppercase">PICKUP TIME</label>
+                <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">PICKUP TIME</label>
                 <div className="relative">
                   <i className="fas fa-clock absolute left-4 top-1/2 -translate-y-1/2 text-[#008CFF] text-sm"></i>
                   <select
-                    className="agni-input w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-900 outline-none appearance-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                    className="agni-input w-full pl-10 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none appearance-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
                     value={pickupTime}
                     onChange={(e) => setPickupTime(e.target.value)}
                   >
                     {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
-                  <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                  <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                 </div>
               </div>
             </div>
 
             {/* Round-Trip Return Date / Time */}
             {tripType === 'Round-Trip' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-4 pt-5 border-t border-dashed border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 mb-3.5 pt-3.5 border-t border-dashed border-slate-100">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-gray-400 tracking-wider mb-2 uppercase">RETURN DATE</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">RETURN DATE</label>
                   <div className="relative">
-                    <i className="fas fa-calendar-week absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <i className="fas fa-calendar-week absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
                     <input
                       type="date"
-                      className="agni-input w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-900 outline-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                      className="agni-input w-full pl-10 pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
                       value={returnDate}
                       min={pickupDate || new Date().toISOString().split('T')[0]}
                       onChange={(e) => setReturnDate(e.target.value)}
@@ -553,37 +555,36 @@ const Search = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-gray-400 tracking-wider mb-2 uppercase">RETURN TIME</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">RETURN TIME</label>
                   <div className="relative">
                     <i className="fas fa-clock absolute left-4 top-1/2 -translate-y-1/2 text-[#008CFF] text-sm"></i>
                     <select
-                      className="agni-input w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[13px] font-semibold text-gray-900 outline-none appearance-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                      className="agni-input w-full pl-10 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none appearance-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
                       value={returnTime}
                       onChange={(e) => setReturnTime(e.target.value)}
                     >
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                    <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Bottom row: USPs + Search Button */}
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100">
-              <div className="hidden lg:flex items-center gap-6">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
+              <div className="hidden lg:flex items-center gap-5">
                 {[
                   { icon: 'fa-mobile-screen', color: '#008CFF', title: 'Easy Booking', sub: 'Quick & hassle-free' },
-                  
                   { icon: 'fa-bolt', color: '#FFB300', title: 'Instant Confirmation', sub: 'Get details instantly' },
                 ].map((b, i) => (
                   <div key={i} className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: b.color + '15' }}>
-                      <i className={`fas ${b.icon}`} style={{ color: b.color, fontSize: 13 }}></i>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: b.color + '15' }}>
+                      <i className={`fas ${b.icon}`} style={{ color: b.color, fontSize: 12 }}></i>
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-[#1a2433]">{b.title}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">{b.sub}</div>
+                      <div className="text-xs font-bold text-slate-900 leading-tight">{b.title}</div>
+                      <div className="text-[10px] text-slate-400">{b.sub}</div>
                     </div>
                   </div>
                 ))}
@@ -591,13 +592,13 @@ const Search = () => {
 
               <button
                 type="submit"
-                className="agni-cta w-full lg:w-auto px-8 py-3.5 bg-gradient-to-r from-[#008CFF] to-[#0066cc] text-white border-none rounded-xl text-sm font-bold tracking-wider cursor-pointer shadow-lg shadow-[#008cff]/20 hover:brightness-105 transition-all duration-200 flex items-center justify-center gap-2"
+                className="agni-cta w-full lg:w-auto px-8 py-3 bg-[#1E3A8A] hover:bg-[#172554] text-white border-none rounded-xl text-xs font-extrabold tracking-wider cursor-pointer shadow-md shadow-blue-900/10 hover:brightness-105 transition-all duration-200 flex items-center justify-center gap-2 h-11"
                 disabled={loading}
               >
                 {loading ? (
                   <><i className="fas fa-circle-notch fa-spin"></i> Searching...</>
                 ) : (
-                  <>SEARCH CABS <i className="fas fa-arrow-right"></i></>
+                  <>SEARCH CABS <i className="fas fa-arrow-right text-xs"></i></>
                 )}
               </button>
             </div>

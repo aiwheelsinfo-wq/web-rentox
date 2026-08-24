@@ -424,24 +424,48 @@ const Invoice = () => {
                 </div>
 
                 {tripType === 'Round-Trip' ? (
-                  <div className="flex flex-col gap-2">
-                    <select
-                      value={commissionRatePerKm}
-                      onChange={(e) => {
-                        const rate = parseFloat(e.target.value) || 0;
-                        setCommissionRatePerKm(rate);
-                        setAgentCommission(rate * dailyLimit * days);
-                      }}
-                      className="w-full bg-gray-50/80 border border-gray-200 rounded-xl py-2 px-3 text-xs font-bold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11 cursor-pointer"
-                    >
-                      <option value={0.0}>₹0 / KM (No Commission)</option>
-                      <option value={1.0}>₹1 / KM (+₹{(1.0 * dailyLimit * days).toLocaleString('en-IN')})</option>
-                      <option value={2.0}>₹2 / KM (+₹{(2.0 * dailyLimit * days).toLocaleString('en-IN')})</option>
-                      <option value={3.0}>₹3 / KM (+₹{(3.0 * dailyLimit * days).toLocaleString('en-IN')})</option>
-                    </select>
-                    <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-2.5 text-3xs text-amber-900 font-semibold flex items-center justify-between">
-                      <span>Formula: ₹{commissionRatePerKm}/KM × {dailyLimit} KM/day × {days} Days</span>
-                      <span className="font-extrabold text-xs text-amber-800">+₹{Math.round(currentCommission).toLocaleString('en-IN')}</span>
+                  <div className="flex flex-col gap-3">
+                    {/* Interactive 4-Chip Selector */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { rate: 0.0, label: '₹0 / KM', sub: 'No Comm.' },
+                        { rate: 1.0, label: '₹1 / KM', sub: `+₹${Math.round(1.0 * dailyLimit * days).toLocaleString('en-IN')}` },
+                        { rate: 2.0, label: '₹2 / KM', sub: `+₹${Math.round(2.0 * dailyLimit * days).toLocaleString('en-IN')}` },
+                        { rate: 3.0, label: '₹3 / KM', sub: `+₹${Math.round(3.0 * dailyLimit * days).toLocaleString('en-IN')}` },
+                      ].map((opt) => {
+                        const isSelected = commissionRatePerKm === opt.rate;
+                        return (
+                          <button
+                            key={opt.rate}
+                            type="button"
+                            onClick={() => {
+                              setCommissionRatePerKm(opt.rate);
+                              setAgentCommission(opt.rate * dailyLimit * days);
+                            }}
+                            className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-amber-400 border-amber-500 text-brandCharcoal shadow-sm ring-2 ring-amber-400/40 font-black'
+                                : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300 hover:bg-amber-50/50'
+                            }`}
+                          >
+                            <span className="text-xs font-bold">{opt.label}</span>
+                            <span className={`text-4xs mt-0.5 font-semibold ${isSelected ? 'text-brandCharcoal' : 'text-gray-500'}`}>
+                              {opt.sub}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Formula & Total Calculation Pill */}
+                    <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-3 text-3xs text-amber-950 font-semibold flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <i className="fas fa-calculator text-amber-600"></i>
+                        <span>₹{commissionRatePerKm}/KM × {dailyLimit} KM/day × {days} Days</span>
+                      </div>
+                      <span className="font-extrabold text-xs text-amber-900 bg-amber-200/60 px-2 py-0.5 rounded-md">
+                        +₹{Math.round(currentCommission).toLocaleString('en-IN')}
+                      </span>
                     </div>
                   </div>
                 ) : (
@@ -461,7 +485,7 @@ const Invoice = () => {
                 <p className="text-4xs text-gray-400 font-medium flex items-center gap-1">
                   <i className="fas fa-info-circle text-amber-500 text-3xs"></i>
                   {tripType === 'Round-Trip'
-                    ? 'Commission is added to both Total Fare and Advance Payable now.'
+                    ? 'Commission is included in the total trip fare (advance payment stays fixed at ₹4/KM).'
                     : 'Commission is added to the total trip fare.'}
                 </p>
               </div>

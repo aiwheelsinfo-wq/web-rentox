@@ -469,17 +469,63 @@ const Invoice = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="relative flex items-center">
-                    <span className="absolute left-3.5 text-gray-500 font-bold text-xs">₹</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={agentCommission}
-                      onChange={(e) => setAgentCommission(parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                      className="w-full bg-gray-50/80 border border-gray-200 rounded-xl py-2.5 pl-8 pr-4 text-sm font-extrabold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11"
-                    />
+                  <div className="flex flex-col gap-2.5">
+                    {/* Quick Preset Chips for One-Way */}
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[0, 100, 200, 300, 500].map((amt) => {
+                        const isSelected = (parseFloat(agentCommission) || 0) === amt;
+                        return (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setAgentCommission(amt)}
+                            className={`py-1.5 px-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-amber-400 border-amber-500 text-brandCharcoal font-extrabold shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300 hover:bg-amber-50/50'
+                            }`}
+                          >
+                            ₹{amt}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Input Field with Easy Clear & Type */}
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3.5 text-gray-500 font-bold text-xs">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={agentCommission === 0 || agentCommission === '0' ? '' : agentCommission}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAgentCommission(val === '' ? '' : Math.max(0, parseFloat(val) || 0));
+                        }}
+                        onFocus={() => {
+                          if (agentCommission === 0 || agentCommission === '0') {
+                            setAgentCommission('');
+                          }
+                        }}
+                        onBlur={() => {
+                          if (agentCommission === '' || isNaN(parseFloat(agentCommission))) {
+                            setAgentCommission(0);
+                          }
+                        }}
+                        placeholder="Enter custom commission (e.g. 250)"
+                        className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-8 pr-16 text-sm font-extrabold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11"
+                      />
+                      {agentCommission !== '' && agentCommission !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setAgentCommission(0)}
+                          className="absolute right-2.5 text-3xs text-gray-400 hover:text-red-500 font-bold bg-gray-100 hover:bg-red-50 px-2 py-1 rounded-md transition-all cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
                 <p className="text-4xs text-gray-400 font-medium flex items-center gap-1">

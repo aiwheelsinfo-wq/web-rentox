@@ -126,11 +126,13 @@ const Invoice = () => {
     ? (tripType === 'Round-Trip' ? (commissionRatePerKm * dailyLimit * days) : (parseFloat(agentCommission) || 0))
     : 0;
 
-  const tripFare = rawBaseFare + currentCommission + earlyMorningFee;
+  // Total Trip Fare (includes base km charge + driver allowance + agent commission + early morning fee)
+  const roundTripEstimatedFare = (dailyLimit * parseFloat(selectedCar?.kmRate || 13) * days) + (400 * days) + currentCommission + earlyMorningFee;
+  const tripFare = tripType === 'Round-Trip' ? roundTripEstimatedFare : (rawBaseFare + currentCommission + earlyMorningFee);
   
-  // Round trip advance: Base advance (₹4/KM) + Agent Commission + early morning fee
-  const roundTripBaseAdvance = dailyLimit * 4.0 * days;
-  const roundTripAdvance = roundTripBaseAdvance + currentCommission + earlyMorningFee;
+  // Round trip advance: Fixed base advance (₹4/KM) + early morning fee ONLY (Agent Commission is NOT added to advance)
+  const roundTripBaseAdvance = (dailyLimit * 4.0 * days) + earlyMorningFee;
+  const roundTripAdvance = roundTripBaseAdvance;
 
   let payableNow, advanceAmount, gstAmount, remainingBalance;
   if (tripType === 'Round-Trip') {
@@ -696,12 +698,8 @@ const Invoice = () => {
                       <span className="font-semibold text-brandCharcoal">{"\u20B9"}{selectedCar.kmRate}/km</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Daily KM Limit</span>
-                      <span className="font-semibold text-brandCharcoal">{dailyLimit} KM/day</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Total Duration</span>
-                      <span className="font-semibold text-brandCharcoal">{days} Days</span>
+                      <span className="text-gray-500">Min. KM ({days} Days @ {dailyLimit} KM/d)</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{(dailyLimit * parseFloat(selectedCar.kmRate || 13) * days).toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Driver Allowance</span>
@@ -719,6 +717,11 @@ const Invoice = () => {
                         <span>+ {"\u20B9"}{Math.round(currentCommission).toLocaleString('en-IN')}</span>
                       </div>
                     )}
+                    <hr className="border-gray-100 my-1" />
+                    <div className="flex justify-between text-sm font-extrabold">
+                      <span className="text-brandCharcoal">Total Estimated Fare</span>
+                      <span className="text-brandCharcoal">{"\u20B9"}{Math.round(tripFare).toLocaleString('en-IN')}</span>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -761,28 +764,20 @@ const Invoice = () => {
                 {tripType === 'Round-Trip' ? (
                   <>
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Base Advance (₹4/KM)</span>
+                      <span className="text-gray-500">Booking Advance (₹4/KM)</span>
                       <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(roundTripBaseAdvance).toLocaleString('en-IN')}</span>
                     </div>
-                    {userRole === 'agent' && currentCommission > 0 && (
-                      <div className="flex justify-between text-xs text-amber-700 font-semibold">
-                        <span>Agent Commission</span>
-                        <span>+ {"\u20B9"}{Math.round(currentCommission).toLocaleString('en-IN')}</span>
-                      </div>
-                    )}
-                    {earlyMorningFee > 0 && (
-                      <div className="flex justify-between text-xs text-amber-800">
-                        <span>Early Morning Fee</span>
-                        <span>+ {"\u20B9"}300</span>
-                      </div>
-                    )}
                     <hr className="border-brandAmber/20" />
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-green-700">Total Advance Payable</span>
+                      <span className="text-xs font-bold text-green-700">Payable Now</span>
                       <span className="text-base font-black text-green-700">{"\u20B9"}{Math.round(payableNow).toLocaleString('en-IN')}</span>
                     </div>
-                    <div className="text-3xs text-gray-400 mt-2 leading-relaxed">
-                      *Remaining balance will be calculated based on actual distance run ({"\u20B9"}{selectedCar.kmRate}/km) and toll/permit receipts at trip end.
+                    <div className="flex justify-between text-3xs text-gray-500 mt-1">
+                      <span>Est. Balance Payable to Driver:</span>
+                      <span className="font-bold text-brandCharcoal">{"\u20B9"}{Math.round(remainingBalance).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="text-4xs text-gray-400 mt-1 leading-relaxed italic">
+                      *Remaining balance is settled directly with the driver based on actual distance and receipts at trip end.
                     </div>
                   </>
                 ) : tripType === 'Local-Duty' ? (

@@ -38,63 +38,63 @@ const MAHARASHTRA_DESTINATIONS = [
     name: 'Mumbai',
     tagline: 'Gateway to Maharashtra',
     desc: 'Financial capital, Marine Drive & iconic skyline',
-    image: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1566552881560-0be862a7c445?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Mumbai, Maharashtra, India'
   },
   {
     name: 'Pune',
     tagline: 'Culture, IT & Weekend Escapes',
     desc: 'Historic forts, Oxford of the East & tech parks',
-    image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1588416936097-41850ab3d86d?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Pune, Maharashtra, India'
   },
   {
     name: 'Nashik',
     tagline: 'Vineyards & Sacred Temples',
     desc: 'Wine capital of India & Trimbakeshwar pilgrimage',
-    image: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Nashik, Maharashtra, India'
   },
   {
     name: 'Lonavala',
     tagline: 'Popular Hill-Station Getaway',
     desc: 'Western Ghats waterfalls, Tiger Point & lush hills',
-    image: 'https://images.unsplash.com/photo-1571536802807-30451e3955d8?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Lonavala, Maharashtra, India'
   },
   {
     name: 'Mahabaleshwar',
     tagline: 'Scenic Mountain Destination',
     desc: 'Strawberry valleys, Venna Lake & panoramic cliffs',
-    image: 'https://images.unsplash.com/photo-1626014303757-6564477318f1?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Mahabaleshwar, Maharashtra, India'
   },
   {
     name: 'Shirdi',
     tagline: 'Spiritual Pilgrimage',
     desc: 'Holy shrine of Sai Baba attracting millions yearly',
-    image: 'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Shirdi, Maharashtra, India'
   },
   {
     name: 'Kolhapur',
     tagline: 'Royal Maratha Heritage',
     desc: 'Mahalaxmi Temple, royal palaces & authentic culture',
-    image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Kolhapur, Maharashtra, India'
   },
   {
     name: 'Nagpur',
     tagline: 'Orange City & Central Hub',
     desc: 'Zero Mile Stone, wildlife gateways & bustling commerce',
-    image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1477959858617-67f30bc75b82?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Nagpur, Maharashtra, India'
   },
   {
     name: 'Thane',
     tagline: 'City of Lakes',
     desc: 'Yeoor Hills, scenic waterfronts & urban charm',
-    image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Thane, Maharashtra, India'
   },
   {
@@ -691,6 +691,10 @@ const Search = () => {
                   src={dest.image}
                   alt={`${dest.name}, Maharashtra`}
                   loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?fm=jpg&q=80&w=800&auto=format&fit=crop';
+                  }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent"></div>

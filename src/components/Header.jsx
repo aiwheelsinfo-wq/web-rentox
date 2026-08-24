@@ -57,35 +57,43 @@ const Header = () => {
     { to: '/history', label: 'My Bookings', always: false, icon: 'fa-receipt' },
   ];
 
+  const drawerNavItems = [
+    { to: '/', label: 'Book a Cab', icon: 'fa-car-side', iconColor: '#008CFF' },
+    { to: '/history', label: 'My Bookings', icon: 'fa-receipt', iconColor: '#10B981', requiresAuth: true },
+    { to: '/profile', label: 'My Profile', icon: 'fa-user-gear', iconColor: '#6366F1' },
+    { to: '/help', label: 'Help & Support', icon: 'fa-headset', iconColor: '#F59E0B' },
+    { to: '/privacy', label: 'Privacy Policy', icon: 'fa-shield-alt', iconColor: '#8B5CF6' },
+  ];
+
   return (
-    <header className="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
-      <div className="max-w-[1180px] mx-auto px-4 md:px-6 flex items-center justify-between h-[60px]">
+    <header className="bg-white sticky top-0 z-50 shadow-2xs border-b border-slate-100 h-[60px] sm:h-[64px]">
+      <div className="max-w-[1180px] mx-auto px-3 sm:px-4 md:px-6 flex items-center justify-between h-full">
         
-        {/* Left Section: Mobile Hamburger + Brand Logo */}
+        {/* ── MOBILE HEADER (Left: Hamburger + Logo) / DESKTOP (Logo) ── */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Mobile Hamburger Button on the Left */}
+          {/* Mobile 44x44px Hamburger Touch Target */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="hamburger-btn flex md:hidden items-center justify-center p-1.5 -ml-1.5 rounded-lg text-slate-700 hover:text-[#008CFF] hover:bg-slate-50 transition-all cursor-pointer"
-            aria-label="Open Navigation Menu"
+            className="hamburger-btn flex md:hidden items-center justify-center w-11 h-11 -ml-1 rounded-xl text-slate-800 hover:text-[#008CFF] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+            aria-label="Open navigation menu"
           >
             <i className="fas fa-bars text-lg"></i>
           </button>
 
-          {/* Logo */}
+          {/* Rentox Logo */}
           <Link to="/" className="flex items-center gap-2 no-underline flex-shrink-0">
             <img
               src="https://agnicarrental.com/admin2025/images/pnglogoagni.png"
               alt="Rentox Car Rental"
               className="h-8 sm:h-9 w-auto object-contain"
             />
-            <span className="font-extrabold text-base md:text-lg tracking-tight text-[#1a2433] inline-flex gap-1">
-              RENTOX <span className="text-[#FFB300]">CAR RENTAL</span>
+            <span className="font-black text-base sm:text-lg tracking-tight text-[#0F172A] inline-flex items-center gap-1">
+              RENTOX <span className="text-[#FFB000]">CAR RENTAL</span>
             </span>
           </Link>
         </div>
 
-        {/* Middle: Desktop Navigation links */}
+        {/* ── DESKTOP MIDDLE NAVIGATION ── */}
         <nav className="hidden md:flex items-center justify-center gap-6 flex-1">
           {navLinks.map(({ to, label, always, icon }) => {
             if (!always && !isLoggedIn) return null;
@@ -107,7 +115,7 @@ const Header = () => {
           })}
         </nav>
 
-        {/* Right: Desktop Actions */}
+        {/* ── DESKTOP RIGHT ACTIONS ── */}
         <div className="hidden md:flex items-center gap-3">
           <Link
             to="/help"
@@ -193,30 +201,22 @@ const Header = () => {
           )}
         </div>
 
-        {/* Mobile Right: Direct Login / Profile Avatar */}
-        <div className="flex md:hidden items-center gap-2">
-          {isLoggedIn ? (
-            <Link
-              to="/profile"
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-[#f3f7ff] text-[#008CFF] border border-[#dde5f0] text-xs font-bold transition-all no-underline"
-              title="My Account"
-            >
-              <i className="fas fa-user text-xs"></i>
-            </Link>
-          ) : (
-            <Link
-              to="/profile"
-              className="bg-[#008CFF] text-white no-underline px-3.5 py-1.5 rounded-full text-xs font-extrabold shadow-sm hover:bg-[#0070cc] transition-all flex items-center gap-1.5"
-            >
-              <i className="fas fa-user text-3xs"></i>
-              <span>Login</span>
-            </Link>
-          )}
+        {/* ── MOBILE RIGHT ACTION: 40x40px Circular Profile Button ── */}
+        <div className="flex md:hidden items-center">
+          <Link
+            to="/profile"
+            className="w-11 h-11 flex items-center justify-center no-underline active:scale-95 transition-all"
+            title="My Profile"
+          >
+            <div className="w-10 h-10 rounded-full bg-[#f3f7ff] text-[#008CFF] border border-[#dde5f0] flex items-center justify-center text-sm font-extrabold shadow-2xs hover:bg-[#008CFF] hover:text-white transition-all">
+              <i className="fas fa-user"></i>
+            </div>
+          </Link>
         </div>
 
       </div>
 
-      {/* ── LEFT-SIDE MOBILE SLIDE DRAWER / SIDEBAR ── */}
+      {/* ── LEFT-SIDE MOBILE SLIDE DRAWER ── */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[100] md:hidden">
           {/* Backdrop Overlay */}
@@ -225,62 +225,62 @@ const Header = () => {
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          {/* Left Slide Panel */}
+          {/* Left Slide Panel (82–88% Screen Width) */}
           <div 
             ref={mobileMenuRef}
-            className="fixed inset-y-0 left-0 w-[280px] sm:w-[300px] max-w-[85vw] bg-white shadow-2xl z-[101] flex flex-col justify-between overflow-y-auto animate-in slide-in-from-left duration-300 ease-out"
+            className="fixed inset-y-0 left-0 w-[84%] sm:w-[320px] max-w-[340px] bg-white shadow-2xl z-[101] flex flex-col justify-between overflow-y-auto animate-in slide-in-from-left duration-250 ease-out border-r border-slate-200/80"
           >
             <div>
-              {/* Drawer Header */}
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              {/* Drawer Top Header */}
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/90">
                 <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 no-underline">
                   <img
                     src="https://agnicarrental.com/admin2025/images/pnglogoagni.png"
                     alt="Rentox Car Rental"
                     className="h-8 w-auto object-contain"
                   />
-                  <span className="font-extrabold text-sm tracking-tight text-slate-900 inline-flex gap-1">
-                    RENTOX <span className="text-[#FFB300]">CAR RENTAL</span>
+                  <span className="font-black text-sm tracking-tight text-[#0F172A] inline-flex items-center gap-1">
+                    RENTOX <span className="text-[#FFB000]">CAR RENTAL</span>
                   </span>
                 </Link>
 
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                  className="w-9 h-9 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
                   aria-label="Close Menu"
                 >
                   <i className="fas fa-times text-xs"></i>
                 </button>
               </div>
 
-              {/* User Greeting / Account Banner */}
-              <div className="p-4 bg-gradient-to-r from-sky-50 to-blue-50 border-b border-sky-100">
+              {/* User Profile / Greeting Card */}
+              <div className="p-4 bg-gradient-to-r from-sky-50/90 via-white to-sky-50/50 border-b border-slate-100">
                 {isLoggedIn ? (
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#008CFF] text-white flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-xs">
                       <i className="fas fa-user"></i>
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#008CFF] block">
-                        Logged In
+                        Account Active
                       </span>
-                      <p className="text-xs font-bold text-slate-800 truncate">
+                      <p className="text-xs font-bold text-slate-800 truncate mt-0.5">
                         {phoneNumber || 'My Account'}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <span className="text-xs font-bold text-slate-800 block">
+                    <span className="text-xs font-black text-slate-900 block">
                       Welcome to Rentox
                     </span>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Book rides & track bookings easily
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      Sign in to manage and track your bookings.
                     </p>
                     <Link
                       to="/profile"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="inline-flex items-center gap-1.5 mt-2 text-xs font-extrabold text-[#008CFF] hover:underline"
+                      className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-extrabold text-[#008CFF] hover:underline"
                     >
                       <i className="fas fa-sign-in-alt text-3xs"></i> Login / Sign Up →
                     </Link>
@@ -288,81 +288,50 @@ const Header = () => {
                 )}
               </div>
 
-              {/* Navigation Links */}
-              <div className="p-3 flex flex-col gap-1">
-                <Link
-                  to="/"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all no-underline ${
-                    location.pathname === '/'
-                      ? 'bg-sky-50 text-[#008CFF]'
-                      : 'text-slate-700 hover:bg-slate-50 hover:text-[#008CFF]'
-                  }`}
-                >
-                  <i className="fas fa-car-side text-sm w-5 text-sky-500"></i>
-                  <span>Book Cab</span>
-                </Link>
-
-                {isLoggedIn && (
-                  <Link
-                    to="/history"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all no-underline ${
-                      location.pathname === '/history'
-                        ? 'bg-sky-50 text-[#008CFF]'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-[#008CFF]'
-                    }`}
-                  >
-                    <i className="fas fa-receipt text-sm w-5 text-emerald-600"></i>
-                    <span>My Bookings</span>
-                  </Link>
-                )}
-
-                <Link
-                  to="/help"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all no-underline ${
-                    location.pathname === '/help'
-                      ? 'bg-sky-50 text-[#008CFF]'
-                      : 'text-slate-700 hover:bg-slate-50 hover:text-[#008CFF]'
-                  }`}
-                >
-                  <i className="fas fa-headset text-sm w-5 text-amber-500"></i>
-                  <span>Help &amp; Support</span>
-                </Link>
-
-                {isLoggedIn && (
-                  <Link
-                    to="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all no-underline ${
-                      location.pathname === '/profile'
-                        ? 'bg-sky-50 text-[#008CFF]'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-[#008CFF]'
-                    }`}
-                  >
-                    <i className="fas fa-user-gear text-sm w-5 text-indigo-500"></i>
-                    <span>Manage Account</span>
-                  </Link>
-                )}
-
-                <Link
-                  to="/privacy"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all no-underline ${
-                    location.pathname === '/privacy'
-                      ? 'bg-sky-50 text-[#008CFF]'
-                      : 'text-slate-700 hover:bg-slate-50 hover:text-[#008CFF]'
-                  }`}
-                >
-                  <i className="fas fa-shield-alt text-sm w-5 text-purple-500"></i>
-                  <span>Privacy Policy</span>
-                </Link>
+              {/* Navigation Items (52–60px height touch targets) */}
+              <div className="p-2.5 flex flex-col gap-1">
+                {drawerNavItems.map((item) => {
+                  if (item.requiresAuth && !isLoggedIn) return null;
+                  const active = location.pathname === item.to;
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3.5 px-4 h-[54px] rounded-xl text-xs font-bold transition-all no-underline ${
+                        active
+                          ? 'bg-sky-50 text-[#008CFF] font-extrabold border-l-4 border-[#008CFF]'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-[#008CFF]'
+                      }`}
+                    >
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-100/80">
+                        <i className={`fas ${item.icon} text-xs`} style={{ color: item.iconColor }}></i>
+                      </div>
+                      <span className="text-xs font-bold">{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Drawer Bottom Actions & Helpline */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50/70">
+            {/* Drawer Bottom Support Card & Logout */}
+            <div className="p-4 border-t border-slate-100 flex flex-col gap-3">
+              {/* 24/7 Support Card */}
+              <div className="bg-gradient-to-r from-sky-50/80 to-teal-50/80 border border-sky-100 rounded-xl p-3 flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-sky-500 text-white flex items-center justify-center flex-shrink-0 text-xs shadow-2xs mt-0.5">
+                  <i className="fas fa-headset"></i>
+                </div>
+                <div>
+                  <h4 className="text-xs font-extrabold text-slate-900 leading-tight">
+                    24/7 Customer Support
+                  </h4>
+                  <p className="text-[10.5px] text-slate-500 mt-0.5 leading-snug">
+                    We're here to help with your booking anytime.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Button */}
               {isLoggedIn ? (
                 <button
                   onClick={handleLogout}
@@ -375,16 +344,12 @@ const Header = () => {
                 <Link
                   to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-[#008CFF] hover:bg-[#0070cc] text-white text-xs font-extrabold transition-all shadow-sm no-underline"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-[#008CFF] hover:bg-[#0070cc] text-white text-xs font-extrabold transition-all shadow-xs no-underline"
                 >
-                  <i className="fas fa-user"></i>
+                  <i className="fas fa-user text-xs"></i>
                   <span>LOGIN / SIGN UP</span>
                 </Link>
               )}
-
-              <div className="mt-3 text-center text-[10px] text-slate-400 font-medium">
-                24/7 Rentox Customer Assistance
-              </div>
             </div>
           </div>
         </div>

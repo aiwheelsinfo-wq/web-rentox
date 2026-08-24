@@ -169,14 +169,35 @@ const Header = () => {
           )}
         </div>
 
-        {/* Mobile: Hamburger Button */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="hamburger-btn flex md:hidden items-center justify-center p-2 rounded-lg text-gray-500 hover:text-[#008CFF] hover:bg-gray-50 transition-all duration-150 cursor-pointer"
-          aria-label="Toggle Menu"
-        >
-          <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-xl`}></i>
-        </button>
+        {/* Mobile Right Actions: Login Button + Hamburger Menu */}
+        <div className="flex md:hidden items-center gap-2">
+          {isLoggedIn ? (
+            <Link
+              to="/profile"
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-[#f3f7ff] text-[#008CFF] border border-[#dde5f0] text-xs font-bold transition-all no-underline"
+              title="My Account"
+            >
+              <i className="fas fa-user text-xs"></i>
+            </Link>
+          ) : (
+            <Link
+              to="/profile"
+              className="bg-[#008CFF] text-white no-underline px-3.5 py-1.5 rounded-full text-xs font-extrabold shadow-sm hover:bg-[#0070cc] transition-all flex items-center gap-1.5"
+            >
+              <i className="fas fa-user text-3xs"></i>
+              <span>Login</span>
+            </Link>
+          )}
+
+          {/* Mobile: Hamburger Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="hamburger-btn flex items-center justify-center p-1.5 rounded-lg text-gray-600 hover:text-[#008CFF] hover:bg-gray-50 transition-all duration-150 cursor-pointer"
+            aria-label="Toggle Menu"
+          >
+            <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-lg`}></i>
+          </button>
+        </div>
 
       </div>
 

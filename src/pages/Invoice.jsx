@@ -418,7 +418,8 @@ const Invoice = () => {
                     </span>
                     <span>Agent Commission {tripType === 'Round-Trip' ? '(Per KM)' : ''}</span>
                   </div>
-                  <span className="text-4xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md">
+                  <span className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-slate-600 bg-slate-100/90 border border-slate-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                     Included in total fare
                   </span>
                 </div>

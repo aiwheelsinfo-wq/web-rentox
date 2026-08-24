@@ -5,43 +5,7 @@ import { AppContext } from '../context/AppContext';
 import { endpoints } from '../config/api';
 import { generateInvoiceHtml } from '../utils/generateInvoiceHtml';
 
-// One-time font injection — purely presentational, matches History and Profile.
-const useTicketFonts = () => {
-  useEffect(() => {
-    if (document.getElementById('trip-ticket-fonts')) return;
-    const link = document.createElement('link');
-    link.id = 'trip-ticket-fonts';
-    link.rel = 'stylesheet';
-    link.href =
-      'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;600;700&display=swap';
-    document.head.appendChild(link);
-  }, []);
-};
-
-// Winding route + waypoint-dot pattern — same one used on History and Profile — reused
-// here on dark UI blocks (trip summary header, OTP bar) for visual continuity.
-const routeMapBg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='150'%3E%3Cpath d='M-10,100 C50,25 100,25 160,75 C220,125 270,125 320,50 C350,6 380,6 380,6' fill='none' stroke='%23F5A623' stroke-width='3' stroke-dasharray='2 14' stroke-linecap='round' opacity='0.65'/%3E%3Ccircle cx='50' cy='42' r='4.5' fill='%23F5A623' opacity='0.9'/%3E%3Ccircle cx='200' cy='105' r='4.5' fill='%23F5A623' opacity='0.9'/%3E%3Ccircle cx='320' cy='50' r='5.5' fill='%23F5A623' opacity='0.9'/%3E%3C/svg%3E")`;
-const glowBg =
-  'radial-gradient(circle at 12% -15%, rgba(245,166,35,0.22), transparent 55%), radial-gradient(circle at 92% 130%, rgba(15,118,110,0.22), transparent 50%)';
-const heroBgStyle = {
-  backgroundColor: '#1C1F26',
-  backgroundImage: `${glowBg}, ${routeMapBg}`,
-  backgroundRepeat: 'no-repeat, repeat-x',
-  backgroundPosition: 'center, center 70%',
-  backgroundSize: 'cover, auto',
-};
-
-// A faint version of the same route pattern for the page backdrop — barely-there, so it
-// reads as texture behind the cards rather than competing with the content.
-const pageBg = {
-  backgroundColor: '#F5F6FA',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='150'%3E%3Cpath d='M-10,100 C50,25 100,25 160,75 C220,125 270,125 320,50 C350,6 380,6 380,6' fill='none' stroke='%23CBB98A' stroke-width='3' stroke-dasharray='2 14' stroke-linecap='round' opacity='0.35'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'repeat',
-  backgroundAttachment: 'fixed',
-};
-
 const BookingStatus = () => {
-  useTicketFonts();
   const { id } = useParams();
   const navigate = useNavigate();
   const { phoneNumber, isLoggedIn } = useContext(AppContext);
@@ -71,13 +35,11 @@ const BookingStatus = () => {
   }, [id, isLoggedIn]);
 
   const fetchBookingDetails = async () => {
-    setLoading(prev => prev); // don't re-show spinner on refresh
     setErrorMsg('');
     try {
       const response = await axios.get(`${endpoints.getInvoiceData}?bookingId=${id}`);
       if (response.data && !response.data.error) {
         setBooking(response.data);
-        // Fetch OTP via trip_live_mapping_backend
         fetchOtp();
         if (response.data.driver_id && response.data.driver_id.trim() !== '') {
           fetchDriverDetails(response.data.driver_id);
@@ -162,21 +124,13 @@ const BookingStatus = () => {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    const s = status.toLowerCase();
-    if (s.includes('cancel') || s.includes('fail')) return 'bg-[#FDECEA] text-[#C4432F] border-[#F3C9C1]';
-    if (s.includes('complet')) return 'bg-[#E8F3F0] text-[#0F766E] border-[#BFE1D8]';
-    if (s.includes('start') || s.includes('accept') || s.includes('assign')) return 'bg-[#EAF1FB] text-[#2854A6] border-[#C7D9F2]';
-    return 'bg-[#FDF3E1] text-[#B4750C] border-[#F2DDA9]';
-  };
-
   const getStepProgress = (status) => {
-    const s = status.toLowerCase();
+    const s = (status || '').toLowerCase();
     if (s.includes('cancel') || s.includes('fail')) return 0;
     if (s.includes('complet')) return 4;
-    if (s.includes('start')) return 3;
+    if (s.includes('start') || s.includes('ride') || s.includes('progress')) return 3;
     if (s.includes('accept') || s.includes('assign')) return 2;
-    return 1; // Pending / confirmed deposit
+    return 1; // Confirmed deposit / pending
   };
 
   const handleDownloadInvoice = () => {
@@ -191,69 +145,12 @@ const BookingStatus = () => {
     printWindow.document.close();
   };
 
-
-
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ ...pageBg, fontFamily: "'Inter', sans-serif" }}>
-        <div className="text-center">
-          <div className="w-12 h-12 mx-auto rounded-full border-2 border-[#E8E4DA] border-t-[#F5A623] animate-spin" />
-          <p
-            className="text-[#6B7280] font-semibold text-xs mt-5 uppercase tracking-wider"
-            style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-          >
-            Loading trip status...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (errorMsg && !booking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ ...pageBg, fontFamily: "'Inter', sans-serif" }}>
-        <div className="max-w-md w-full bg-white text-center rounded-2xl p-10 border border-[#F3C9C1] shadow-sm">
-          <div className="w-14 h-14 rounded-full bg-[#FDECEA] flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-exclamation-circle text-[#C4432F] text-xl"></i>
-          </div>
-          <p className="text-sm font-semibold text-[#1C1F26]">{errorMsg}</p>
-          <button
-            onClick={() => navigate('/history')}
-            className="mt-6 bg-[#1C1F26] text-white px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide hover:bg-[#2C303A] transition-colors"
-          >
-            BACK TO BOOKINGS
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const isCancellable = booking.booking_status.toLowerCase() === 'pending' || booking.booking_status.toLowerCase() === 'temp';
-  const progress = getStepProgress(booking.booking_status);
-  const isLocalTaxi = (booking.trip_type || '').toLowerCase().includes('local');
-
-  // Purely presentational — derives each tracker row's status pill from the existing `progress` value.
-  const stepStatusLabel = (stepIndex) => {
-    if (progress === 0) return 'Cancelled';
-    if (progress > stepIndex) return 'Completed';
-    if (progress === stepIndex) return 'Pending';
-    return 'Upcoming';
-  };
-  const stepPillClass = (stepIndex) => {
-    const label = stepStatusLabel(stepIndex);
-    if (label === 'Completed') return 'bg-[#E8F3F0] text-[#0F766E]';
-    if (label === 'Pending') return 'bg-[#FDF3E1] text-[#B4750C]';
-    if (label === 'Cancelled') return 'bg-[#FDECEA] text-[#C4432F]';
-    return 'bg-[#F1EFE9] text-[#9B9484]';
-  };
-
   const getAdvanceReceiptDetails = () => {
     if (!booking) return null;
 
     const isRoundTrip = (booking.trip_type || '').toLowerCase().includes('round');
     const isLocalDuty = (booking.trip_type || '').toLowerCase().includes('local-duty');
-    const isCompleted = booking.booking_status.toLowerCase().includes('complet');
+    const isCompleted = (booking.booking_status || '').toLowerCase().includes('complet');
 
     const totalFare = parseFloat(booking.total_amount || 0);
     let advancePaid = parseFloat(booking.paid_amount || 0);
@@ -271,7 +168,7 @@ const BookingStatus = () => {
     if (isRoundTrip) {
       let days = 1;
       try {
-        const startStr  = booking.booked_start_date  || booking.date || '';
+        const startStr = booking.booked_start_date || booking.date || '';
         const returnStr = booking.booked_return_date || booking.return_date || '';
         if (startStr && returnStr) {
           const s = new Date(startStr);
@@ -281,15 +178,15 @@ const BookingStatus = () => {
         }
       } catch (_) {}
 
-      const startingKm  = parseFloat(booking.starting_km || 0);
-      const closingKm   = parseFloat(booking.closing_km  || 0);
-      const totalKm     = closingKm - startingKm;
-      const kmRate      = parseFloat(booking.kmRate || 0);
-      const dailyLimit  = parseFloat(booking.daily_limit || 250);
-      const gstPercent  = parseFloat(booking.gstPercent || 5);
-      const parkingCharge  = parseFloat(booking.parking_charge || 0);
-      const tollCharge     = parseFloat(booking.toll_charge     || 0);
-      const permitCharge   = parseFloat(booking.permit_charge   || 0);
+      const startingKm = parseFloat(booking.starting_km || 0);
+      const closingKm = parseFloat(booking.closing_km || 0);
+      const totalKm = closingKm - startingKm;
+      const kmRate = parseFloat(booking.kmRate || 0);
+      const dailyLimit = parseFloat(booking.daily_limit || 250);
+      const gstPercent = parseFloat(booking.gstPercent || 5);
+      const parkingCharge = parseFloat(booking.parking_charge || 0);
+      const tollCharge = parseFloat(booking.toll_charge || 0);
+      const permitCharge = parseFloat(booking.permit_charge || 0);
       const driverAllowance = parseFloat(booking.driver_allowance || 0);
       const agent_commission = parseFloat(booking.agent_commission || 0);
 
@@ -314,338 +211,545 @@ const BookingStatus = () => {
     };
   };
 
-  return (
-    <div className="min-h-screen" style={{ ...pageBg, fontFamily: "'Inter', sans-serif" }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
-        <div className="mb-6 flex items-center justify-between">
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
+        <div className="text-center">
+          <div className="w-10 h-10 mx-auto rounded-full border-2 border-slate-200 border-t-amber-500 animate-spin" />
+          <p className="text-slate-500 font-semibold text-xs mt-4 uppercase tracking-wider">
+            Loading trip status...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMsg && !booking) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 font-sans">
+        <div className="max-w-md w-full bg-white text-center rounded-2xl p-8 border border-slate-200 shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto mb-4">
+            <i className="fas fa-exclamation-circle text-rose-500 text-lg"></i>
+          </div>
+          <h3 className="text-base font-bold text-slate-800">Booking Not Found</h3>
+          <p className="text-xs text-slate-500 mt-2">{errorMsg}</p>
           <button
             onClick={() => navigate('/history')}
-            className="text-[#6B7280] hover:text-[#1C1F26] font-semibold text-sm transition-colors"
+            className="mt-6 bg-[#1E3A8A] text-white px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide hover:bg-[#172554] transition-colors shadow-xs"
           >
-            <i className="fas fa-chevron-left mr-2"></i> Back to My Bookings
+            Back to My Bookings
           </button>
-          <span
-            className="bg-white border border-[#E8E4DA] rounded-full px-4 py-1.5 text-xs font-bold text-[#6B7280]"
-            style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+        </div>
+      </div>
+    );
+  }
+
+  const isCancellable = (booking.booking_status || '').toLowerCase() === 'pending' || (booking.booking_status || '').toLowerCase() === 'temp';
+  const progress = getStepProgress(booking.booking_status);
+  const isLocalTaxi = (booking.trip_type || '').toLowerCase().includes('local');
+  const details = getAdvanceReceiptDetails();
+
+  const steps = [
+    { 
+      stepNum: 1, 
+      title: 'Booking Confirmed', 
+      desc: 'Payment received successfully.',
+      icon: 'fa-check'
+    },
+    { 
+      stepNum: 2, 
+      title: 'Cab Assigned', 
+      desc: driver ? `Driver ${driver.full_name} has been assigned.` : 'Assigning verified driver soon...',
+      icon: 'fa-user-check'
+    },
+    { 
+      stepNum: 3, 
+      title: 'On Ride', 
+      desc: 'Your journey has commenced.',
+      icon: 'fa-car'
+    },
+    { 
+      stepNum: 4, 
+      title: 'Trip Completed', 
+      desc: 'Hope you had a safe and pleasant ride!',
+      icon: 'fa-flag-checkered'
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50/80 font-sans text-slate-800 pb-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+        
+        {/* ── Top Navigation & Compact Header ── */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/history')}
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors mb-3"
           >
-            Booking ID: #{booking.id}
-          </span>
+            <i className="fas fa-arrow-left text-3xs"></i>
+            Back to My Bookings
+          </button>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-600">
+                  Trip Status
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="text-xs font-bold text-slate-700">
+                  Trip #{booking.id}
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
+                Live Trip Tracking
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Track your booking and monitor your journey status in real time.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              <span className="bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide">
+                {booking.trip_type || 'Trip'} · {booking.car_type}
+              </span>
+            </div>
+          </div>
         </div>
 
+        {/* ── Alerts ── */}
         {successMsg && (
-          <div className="mb-6 bg-[#E8F3F0] border border-[#BFE1D8] text-[#0F766E] rounded-xl p-4 text-sm font-semibold flex items-center gap-2">
-            <i className="fas fa-check-circle"></i>
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-4 text-xs font-semibold flex items-center gap-2.5">
+            <i className="fas fa-check-circle text-emerald-600 text-sm"></i>
             {successMsg}
           </div>
         )}
 
         {errorMsg && (
-          <div className="mb-6 bg-[#FDECEA] border border-[#F3C9C1] text-[#C4432F] rounded-xl p-4 text-sm font-semibold flex items-center gap-2">
-            <i className="fas fa-exclamation-circle"></i>
+          <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 text-xs font-semibold flex items-center gap-2.5">
+            <i className="fas fa-exclamation-circle text-rose-600 text-sm"></i>
             {errorMsg}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left 2 Cols: Details & Tracking */}
-          <div className="md:col-span-2 flex flex-col gap-6">
-            {/* Status Tracker */}
-            <div className="bg-white rounded-2xl p-7 shadow-sm border border-[#E8E4DA]">
-              <h2
-                className="text-lg font-bold text-[#1C1F26] uppercase tracking-wider"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-              >
-                Trip Tracking
-              </h2>
-              <p className="text-xs text-[#9B9484] mb-6 mt-1">Stay updated with your trip progress</p>
+        {/* ── Main 2-Column Dashboard Layout (65% / 35%) ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* ════ LEFT COLUMN (65% on Desktop) ════ */}
+          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
+            
+            {/* 1. Trip Tracking Timeline Card */}
+            <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-100 gap-2">
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-wide">
+                    Trip Tracking
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Stay updated with your trip milestones
+                  </p>
+                </div>
 
+                {/* Progress bar pill */}
+                {progress > 0 && (
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/70 px-3 py-1 rounded-full text-[11px] font-bold text-slate-600 self-start sm:self-auto">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>Step {Math.min(progress, 4)} of 4</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Timeline Items */}
               {progress > 0 ? (
-                <div className="relative pl-9 flex flex-col gap-4">
-                  {/* Visual Line */}
-                  <div className="absolute left-[13px] top-6 bottom-6 w-0.5 bg-[#E8E4DA]"></div>
+                <div className="mt-6 flex flex-col gap-3">
+                  {steps.map((s, idx) => {
+                    const isCompleted = progress > s.stepNum || (progress === 4 && s.stepNum === 4);
+                    const isCurrent = progress === s.stepNum && progress !== 4;
+                    const isPending = progress < s.stepNum;
 
-                  {[
-                    { icon: 'fa-calendar-check', title: 'Booking Confirmed', desc: 'Payment received successfully.' },
-                    {
-                      icon: 'fa-user',
-                      title: 'Cab Assigned',
-                      desc: driver ? `Driver ${driver.full_name} is assigned to your trip.` : 'Assigning best driver soon...',
-                    },
-                    { icon: 'fa-car', title: 'On Ride', desc: 'Your journey has commenced.' },
-                    { icon: 'fa-flag-checkered', title: 'Trip Completed', desc: 'Hope you had a safe and pleasant ride!' },
-                  ].map((step, i) => {
-                    const stepNum = i + 1;
+                    let rowBg = 'bg-slate-50/60 border-slate-200/60';
+                    let iconBg = 'bg-white text-slate-400 border border-slate-200';
+                    let badgeBg = 'bg-slate-100 text-slate-500 border border-slate-200/60';
+                    let badgeText = 'Upcoming';
+
+                    if (isCompleted) {
+                      rowBg = 'bg-emerald-50/40 border-emerald-200/60';
+                      iconBg = 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+                      badgeBg = 'bg-emerald-100/70 text-emerald-800 border border-emerald-200';
+                      badgeText = 'Completed';
+                    } else if (isCurrent) {
+                      rowBg = 'bg-amber-50/70 border-amber-300 ring-1 ring-amber-300/40';
+                      iconBg = 'bg-amber-500 text-white shadow-xs';
+                      badgeBg = 'bg-amber-100 text-amber-900 border border-amber-300 font-extrabold';
+                      badgeText = 'In Progress';
+                    }
+
                     return (
-                      <div className="relative flex gap-4 items-center" key={step.title}>
-                        <div className={`absolute -left-[31px] w-6 h-6 rounded-full border-2 flex items-center justify-center text-[11px] bg-white ${
-                          progress >= stepNum ? 'border-[#1C1F26] text-[#1C1F26] font-bold' : 'border-[#E8E4DA] text-[#9B9484] font-bold'
-                        }`}>
-                          {progress >= stepNum ? <i className="fas fa-check text-[10px]"></i> : stepNum}
-                        </div>
-                        <div className="flex-1 flex items-center justify-between gap-4 rounded-xl bg-[#F7F4EE] px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                              progress >= stepNum ? 'bg-[#FDF3E1] text-[#F5A623]' : 'bg-white text-[#C9C2B2] border border-[#E8E4DA]'
-                            }`}>
-                              <i className={`fas ${step.icon} text-sm`}></i>
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-bold text-[#1C1F26]">{step.title}</h4>
-                              <p className="text-xs text-[#9B9484] mt-0.5">{step.desc}</p>
-                            </div>
+                      <div
+                        key={s.title}
+                        className={`flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl border transition-all ${rowBg}`}
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          {/* Step icon / indicator */}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${iconBg}`}>
+                            {isCompleted ? (
+                              <i className="fas fa-check text-[11px]"></i>
+                            ) : (
+                              <i className={`fas ${s.icon} text-[11px]`}></i>
+                            )}
                           </div>
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${stepPillClass(stepNum)}`}>
-                            {stepStatusLabel(stepNum)}
-                          </span>
+
+                          {/* Titles */}
+                          <div className="min-w-0">
+                            <h4 className={`text-xs sm:text-sm font-bold truncate ${isCurrent ? 'text-amber-950 font-black' : isCompleted ? 'text-slate-900' : 'text-slate-600'}`}>
+                              {s.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                              {s.desc}
+                            </p>
+                          </div>
                         </div>
+
+                        {/* Status Badge on Right */}
+                        <span className={`text-[10.5px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${badgeBg}`}>
+                          {badgeText}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="bg-[#FDECEA] text-[#C4432F] rounded-xl p-4 text-sm font-semibold flex items-center gap-2 border border-[#F3C9C1]">
-                  <i className="fas fa-ban"></i> This booking is Cancelled.
+                <div className="mt-6 bg-rose-50 text-rose-700 rounded-xl p-4 text-xs font-semibold flex items-center gap-2 border border-rose-200">
+                  <i className="fas fa-ban text-rose-500"></i> This booking has been cancelled.
                 </div>
               )}
             </div>
 
-            {/* Advance Payment Receipt */}
-            {booking && (booking.payment_type === 'Advance' || parseFloat(booking.paid_amount || 0) > 0) && (
-              (() => {
-                const details = getAdvanceReceiptDetails();
-                if (!details) return null;
-                return (
-                  <div className="bg-[#E8F3F0] border border-[#BFE1D8] rounded-2xl p-6 shadow-sm flex flex-col gap-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <span className="text-[10px] font-bold text-[#0F766E] uppercase tracking-wider block">Advance Paid</span>
-                        <span className="text-xl font-extrabold text-[#0F766E] mt-1 block">
-                          ₹{details.advancePaid.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="w-[1px] h-10 bg-[#BFE1D8]"></div>
-                      <div className="flex-1 text-right">
-                        <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">
-                          {details.isCompleted ? 'Balance Due' : 'Est. Balance'}
-                        </span>
-                        <span className={`text-xl font-extrabold mt-1 block ${details.remaining > 0 ? 'text-[#C4432F]' : 'text-[#0F766E]'}`}>
-                          ₹{details.remaining.toFixed(2)}{!details.isCompleted && <span className="text-xs font-normal text-[#9B9484] ml-1">(Est.)</span>}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex justify-end border-t border-dashed border-[#BFE1D8] pt-3">
-                      <button
-                        onClick={() => setShowReceiptModal(true)}
-                        className="text-[#0F766E] hover:text-[#0D625B] text-xs font-bold flex items-center gap-1.5 transition-colors"
-                      >
-                        <i className="fas fa-receipt"></i> View Receipt
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()
-            )}
+            {/* 2. Payment Summary Card */}
+            {details && (
+              <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                    Payment Summary
+                  </h3>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Verified Deposit
+                  </span>
+                </div>
 
-            {/* OTP Card — shown when driver is assigned */}
-            {otp && (
-              <div className="relative overflow-hidden rounded-2xl p-5 sm:p-6 flex items-center gap-4 shadow-sm" style={heroBgStyle}>
-                <div className="relative w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <i className="fas fa-key text-[#F5A623] text-lg"></i>
-                </div>
-                <div className="relative flex-1 min-w-0">
-                  <div
-                    className="text-[10px] font-bold text-[#D8D2C4] tracking-widest uppercase"
-                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-                  >
-                    Trip Start OTP
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="bg-slate-50/80 border border-slate-200/70 rounded-xl p-4">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block">
+                      Advance Paid
+                    </span>
+                    <span className="text-xl sm:text-2xl font-black text-emerald-600 block mt-1">
+                      ₹{details.advancePaid.toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      Paid online via Razorpay
+                    </span>
                   </div>
-                  <div
-                    className="text-3xl font-bold text-[#F5A623] tracking-[0.2em] leading-tight"
-                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-                  >
-                    {otp}
+
+                  <div className="bg-slate-50/80 border border-slate-200/70 rounded-xl p-4">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block">
+                      {details.isCompleted ? 'Balance Paid' : 'Balance Due'}
+                    </span>
+                    <span className={`text-xl sm:text-2xl font-black block mt-1 ${details.remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      ₹{details.remaining.toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      {details.isCompleted ? 'Trip fully settled' : 'Payable directly to driver'}
+                    </span>
                   </div>
                 </div>
-                <div className="relative hidden sm:block text-xs text-[#D8D2C4] max-w-[220px]">
-                  Share this OTP only when the trip starts, for security purposes.
+
+                <div className="flex justify-end mt-4 pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => setShowReceiptModal(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1E3A8A] hover:text-blue-900 transition-colors"
+                  >
+                    <i className="fas fa-receipt text-slate-400"></i>
+                    View Detailed Receipt <span className="text-sm">→</span>
+                  </button>
                 </div>
-                <button
-                  onClick={handleCopyOtp}
-                  className="relative flex-shrink-0 flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all whitespace-nowrap"
-                >
-                  <i className={`fas ${copiedOtp ? 'fa-check' : 'fa-copy'}`}></i>
-                  {copiedOtp ? 'Copied' : 'Copy OTP'}
-                </button>
               </div>
             )}
 
-            {/* Driver & Cab details */}
-            {driver && (
-              <div className="bg-white rounded-2xl p-7 shadow-sm border border-[#E8E4DA]">
-                <h2
-                  className="text-base font-bold text-[#1C1F26] border-b border-dashed border-[#E8E4DA] pb-4 mb-6 uppercase tracking-wider"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-                >
-                  <i className="fas fa-id-card text-[#F5A623] mr-2"></i> Driver & Vehicle Details
-                </h2>
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-[52px] h-[52px] bg-[#FDF3E1] border border-[#F2DDA9] rounded-full flex items-center justify-center">
-                      <i className="fas fa-user-tie text-[#F5A623] text-xl"></i>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-[#9B9484] uppercase tracking-widest">YOUR DRIVER</span>
-                      <h4 className="text-sm font-bold text-[#1C1F26] mt-0.5">{driver.full_name}</h4>
-                      <p className="text-xs text-[#6B7280] font-semibold" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{driver.phone_number}</p>
+            {/* 3. Trip Start OTP (Security & Action Card) */}
+            {otp && (
+              <div className="bg-gradient-to-br from-amber-50/60 via-white to-amber-50/30 border border-amber-200/90 rounded-2xl p-6 sm:p-7 shadow-2xs">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
+                      <i className="fas fa-key"></i>
+                    </span>
+                    <h3 className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                      Trip Start OTP
+                    </h3>
+                  </div>
+                  <span className="text-[10.5px] font-bold text-amber-800 bg-amber-100/80 border border-amber-200 px-2 py-0.5 rounded-full">
+                    Required for Pickup
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+                  Share this 4-digit OTP with your driver only when your ride begins.
+                </p>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-amber-200/80 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-[0.25em] font-mono">
+                      {otp}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-[#9B9484] uppercase tracking-widest">VEHICLE DETAILS</span>
-                    <h4 className="text-sm font-bold text-[#1C1F26] mt-0.5">{driver.vehicle_name || booking.car_type}</h4>
-                    <span
-                      className="inline-block bg-[#1C1F26] text-white text-[11px] px-2.5 py-1 rounded font-bold uppercase tracking-wider mt-1.5"
-                      style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-                    >
-                      {booking.vehicle_id || driver.vehicle_id || 'Allocating...'}
+
+                  <button
+                    onClick={handleCopyOtp}
+                    className="inline-flex items-center justify-center gap-2 bg-[#1E3A8A] hover:bg-[#172554] text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-2xs"
+                  >
+                    <i className={`fas ${copiedOtp ? 'fa-check text-emerald-300' : 'fa-copy'}`}></i>
+                    {copiedOtp ? 'OTP Copied!' : 'Copy OTP'}
+                  </button>
+                </div>
+
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-amber-800 font-medium">
+                  <i className="fas fa-shield-alt text-amber-600 text-xs"></i>
+                  <span>Do not share this OTP before the cab arrives at your pickup location.</span>
+                </div>
+              </div>
+            )}
+
+            {/* 4. Driver & Vehicle Details Card (when assigned) */}
+            {driver && (
+              <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 pb-3 mb-4 border-b border-slate-100">
+                  <i className="fas fa-id-card text-amber-500 mr-1.5"></i> Driver & Vehicle Details
+                </h3>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center text-lg font-bold flex-shrink-0">
+                      <i className="fas fa-user-tie text-slate-600"></i>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned Driver</span>
+                      <h4 className="text-sm font-extrabold text-slate-900 mt-0.5">{driver.full_name}</h4>
+                      <p className="text-xs text-slate-600 font-semibold mt-0.5">
+                        <i className="fas fa-phone-alt text-3xs mr-1 text-slate-400"></i>
+                        {driver.phone_number}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 text-left sm:text-right">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vehicle Plate</span>
+                    <h5 className="text-xs font-bold text-slate-800 mt-0.5">{driver.vehicle_name || booking.car_type}</h5>
+                    <span className="inline-block bg-[#1E3A8A] text-white text-[11px] px-2.5 py-1 rounded-md font-mono font-bold uppercase tracking-wider mt-1">
+                      {booking.vehicle_id || driver.vehicle_id || 'Allocated'}
                     </span>
                   </div>
                 </div>
               </div>
             )}
+
           </div>
 
-          {/* Right Col: Trip Card Summary & Actions */}
-          <div className="flex flex-col gap-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-[#E8E4DA] overflow-hidden">
-              <div className="relative p-5 overflow-hidden" style={heroBgStyle}>
-                <div className="relative flex justify-between items-center text-white">
-                  <div>
-                    <span className="text-[10px] font-bold text-[#F5A623] uppercase tracking-widest">{booking.trip_type}</span>
-                    <h3 className="text-base font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{booking.car_type}</h3>
-                  </div>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getStatusBadgeClass(booking.booking_status)}`}>
-                    {booking.booking_status}
+          {/* ════ RIGHT COLUMN (35% on Desktop) ════ */}
+          <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6">
+            
+            {/* Trip Summary Card */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+              
+              {/* Header block */}
+              <div className="p-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-amber-700 bg-amber-100/80 border border-amber-200 px-2 py-0.5 rounded-full mb-1">
+                    {booking.trip_type || 'Trip'}
                   </span>
+                  <h3 className="text-lg font-black text-slate-900">
+                    {booking.car_type}
+                  </h3>
                 </div>
+
+                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                  (booking.booking_status || '').toLowerCase().includes('complet')
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : (booking.booking_status || '').toLowerCase().includes('cancel')
+                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                }`}>
+                  {booking.booking_status || 'Confirmed'}
+                </span>
               </div>
 
-              <div className="p-6 flex flex-col gap-4 text-xs">
-                <div className="flex gap-2.5">
-                  <i className="fas fa-location-dot text-[#F5A623] text-xs mt-0.5"></i>
-                  <div>
-                    <span className="text-[#9B9484] text-[10px] uppercase font-bold tracking-widest">PICKUP ADDRESS</span>
-                    <p className="font-semibold text-[#1C1F26] mt-0.5 text-sm">{booking.from_address}</p>
+              {/* Route & Schedules */}
+              <div className="p-6 flex flex-col gap-4.5">
+                
+                {/* Route */}
+                <div className="flex gap-3">
+                  <div className="flex flex-col items-center mt-1">
+                    <i className="fas fa-circle text-[10px] text-blue-600"></i>
+                    {booking.to_address && booking.to_address.trim() !== '' && (
+                      <>
+                        <div className="w-[1.5px] h-8 bg-slate-200 my-1"></div>
+                        <i className="fas fa-location-dot text-[11px] text-rose-500"></i>
+                      </>
+                    )}
                   </div>
-                </div>
-                {booking.to_address && booking.to_address.trim() !== '' && (
-                  <div className="flex gap-2.5">
-                    <i className="fas fa-location-dot text-[#E85D4C] text-xs mt-0.5"></i>
+                  
+                  <div className="flex-1 flex flex-col gap-3.5 text-xs">
                     <div>
-                      <span className="text-[#9B9484] text-[10px] uppercase font-bold tracking-widest">DESTINATION ADDRESS</span>
-                      <p className="font-semibold text-[#1C1F26] mt-0.5 text-sm">{booking.to_address}</p>
+                      <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                        Pickup Location
+                      </span>
+                      <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
+                        {booking.from_address}
+                      </p>
                     </div>
-                  </div>
-                )}
-                <hr className="border-[#E8E4DA]" />
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-[#9B9484] uppercase"><i className="fas fa-calendar-alt text-[#C9C2B2] mr-1.5"></i>Travel Date</span>
-                  <span className="text-[#1C1F26]">{booking.date}</span>
-                </div>
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-[#9B9484] uppercase"><i className="fas fa-clock text-[#C9C2B2] mr-1.5"></i>Pickup Time</span>
-                  <span className="text-[#1C1F26]">{booking.time}</span>
-                </div>
-                <hr className="border-[#E8E4DA]" />
-                <div className="flex justify-between font-bold text-base" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  <span className="text-[#1C1F26]">Total Fare</span>
-                  <span className="text-[#1C1F26]">{"\u20B9"}{Math.round(booking.total_amount)}</span>
-                </div>
-                {booking.payment_id && (
-                  <div className="flex justify-between text-[11px] text-[#6B7280] font-semibold -mt-2">
-                    <span>Advance Deposit Paid</span>
-                    <span className="text-[#0F766E] font-bold">{"\u20B9"}{Math.round(booking.paid_amount)}</span>
-                  </div>
-                )}
 
-                <div className="mt-1 rounded-xl bg-[#EAF1FB] border border-[#C7D9F2] p-3.5 flex items-start gap-2.5">
-                  <i className="fas fa-shield-halved text-[#2854A6] mt-0.5"></i>
-                  <div>
-                    <p className="text-xs font-bold text-[#1C1F26]">Secure & Safe Booking</p>
-                    <p className="text-[11px] text-[#6B7280] mt-0.5">Your booking is protected with 100% secure payment.</p>
+                    {booking.to_address && booking.to_address.trim() !== '' && (
+                      <div>
+                        <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                          Destination
+                        </span>
+                        <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
+                          {booking.to_address}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Date & Time Row */}
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Travel Date
+                    </span>
+                    <span className="block font-black text-xs text-slate-800 mt-1">
+                      {booking.date}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Pickup Time
+                    </span>
+                    <span className="block font-black text-xs text-slate-800 mt-1">
+                      {booking.time}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Fare Summary */}
+                <div className="pt-3 border-t border-slate-100 flex flex-col gap-1.5">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Total Fare
+                    </span>
+                    <span className="text-2xl font-black text-[#1E3A8A]">
+                      ₹{Math.round(booking.total_amount || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+
+                  {booking.payment_id && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-400 font-semibold">Advance Deposit Paid</span>
+                      <span className="font-extrabold text-emerald-700">
+                        ₹{Math.round(booking.paid_amount || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Safe badge */}
+                <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-3 flex items-center gap-2.5 text-xs text-slate-600 mt-1">
+                  <i className="fas fa-shield-check text-emerald-600 text-base"></i>
+                  <span className="text-[11px] leading-tight">
+                    <strong>100% Guaranteed Ride</strong> · Verified drivers & sanitized cabs.
+                  </span>
+                </div>
+
               </div>
             </div>
 
-            {/* Cancellation Option */}
+            {/* Action 1: Download Invoice Button */}
+            <button
+              onClick={handleDownloadInvoice}
+              className="bg-[#1E3A8A] hover:bg-[#172554] text-white font-extrabold text-xs py-3.5 px-4 rounded-xl transition-all shadow-xs w-full flex items-center justify-center gap-2 h-12 cursor-pointer"
+            >
+              <i className="fas fa-file-pdf text-sm"></i>
+              Download Invoice PDF
+            </button>
+
+            {/* Action 2: Cancellation Option (if pending) */}
             {isCancellable && (
               <button
                 onClick={() => setShowCancelModal(true)}
                 disabled={actionLoading}
-                className="text-left border border-[#F3C9C1] hover:bg-[#FDECEA] rounded-2xl p-5 transition-all w-full flex items-start gap-3"
+                className="text-left border border-rose-200 hover:bg-rose-50/60 rounded-xl p-4 transition-all w-full flex items-start gap-3 bg-white cursor-pointer"
               >
-                <div className="w-9 h-9 rounded-full bg-[#FDECEA] flex items-center justify-center flex-shrink-0">
-                  <i className="fas fa-times text-[#C4432F] text-sm"></i>
+                <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 text-xs">
+                  <i className="fas fa-times"></i>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-[#C4432F]">Cancel Booking</p>
-                  <p className="text-[11px] text-[#9B9484] mt-1">You can cancel your booking before the driver is assigned.</p>
+                  <p className="text-xs font-bold text-rose-700">Cancel This Booking</p>
+                  <p className="text-[10.5px] text-slate-400 mt-0.5 leading-snug">
+                    You can cancel free of charge before the driver starts the journey.
+                  </p>
                 </div>
               </button>
             )}
 
-            {/* Completed Invoice Download Option */}
-            {booking.booking_status.toLowerCase().includes('complet') && (
-              <button
-                onClick={handleDownloadInvoice}
-                className="bg-[#0F766E] hover:bg-[#0C5F58] text-white font-bold text-xs py-4 rounded-2xl transition-all shadow-sm w-full flex items-center justify-center gap-2"
-              >
-                <i className="fas fa-file-pdf text-sm"></i> DOWNLOAD INVOICE PDF
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Trust strip */}
-        <div className="mt-6 bg-white rounded-2xl border border-[#E8E4DA] shadow-sm px-6 py-6 grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* ── Trust Strip Footer ── */}
+        <div className="mt-10 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 grid grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { icon: 'fa-shield-halved', color: '#2854A6', bg: '#EAF1FB', title: '24/7 Support', text: "We're here to help you anytime, anywhere." },
-            { icon: 'fa-user-check', color: '#0F766E', bg: '#E8F3F0', title: 'Verified Drivers', text: 'All our drivers are verified & background checked.' },
-            { icon: 'fa-clock', color: '#B4750C', bg: '#FDF3E1', title: 'On-Time Guarantee', text: 'Punctual rides, every single time.' },
-            { icon: 'fa-lock', color: '#7C4DBD', bg: '#F1E9FB', title: 'Secure Payments', text: '100% secure payments with multiple options.' },
+            { icon: 'fa-shield-halved', color: '#2563EB', bg: '#EFF6FF', title: '24/7 Helpline', text: 'Instant phone & WhatsApp support.' },
+            { icon: 'fa-user-check', color: '#059669', bg: '#ECFDF5', title: 'Verified Drivers', text: 'Background checked professionals.' },
+            { icon: 'fa-clock', color: '#D97706', bg: '#FFFBEB', title: 'On-Time Pickup', text: 'Punctual rides on every journey.' },
+            { icon: 'fa-lock', color: '#7C3AED', bg: '#F5F3FF', title: 'Secure Payments', text: '100% encrypted & protected.' },
           ].map((item) => (
             <div key={item.title} className="flex items-start gap-3">
-              <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: item.bg }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: item.bg }}>
                 <i className={`fas ${item.icon}`} style={{ color: item.color }}></i>
               </div>
               <div>
-                <p className="text-sm font-bold text-[#1C1F26]">{item.title}</p>
-                <p className="text-[11px] text-[#9B9484] mt-0.5 leading-snug">{item.text}</p>
+                <p className="text-xs font-extrabold text-slate-900">{item.title}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{item.text}</p>
               </div>
             </div>
           ))}
         </div>
+
       </div>
 
-      {/* Cancellation Dialog modal */}
+      {/* ── Cancellation Modal ── */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#1C1F26]/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-7 shadow-xl border border-[#E8E4DA] flex flex-col gap-4 text-center">
-            <div className="w-12 h-12 bg-[#FDECEA] rounded-full flex items-center justify-center mx-auto border border-[#F3C9C1]">
-              <i className="fas fa-trash-alt text-[#C4432F] text-lg"></i>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-7 shadow-xl border border-slate-200 flex flex-col gap-4 text-center">
+            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto border border-rose-200 text-lg">
+              <i className="fas fa-trash-alt"></i>
             </div>
+
             <div>
-              <h3 className="text-base font-bold text-[#1C1F26]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Cancel Booking?</h3>
-              <p className="text-xs text-[#6B7280] mt-2">
-                Are you sure you want to cancel this cab booking? Refunds will be calculated based on the cancellation policy.
+              <h3 className="text-base font-black text-slate-900">Cancel Booking?</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Are you sure you want to cancel this booking? Any eligible refund will be credited back to your source account.
               </p>
             </div>
-            <div className="text-left mt-2">
-              <label className="block text-[10px] font-bold text-[#9B9484] uppercase tracking-widest mb-2">REASON FOR CANCELLATION</label>
+
+            <div className="text-left mt-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                Reason for cancellation
+              </label>
               <select
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full bg-[#F7F4EE] border border-[#E8E4DA] rounded-xl py-2.5 px-3 text-xs font-semibold text-[#1C1F26] outline-none"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-bold text-slate-800 outline-none focus:border-amber-400 focus:bg-white"
               >
                 <option value="Change of plans">Change of plans</option>
                 <option value="Booked another cab">Booked another cab</option>
@@ -654,182 +758,126 @@ const BookingStatus = () => {
               </select>
             </div>
 
-            {/* Cancellation Policy Block */}
-            <div className="text-left bg-[#F7F4EE] border border-[#E8E4DA] rounded-xl p-3.5 mt-2">
-              <div className="flex items-center gap-2 mb-2 text-[#B4750C]">
-                <i className="fas fa-info-circle text-sm"></i>
-                <span className="text-[10px] font-bold uppercase tracking-wider">Cancellation Policy</span>
+            {/* Policy Info */}
+            <div className="text-left bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600">
+              <div className="flex items-center gap-1.5 font-bold text-amber-800 mb-2">
+                <i className="fas fa-info-circle"></i>
+                <span className="text-[10.5px] uppercase tracking-wide">Cancellation Terms</span>
               </div>
               {isLocalTaxi ? (
-                <p className="text-xs text-[#0F766E] font-semibold leading-relaxed">
-                  <strong>Free Cancellation:</strong> You can cancel your Local Taxi booking anytime before the trip starts with no cancellation fee.
+                <p className="text-emerald-700 font-semibold">
+                  Free Cancellation: You can cancel your Local Taxi booking anytime before pickup.
                 </p>
               ) : (
-                <div className="space-y-1.5 text-xs text-[#6B7280]">
-                  <div className="flex justify-between font-semibold text-[#0F766E]">
-                    <span>More than 48 Hours</span>
+                <div className="space-y-1 text-[11.5px]">
+                  <div className="flex justify-between font-bold text-emerald-700">
+                    <span>&gt; 48 Hours before pickup:</span>
                     <span>100% Refund</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>24–48 Hours</span>
+                    <span>24–48 Hours:</span>
                     <span>75% Refund</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>12–24 Hours</span>
+                    <span>12–24 Hours:</span>
                     <span>50% Refund</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>6–12 Hours</span>
-                    <span>25% Refund</span>
-                  </div>
-                  <div className="flex justify-between font-semibold text-[#C4432F]">
-                    <span>Less than 6 Hours</span>
+                  <div className="flex justify-between font-bold text-rose-600">
+                    <span>&lt; 6 Hours:</span>
                     <span>No Refund</span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-3 mt-2">
               <button
                 onClick={() => setShowCancelModal(false)}
-                className="flex-1 border border-[#E8E4DA] hover:bg-[#F7F4EE] text-[#6B7280] text-xs font-bold py-3 rounded-xl transition-all"
+                className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold py-3 rounded-xl transition-all"
               >
                 Keep Booking
               </button>
               <button
                 onClick={handleCancelBooking}
-                className="flex-1 bg-[#E85D4C] text-white hover:bg-[#D64D3C] text-xs font-bold py-3 rounded-xl transition-all shadow-sm"
+                disabled={actionLoading}
+                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-3 rounded-xl transition-all shadow-xs"
               >
-                Confirm Cancel
+                {actionLoading ? 'Cancelling...' : 'Confirm Cancel'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Advance Receipt Modal */}
+      {/* ── Advance Receipt Modal ── */}
       {showReceiptModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-[#E8E4DA] overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-5 bg-[#F7F4EE] border-b border-[#E8E4DA] flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-[#1C1F26] uppercase tracking-wider">Advance Payment Receipt</h3>
-                <span className="inline-flex items-center gap-1 bg-[#E8F3F0] text-[#0F766E] text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#0F766E]"></span> SUCCESS
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                  Advance Payment Receipt
+                </h3>
+                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> PAID & CONFIRMED
                 </span>
               </div>
               <button 
                 onClick={() => setShowReceiptModal(false)}
-                className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors shadow-sm"
+                className="w-7 h-7 rounded-full bg-white hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition-colors shadow-2xs"
               >
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times text-xs"></i>
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-6 flex flex-col gap-4 text-sm text-[#1C1F26]">
+            {/* Receipt Details */}
+            <div className="p-6 flex flex-col gap-3 text-xs text-slate-800">
               <div className="flex justify-between items-center py-1">
-                <span className="text-gray-500 font-medium">Booking ID</span>
-                <span className="font-semibold">#{booking.id}</span>
+                <span className="text-slate-500 font-medium">Booking ID</span>
+                <span className="font-bold">#{booking.id}</span>
               </div>
               <div className="flex justify-between items-center py-1">
-                <span className="text-gray-500 font-medium">Date & Time</span>
-                <span className="font-semibold">{booking.date} • {booking.time}</span>
+                <span className="text-slate-500 font-medium">Journey Schedule</span>
+                <span className="font-bold">{booking.date} • {booking.time}</span>
               </div>
               <div className="flex justify-between items-center py-1">
-                <span className="text-gray-500 font-medium">Car Type</span>
-                <span className="font-semibold">{booking.car_type}</span>
+                <span className="text-slate-500 font-medium">Vehicle Model</span>
+                <span className="font-bold">{booking.car_type}</span>
               </div>
               <div className="flex justify-between items-start py-1">
-                <span className="text-gray-500 font-medium">Route</span>
-                <span className="font-semibold text-right max-w-[200px] break-words">
-                  {booking.from_address} to {booking.to_address || 'Local Duty'}
+                <span className="text-slate-500 font-medium">Route</span>
+                <span className="font-bold text-right max-w-[200px] truncate">
+                  {booking.from_address} ➔ {booking.to_address || 'Local Duty'}
                 </span>
               </div>
-              
+
+              <div className="border-t border-dashed border-slate-200 my-1"></div>
+
               <div className="flex justify-between items-center py-1">
-                <span className="text-gray-500 font-medium">Trip Type</span>
-                <span className="font-semibold">{booking.trip_type}</span>
+                <span className="text-slate-500 font-medium">Total Trip Fare</span>
+                <span className="font-bold text-sm">₹{parseFloat(booking.total_amount || 0).toFixed(2)}</span>
               </div>
 
-              {(() => {
-                const isRoundTrip = (booking.trip_type || '').toLowerCase().includes('round');
-                const isLocalDuty = (booking.trip_type || '').toLowerCase().includes('local-duty');
-                const totalFare = parseFloat(booking.total_amount || 0);
-                const details = getAdvanceReceiptDetails();
-                if (!details) return null;
-
-                if (isRoundTrip) {
-                  let days = 1;
-                  try {
-                    const startStr  = booking.booked_start_date  || booking.date || '';
-                    const returnStr = booking.booked_return_date || booking.return_date || '';
-                    if (startStr && returnStr) {
-                      const s = new Date(startStr);
-                      const r = new Date(returnStr);
-                      const d = Math.round((r - s) / (1000 * 60 * 60 * 24)) + 1;
-                      if (d > 0) days = d;
-                    }
-                  } catch (_) {}
-                  return (
-                    <>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500 font-medium">Number of Days</span>
-                        <span className="font-semibold">{days} Days</span>
-                      </div>
-                      <div className="border-t border-dashed border-[#E8E4DA] my-2"></div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-800 font-bold">Paid Advance Now</span>
-                        <span className="text-lg font-black text-[#0F766E]">₹{details.advancePaid.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500 font-medium">Remaining Balance</span>
-                        <span className="font-semibold text-gray-700">Pay to Driver at Trip End</span>
-                      </div>
-                    </>
-                  );
-                } else {
-                  const baseAdvance = isLocalDuty ? details.advancePaid : (totalFare * 0.25);
-                  const gst = isLocalDuty ? 0.0 : (totalFare * 0.05);
-                  return (
-                    <>
-                      <div className="border-t border-dashed border-[#E8E4DA] my-2"></div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500 font-medium">Total Trip Fare</span>
-                        <span className="font-semibold">₹{totalFare.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500 font-medium">{isLocalDuty ? 'Advance' : 'Advance (25%)'}</span>
-                        <span className="font-semibold">₹{baseAdvance.toFixed(2)}</span>
-                      </div>
-                      {!isLocalDuty && (
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-gray-500 font-medium">GST (5%)</span>
-                          <span className="font-semibold">₹{gst.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="border-t border-dashed border-[#E8E4DA] my-2"></div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-800 font-bold">{isLocalDuty ? 'Paid Amount Now' : 'Paid Amount Now (30%)'}</span>
-                        <span className="text-lg font-black text-[#0F766E]">₹{details.advancePaid.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500 font-medium">Remaining Balance ({isLocalDuty ? 'Est.' : '75%'})</span>
-                        <span className="font-semibold">₹{details.remaining.toFixed(2)}</span>
-                      </div>
-                    </>
-                  );
-                }
-              })()}
+              {details && (
+                <>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-slate-900 font-bold">Advance Paid Online</span>
+                    <span className="text-base font-black text-emerald-600">₹{details.advancePaid.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-slate-500 font-medium">Remaining Balance to Driver</span>
+                    <span className="font-bold text-slate-800">₹{details.remaining.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-[#F7F4EE] border-t border-[#E8E4DA] flex justify-end">
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setShowReceiptModal(false)}
-                className="bg-[#1C1F26] text-white hover:bg-[#2C303A] text-xs font-bold px-5 py-2.5 rounded-xl transition-all"
+                className="bg-[#1E3A8A] text-white hover:bg-[#172554] text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer"
               >
                 Close Receipt
               </button>
@@ -837,6 +885,7 @@ const BookingStatus = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

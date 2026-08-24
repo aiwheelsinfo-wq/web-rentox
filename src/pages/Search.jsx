@@ -11,6 +11,8 @@ const CITIES = [
   'Shirdi, Maharashtra, India',
   'Mahabaleshwar, Maharashtra, India',
   'Lonavala, Maharashtra, India',
+  'Alibaug, Maharashtra, India',
+  'Matheran, Maharashtra, India',
   'Mumbai Airport T2, Maharashtra, India',
   'Pune Airport, Maharashtra, India',
   'Kolhapur, Maharashtra, India',
@@ -70,6 +72,20 @@ const MAHARASHTRA_DESTINATIONS = [
     query: 'Mahabaleshwar, Maharashtra, India'
   },
   {
+    name: 'Alibaug',
+    tagline: 'Coastal Beaches & Sea Forts',
+    desc: 'Sandy beaches, Kolaba Fort, water sports & coastal getaways',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Alibaug, Maharashtra, India'
+  },
+  {
+    name: 'Matheran',
+    tagline: 'Eco Hill Station & Viewpoints',
+    desc: 'Automobile-free paradise, Charlotte Lake & cliff panoramas',
+    image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    query: 'Matheran, Maharashtra, India'
+  },
+  {
     name: 'Shirdi',
     tagline: 'Spiritual Pilgrimage',
     desc: 'Holy shrine of Sai Baba attracting millions yearly',
@@ -94,7 +110,7 @@ const MAHARASHTRA_DESTINATIONS = [
     name: 'Thane',
     tagline: 'City of Lakes',
     desc: 'Yeoor Hills, scenic waterfronts & urban charm',
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?fm=jpg&q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?fm=jpg&q=80&w=800&auto=format&fit=crop',
     query: 'Thane, Maharashtra, India'
   },
   {

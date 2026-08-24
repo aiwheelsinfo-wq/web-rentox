@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { endpoints } from '../config/api';
+import { generateInvoiceHtml } from '../utils/generateInvoiceHtml';
 
 const BookingSuccess = () => {
   const navigate = useNavigate();
@@ -26,6 +27,18 @@ const BookingSuccess = () => {
       if (res.data && !res.data.error) setBooking(res.data);
     } catch (_) {}
     finally { setLoading(false); }
+  };
+
+  const handleDownloadInvoice = () => {
+    if (!booking) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Please allow popups to download/print your invoice.");
+      return;
+    }
+    const htmlContent = generateInvoiceHtml(booking);
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const steps = [
@@ -129,12 +142,20 @@ const BookingSuccess = () => {
         {/* ── Action Buttons ── */}
         <div className="mt-6 flex flex-col gap-3">
           {bookingId && (
-            <button
-              onClick={() => navigate(`/status/${bookingId}`)}
-              className="w-full bg-brandBlue hover:bg-blue-600 text-white font-extrabold text-sm py-3.5 rounded-2xl transition-all shadow-md shadow-blue-200 flex items-center justify-center gap-2"
-            >
-              <i className="fas fa-map-marker-alt"></i> Track My Booking
-            </button>
+            <>
+              <button
+                onClick={() => navigate(`/status/${bookingId}`)}
+                className="w-full bg-brandBlue hover:bg-blue-600 text-white font-extrabold text-sm py-3.5 rounded-2xl transition-all shadow-md shadow-blue-200 flex items-center justify-center gap-2"
+              >
+                <i className="fas fa-map-marker-alt"></i> Track My Booking
+              </button>
+              <button
+                onClick={handleDownloadInvoice}
+                className="w-full bg-navy-900 bg-[#1E3A8A] hover:bg-[#172554] text-white font-extrabold text-sm py-3.5 rounded-2xl transition-all shadow-md shadow-blue-100 flex items-center justify-center gap-2"
+              >
+                <i className="fas fa-file-pdf"></i> Download Invoice PDF
+              </button>
+            </>
           )}
           <button
             onClick={() => navigate('/history')}

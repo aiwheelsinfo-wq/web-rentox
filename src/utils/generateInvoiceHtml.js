@@ -144,27 +144,28 @@ export const generateInvoiceHtml = (booking) => {
     }
   } 
   else if (isOneWay) {
-    // ONE-WAY BUSINESS RULE: NO Driver Allowance row in the invoice table!
+    // ONE-WAY BUSINESS RULE: NO Driver Allowance row, NO Details column in the invoice table!
     const distance = parseFloat(booking.distance || totalKm || 100);
     baseAmount = parseFloat(booking.total_amount || (distance * kmRate));
     gstAmount = (baseAmount * gstPercent) / 100;
     netTotal = baseAmount + gstAmount + parkingCharge + tollCharge;
 
-    rows.push({ desc: 'One-Way Base Trip Fare', details: `${distance} KM @ ₹${kmRate}/KM`, amt: formatINR(baseAmount) });
-    if (tollCharge > 0) rows.push({ desc: 'Estimated Toll Charges', details: `${distance} KM Route Estimate`, amt: formatINR(tollCharge) });
-    if (parkingCharge > 0) rows.push({ desc: 'Parking Surcharge', details: 'Airport/Station Parking', amt: formatINR(parkingCharge) });
-    if (permitCharge > 0) rows.push({ desc: 'State Permit Charges', details: 'Inter-State Entry', amt: formatINR(permitCharge) });
+    rows.push({ desc: 'One-Way Base Trip Fare', details: '', amt: formatINR(baseAmount) });
+    if (tollCharge > 0) rows.push({ desc: 'Estimated Toll Charges', details: '', amt: formatINR(tollCharge) });
+    if (parkingCharge > 0) rows.push({ desc: 'Parking Surcharge', details: '', amt: formatINR(parkingCharge) });
+    if (permitCharge > 0) rows.push({ desc: 'State Permit Charges', details: '', amt: formatINR(permitCharge) });
     if (gstAmount > 0) {
-      rows.push({ desc: 'CGST (2.5%)', details: 'Central GST', amt: formatINR(gstAmount / 2) });
-      rows.push({ desc: 'SGST (2.5%)', details: 'State GST', amt: formatINR(gstAmount / 2) });
+      rows.push({ desc: 'CGST (2.5%)', details: '', amt: formatINR(gstAmount / 2) });
+      rows.push({ desc: 'SGST (2.5%)', details: '', amt: formatINR(gstAmount / 2) });
     }
   } 
   else {
     netTotal = parseFloat(booking.total_amount || 0);
-    rows.push({ desc: `${booking.trip_type || 'Taxi'} Service Charge`, details: 'Standard Fare', amt: formatINR(netTotal) });
+    rows.push({ desc: `${booking.trip_type || 'Taxi'} Service Charge`, details: '', amt: formatINR(netTotal) });
   }
 
   const balanceAmount = Math.max(0, netTotal - advancedAmount);
+  const showDetailsColumn = !isOneWay && rows.some(r => r.details && r.details.trim() !== '');
 
   return `
     <!DOCTYPE html>
@@ -509,16 +510,21 @@ export const generateInvoiceHtml = (booking) => {
         <table class="fare-table">
           <thead>
             <tr>
-              <th style="width: 45%;">Description</th>
-              <th style="width: 30%;">Details</th>
-              <th style="width: 25%; text-align: right;">Amount</th>
+              ${showDetailsColumn ? `
+                <th style="width: 45%;">Description</th>
+                <th style="width: 30%;">Details</th>
+                <th style="width: 25%; text-align: right;">Amount</th>
+              ` : `
+                <th style="width: 70%;">Description</th>
+                <th style="width: 30%; text-align: right;">Amount</th>
+              `}
             </tr>
           </thead>
           <tbody>
             ${rows.map(r => `
               <tr>
                 <td><strong>${r.desc}</strong></td>
-                <td style="color: #475569;">${r.details || ''}</td>
+                ${showDetailsColumn ? `<td style="color: #475569;">${r.details || ''}</td>` : ''}
                 <td>${r.amt}</td>
               </tr>
             `).join('')}

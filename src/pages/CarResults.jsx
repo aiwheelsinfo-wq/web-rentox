@@ -148,9 +148,21 @@ const CarResults = () => {
           setErrorMsg('Failed to fetch local taxi fare chart.');
         }
       } else {
-        let url = `${endpoints.selectCarCostList}?tripType=${tripType}`;
-        if (tripType === 'One-way' && tempBookingId) {
-          url += `&bookingId=${tempBookingId}`;
+        let url = `${endpoints.selectCarCostList}?tripType=${encodeURIComponent(tripType)}`;
+        if (distanceKm && distanceKm > 0 && distanceKm !== 999) {
+          url += `&distance=${encodeURIComponent(Math.round(distanceKm))}`;
+        }
+        if (fromAddress) {
+          url += `&fromAddress=${encodeURIComponent(fromAddress)}`;
+        }
+        if (toAddress) {
+          url += `&toAddress=${encodeURIComponent(toAddress)}`;
+        }
+        if (fromLat && fromLng) {
+          url += `&fromLat=${fromLat}&fromLng=${fromLng}`;
+        }
+        if (toLat && toLng) {
+          url += `&toLat=${toLat}&toLng=${toLng}`;
         }
 
         const response = await axios.get(url);

@@ -354,29 +354,9 @@ const Search = () => {
     }
 
     try {
-      if (tripType === 'Local-Duty') {
-        const body = new URLSearchParams();
-        body.append('pickup_location', fromAddress);
-        body.append('phone_number', phoneNumber);
-        body.append('pickup_date', pickupDate);
-        body.append('pickup_time', pickupTime);
-        body.append('trip_type', 'Local-Duty');
-
-        const response = await axios.post(endpoints.createTempBooking, body, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-
-        if (response.data && response.data.status === 'success') {
-          setTempBookingId(response.data.temp_booking_id);
-          navigate('/results');
-        } else {
-          setErrorMsg(response.data.message || 'Failed to initialize booking. Please try again.');
-        }
-      } else {
-        navigate('/results');
-      }
+      navigate('/results');
     } catch {
-      setErrorMsg('Network error. Please check your connection.');
+      setErrorMsg('Navigation error. Please try again.');
     } finally {
       setLoading(false);
     }

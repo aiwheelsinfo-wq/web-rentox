@@ -155,8 +155,9 @@ export const generateInvoiceHtml = (booking) => {
     if (parkingCharge > 0) rows.push({ desc: 'Parking Surcharge', details: '', amt: formatINR(parkingCharge) });
     if (permitCharge > 0) rows.push({ desc: 'State Permit Charges', details: '', amt: formatINR(permitCharge) });
     if (gstAmount > 0) {
-      rows.push({ desc: 'CGST (2.5%)', details: '', amt: formatINR(gstAmount / 2) });
-      rows.push({ desc: 'SGST (2.5%)', details: '', amt: formatINR(gstAmount / 2) });
+      const halfRate = (gstPercent / 2).toFixed(1).replace('.0', '');
+      rows.push({ desc: `CGST (${halfRate}%)`, details: '', amt: formatINR(gstAmount / 2) });
+      rows.push({ desc: `SGST (${halfRate}%)`, details: '', amt: formatINR(gstAmount / 2) });
     }
   } 
   else {

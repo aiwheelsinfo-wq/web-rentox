@@ -463,14 +463,17 @@ const CarResults = () => {
                       {parseInt(car.driverAllowance) > 0 && (
                         <span>• Driver Allowance: Included</span>
                       )}
+                      {parseFloat(car.tollCharge) > 0 && (
+                        <span>• Toll: Included</span>
+                      )}
                     </div>
                   </div>
 
                   {/* Fare and Actions */}
                   <div className="w-full md:w-1/4 text-center md:text-right flex flex-col items-center md:items-end border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
                     {hasDiscount && tripType !== 'Round-Trip' && (
-                      <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md text-3xs font-extrabold uppercase tracking-wide">
-                        Save {Math.round(car.discount_percentage)}%
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-2.5 py-0.5 rounded-md text-3xs font-extrabold uppercase tracking-wide flex items-center gap-1">
+                        <i className="fas fa-tag text-emerald-500"></i> Save {Math.round(car.discount_percentage)}%
                       </span>
                     )}
 
@@ -482,16 +485,18 @@ const CarResults = () => {
                         </>
                       ) : (
                         <>
-                          <span className="text-2xl font-black text-brandCharcoal">{"\u20B9"}{discountedPrice}</span>
+                          <span className="text-2xl font-black text-brandCharcoal">{"\u20B9"}{discountedPrice.toLocaleString('en-IN')}</span>
                           {hasDiscount && (
-                            <span className="text-xs text-gray-400 line-through">{"\u20B9"}{basePrice}</span>
+                            <span className="text-xs text-rose-500/80 font-bold line-through ml-1.5">{"\u20B9"}{basePrice.toLocaleString('en-IN')}</span>
                           )}
                         </>
                       )}
                     </div>
 
                     <p className="text-gray-400 text-3xs font-semibold mt-1">
-                      {tripType === 'Round-Trip' ? `Min. ${car.kmPerDay || 250} km/day` : 'Inclusive of GST & Tolls'}
+                      {tripType === 'Round-Trip' 
+                        ? `Min. ${car.kmPerDay || 250} km/day` 
+                        : `Inclusive of ${car.gstPercent || 5}% GST${parseFloat(car.tollCharge) > 0 ? ' & Tolls' : ''}`}
                     </p>
 
                     <button

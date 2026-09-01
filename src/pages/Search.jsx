@@ -254,6 +254,23 @@ const Search = () => {
     }
   };
 
+  const handleSwapLocations = (e) => {
+    if (e) e.preventDefault();
+    if (tripType === 'Local-Duty') return;
+
+    const tempAddress = fromAddress;
+    const tempLatVal = fromLat;
+    const tempLngVal = fromLng;
+
+    setFromAddress(toAddress);
+    setFromLat(toLat);
+    setFromLng(toLng);
+
+    setToAddress(tempAddress);
+    setToLat(tempLatVal);
+    setToLng(tempLngVal);
+  };
+
   const convertTimeTo24h = (time12h) => {
     const [time, modifier] = time12h.split(' ');
     let [hours, minutes] = time.split(':');
@@ -516,6 +533,57 @@ const Search = () => {
                   </ul>
                 )}
               </div>
+
+              {/* SWAP BUTTON (Desktop Center) */}
+              {tripType !== 'Local-Duty' && (
+                <button
+                  type="button"
+                  onClick={handleSwapLocations}
+                  title="Swap pickup & destination"
+                  aria-label="Swap pickup & destination"
+                  className="hidden md:flex absolute left-1/2 top-[43px] -translate-x-1/2 -translate-y-1/2 z-20 w-[42px] h-[42px] bg-white border border-slate-200 hover:border-[#008CFF] rounded-full items-center justify-center shadow-md shadow-slate-900/5 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer group"
+                >
+                  <svg
+                    className="w-4 h-4 text-[#008CFF] group-hover:rotate-180 transition-transform duration-300"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m16 3 4 4-4 4" />
+                    <path d="M20 7H4" />
+                    <path d="m8 21-4-4 4-4" />
+                    <path d="M4 17h16" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Mobile Swap Button */}
+              {tripType !== 'Local-Duty' && (
+                <div className="flex md:hidden justify-center -my-2.5 z-20">
+                  <button
+                    type="button"
+                    onClick={handleSwapLocations}
+                    title="Swap pickup & destination"
+                    aria-label="Swap pickup & destination"
+                    className="w-[36px] h-[36px] bg-white border border-slate-200 hover:border-[#008CFF] rounded-full flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <svg
+                      className="w-4 h-4 text-[#008CFF]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                  </button>
+                </div>
+              )}
 
               {/* TO */}
               {tripType !== 'Local-Duty' ? (

@@ -158,6 +158,12 @@ const CarResults = () => {
         if (toAddress) {
           url += `&toAddress=${encodeURIComponent(toAddress)}`;
         }
+        if (pickupDate) {
+          url += `&pickupDate=${encodeURIComponent(pickupDate)}`;
+        }
+        if (pickupTime) {
+          url += `&pickupTime=${encodeURIComponent(pickupTime)}`;
+        }
         if (fromLat && fromLng) {
           url += `&fromLat=${fromLat}&fromLng=${fromLng}`;
         }

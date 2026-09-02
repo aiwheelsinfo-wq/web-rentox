@@ -245,9 +245,17 @@ const CarResults = () => {
       {/* Header Search Summary */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="bg-brandBlue/10 text-brandBlue px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide">
-            {tripType}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="bg-brandBlue/10 text-brandBlue px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide">
+              {tripType}
+            </span>
+            {distanceKm && distanceKm > 0 && distanceKm !== 999 && (
+              <span className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                <i className="fas fa-route text-emerald-600 text-[11px]"></i>
+                <span>{Math.round(distanceKm)} KM Distance</span>
+              </span>
+            )}
+          </div>
           <h2 className="text-lg font-extrabold text-brandCharcoal mt-2 flex items-center gap-2">
             <span>{fromAddress.split(',')[0]}</span>
             {tripType !== 'Local-Duty' && (
@@ -257,9 +265,15 @@ const CarResults = () => {
               </>
             )}
           </h2>
-          <p className="text-gray-400 text-xs mt-1">
-            <i className="fas fa-calendar-alt mr-1"></i> {pickupDate} at {pickupTime}
+          <p className="text-gray-400 text-xs mt-1 flex items-center gap-2 flex-wrap">
+            <span><i className="fas fa-calendar-alt mr-1 text-slate-400"></i> {pickupDate} at {pickupTime}</span>
             {tripType === 'Round-Trip' && ` to ${returnDate}`}
+            {distanceKm && distanceKm > 0 && distanceKm !== 999 && (
+              <>
+                <span>•</span>
+                <span className="text-slate-600 font-semibold"><i className="fas fa-road mr-1 text-slate-400"></i> {Math.round(distanceKm)} KM Distance</span>
+              </>
+            )}
           </p>
         </div>
         <button

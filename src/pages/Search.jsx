@@ -474,6 +474,17 @@ const Search = () => {
         return false;
       };
 
+      if (tripType === 'Local-taxi' || tripType === 'Local Taxi') {
+        if (routeDistance) {
+          const distKm = parseFloat(routeDistance.replace(/[^0-9.]/g, ''));
+          if (distKm > 80) {
+            setErrorMsg(`Local Taxi is restricted to local city rides up to 80 KM. For this ${routeDistance} outstation route, please select One-Way.`);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       setLoading(true);
       try {
         const boundaryResp = await axios.get(endpoints.getCityBoundaries);

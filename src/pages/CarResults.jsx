@@ -100,15 +100,19 @@ const CarResults = () => {
     checkGoogle();
   }, [fromAddress, toAddress, tripType, fromLat, fromLng, toLat, toLng]);
 
-  // Block One-Way / Round-Trip when road distance < 50 km (exempt local taxi and local duty)
+  // Local Taxi City Boundary Limit (Max 80 KM for intra-city rides)
+  const isLocalTaxi = (tripType || '').toLowerCase().replace(/[-_]/g, ' ').includes('local taxi');
+  const isLocalTaxiExceeded = isLocalTaxi && distanceKm !== null && distanceKm > 80;
   const isBelowMinDistance = false;
 
   useEffect(() => {
-    fetchCars();
-  }, [tripType, tempBookingId, distanceKm]);
+    if (!isLocalTaxiExceeded) {
+      fetchCars();
+    }
+  }, [tripType, tempBookingId, distanceKm, isLocalTaxiExceeded]);
 
   const fetchCars = async () => {
-    if ((tripType === 'Local-taxi' || tripType === 'Local Taxi') && distanceKm === null) {
+    if (isLocalTaxi && distanceKm === null) {
       // Wait for distanceKm to be resolved by Google Maps API first
       return;
     }
@@ -370,8 +374,44 @@ const CarResults = () => {
 
         {/* Cars List */}
         <main className="w-full lg:w-3/4 flex flex-col gap-6">
-          {/* â”€â”€ Distance < 50 km block (matches Flutter CarSelectionPage) â”€â”€ */}
-          {isBelowMinDistance ? (
+          {/* Local Taxi Outstation Route Detected Notice */}
+          {isLocalTaxiExceeded ? (
+            <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-8 sm:p-10 flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-4 text-amber-600 text-2xl">
+                <i className="fas fa-route"></i>
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-3xs font-extrabold uppercase tracking-wider mb-2">
+                Outstation Route ({Math.round(distanceKm)} KM)
+              </div>
+              <h3 className="text-lg font-black text-brandCharcoal mb-2">
+                Local Taxi City Limit Exceeded
+              </h3>
+              <p className="text-gray-600 text-xs font-medium max-w-md leading-relaxed mb-4">
+                Local Taxi is reserved strictly for short city rides within city boundaries (up to 80 KM). Your route from <strong>{fromAddress.split(',')[0]}</strong> to <strong>{toAddress.split(',')[0]}</strong> is <strong>{Math.round(distanceKm)} KM</strong>.
+              </p>
+              <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-3.5 max-w-md w-full text-xs text-amber-950 font-semibold mb-6">
+                👉 Please book our dedicated <strong>One-Way Outstation Cabs</strong> for highway drivers, verified luggage space, and fixed one-way pricing.
+              </div>
+              <div className="flex gap-3 flex-wrap justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTripType('One-way');
+                  }}
+                  className="bg-brandBlue hover:bg-blue-600 text-white font-extrabold text-xs px-6 py-3 rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <i className="fas fa-arrow-right"></i> View One-Way Cabs for this Route
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold text-xs px-5 py-3 rounded-xl transition-all cursor-pointer"
+                >
+                  Modify Search
+                </button>
+              </div>
+            </div>
+          ) : isBelowMinDistance ? (
             <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-10 flex flex-col items-center text-center">
               <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-5">
                 <i className="fas fa-exclamation-triangle text-red-400 text-3xl"></i>

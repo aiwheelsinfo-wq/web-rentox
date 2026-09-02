@@ -100,16 +100,132 @@ const CarResults = () => {
     checkGoogle();
   }, [fromAddress, toAddress, tripType, fromLat, fromLng, toLat, toLng]);
 
-  // Local Taxi City Boundary Limit (Max 80 KM for intra-city rides)
+  // Local Taxi City Boundary & Polygon Limit
   const isLocalTaxi = (tripType || '').toLowerCase().replace(/[-_]/g, ' ').includes('local taxi');
-  const isLocalTaxiExceeded = isLocalTaxi && distanceKm !== null && distanceKm > 80;
+  const [activeBoundaries, setActiveBoundaries] = useState([]);
+  const [outOfBoundaryInfo, setOutOfBoundaryInfo] = useState(null);
+
+  // Fetch active city boundary polygons from AWS
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBoundaries = async () => {
+      try {
+        const res = await axios.get('https://agnicarrental.com/2025/get_city_boundaries.php?action=active_only');
+        if (isMounted && res.data && res.data.cities) {
+          setActiveBoundaries(res.data.cities);
+        }
+      } catch (e) {
+        console.warn('Failed to load active boundaries', e);
+      }
+    };
+    if (isLocalTaxi) {
+      fetchBoundaries();
+    }
+    return () => { isMounted = false; };
+  }, [isLocalTaxi]);
+
+  // Point in polygon mathematical ray-casting algorithm
+  const isPointInPolygon = (lat, lng, polygon) => {
+    if (!polygon || !Array.isArray(polygon) || polygon.length < 3) return true;
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].lat, yi = polygon[i].lng;
+      const xj = polygon[j].lat, yj = polygon[j].lng;
+      const intersect = ((yi > lng) !== (yj > lng)) &&
+          (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
+  const isLocationInCity = (lat, lng, city) => {
+    if (!lat || !lng) return false;
+    if (city.polygon_coords && Array.isArray(city.polygon_coords) && city.polygon_coords.length >= 3) {
+      return isPointInPolygon(lat, lng, city.polygon_coords);
+    }
+    return (
+      lat >= parseFloat(city.min_lat) &&
+      lat <= parseFloat(city.max_lat) &&
+      lng >= parseFloat(city.min_lng) &&
+      lng <= parseFloat(city.max_lng)
+    );
+  };
+
+  // Validate Local Taxi pickup & drop coordinates against active city polygons
+  useEffect(() => {
+    if (!isLocalTaxi || activeBoundaries.length === 0) {
+      setOutOfBoundaryInfo(null);
+      return;
+    }
+
+    if (distanceKm !== null && distanceKm > 80) {
+      setOutOfBoundaryInfo({
+        isOut: true,
+        reason: `Your route is ${Math.round(distanceKm)} KM, which exceeds the Local Taxi city limit (80 KM).`
+      });
+      return;
+    }
+
+    const validateCoords = (fLat, fLng, tLat, tLng) => {
+      let matchedCity = null;
+      // 1. Find city for pickup
+      for (const city of activeBoundaries) {
+        if (city.status === 'active' && isLocationInCity(fLat, fLng, city)) {
+          matchedCity = city;
+          break;
+        }
+      }
+
+      if (!matchedCity) {
+        setOutOfBoundaryInfo({
+          isOut: true,
+          reason: `Pickup location "${fromAddress.split(',')[0]}" is outside active Local Taxi city boundaries.`
+        });
+        return;
+      }
+
+      // 2. Destination must also be in the same city polygon
+      const isDropInside = isLocationInCity(tLat, tLng, matchedCity);
+      if (!isDropInside) {
+        setOutOfBoundaryInfo({
+          isOut: true,
+          cityName: matchedCity.city_name,
+          reason: `Destination "${toAddress.split(',')[0]}" is outside the active ${matchedCity.city_name} Local Taxi polygon boundary.`
+        });
+        return;
+      }
+
+      setOutOfBoundaryInfo(null);
+    };
+
+    if (fromLat && fromLng && toLat && toLng) {
+      validateCoords(parseFloat(fromLat), parseFloat(fromLng), parseFloat(toLat), parseFloat(toLng));
+    } else if (window.google && window.google.maps && fromAddress && toAddress) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ address: fromAddress }, (fRes, fStat) => {
+        if (fStat === 'OK' && fRes[0]) {
+          const fl = fRes[0].geometry.location.lat();
+          const fg = fRes[0].geometry.location.lng();
+          geocoder.geocode({ address: toAddress }, (tRes, tStat) => {
+            if (tStat === 'OK' && tRes[0]) {
+              const tl = tRes[0].geometry.location.lat();
+              const tg = tRes[0].geometry.location.lng();
+              validateCoords(fl, fg, tl, tg);
+            }
+          });
+        }
+      });
+    }
+  }, [isLocalTaxi, fromLat, fromLng, toLat, toLng, fromAddress, toAddress, distanceKm, activeBoundaries]);
+
+  const isLocalTaxiBlocked = isLocalTaxi && (outOfBoundaryInfo?.isOut || (distanceKm !== null && distanceKm > 80));
   const isBelowMinDistance = false;
 
   useEffect(() => {
-    if (!isLocalTaxiExceeded) {
+    if (!isLocalTaxiBlocked) {
       fetchCars();
     }
-  }, [tripType, tempBookingId, distanceKm, isLocalTaxiExceeded]);
+  }, [tripType, tempBookingId, distanceKm, isLocalTaxiBlocked]);
 
   const fetchCars = async () => {
     if (isLocalTaxi && distanceKm === null) {
@@ -374,23 +490,23 @@ const CarResults = () => {
 
         {/* Cars List */}
         <main className="w-full lg:w-3/4 flex flex-col gap-6">
-          {/* Local Taxi Outstation Route Detected Notice */}
-          {isLocalTaxiExceeded ? (
+          {/* Local Taxi Out of Boundary / Outstation Route Notice */}
+          {isLocalTaxiBlocked ? (
             <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-8 sm:p-10 flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-4 text-amber-600 text-2xl">
-                <i className="fas fa-route"></i>
+                <i className="fas fa-map-location-dot"></i>
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-3xs font-extrabold uppercase tracking-wider mb-2">
-                Outstation Route ({Math.round(distanceKm)} KM)
+                Outside Local Taxi Boundary
               </div>
               <h3 className="text-lg font-black text-brandCharcoal mb-2">
-                Local Taxi City Limit Exceeded
+                Out of City Boundary Limit
               </h3>
               <p className="text-gray-600 text-xs font-medium max-w-md leading-relaxed mb-4">
-                Local Taxi is reserved strictly for short city rides within city boundaries (up to 80 KM). Your route from <strong>{fromAddress.split(',')[0]}</strong> to <strong>{toAddress.split(',')[0]}</strong> is <strong>{Math.round(distanceKm)} KM</strong>.
+                {outOfBoundaryInfo?.reason || `Local Taxi is reserved strictly for short city rides within active city boundary polygons. Your route is outside this zone.`}
               </p>
               <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-3.5 max-w-md w-full text-xs text-amber-950 font-semibold mb-6">
-                👉 Please book our dedicated <strong>One-Way Outstation Cabs</strong> for highway drivers, verified luggage space, and fixed one-way pricing.
+                👉 Please book our dedicated <strong>One-Way Outstation Cabs</strong> for highway drivers, verified luggage space, and outstation pricing.
               </div>
               <div className="flex gap-3 flex-wrap justify-center">
                 <button

@@ -195,6 +195,12 @@ const Invoice = () => {
     const activeCity = (city || '').trim() || 'Mumbai';
     const activePincode = (pincode || '').trim() || '400080';
 
+    if (!activePhone || activePhone.length !== 10) {
+      setErrorMsg('Please enter a valid 10-digit mobile number.');
+      setLoading(false);
+      return;
+    }
+
     if (isLocalTaxi) {
       try {
         const payload = {
@@ -206,9 +212,9 @@ const Invoice = () => {
           pincode: activePincode,
           from_address: fromAddress,
           to_address: toAddress || '',
-          car_type: selectedCar.carType,
+          car_type: selectedCar?.carType || 'Hatchback',
           total_amount: Math.round(tripFare),
-          distance: selectedCar.packageKm || '7',
+          distance: selectedCar?.packageKm || '7',
           from_lat: fromLat || null,
           from_lng: fromLng || null,
           to_lat: toLat || null,
@@ -218,19 +224,25 @@ const Invoice = () => {
         };
 
         const response = await axios.post(endpoints.saveLocalTaxi, payload, {
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 10000
         });
 
         if (response.data && (response.data.status === 'success' || response.data.booking_id)) {
-          const savedBookingId = response.data.booking_id.toString();
-          navigate(`/booking-success?id=${savedBookingId}`);
+          const savedBookingId = (response.data.booking_id || '').toString();
+          window.location.href = `/booking-success?id=${savedBookingId}`;
+          return;
         } else {
-          setErrorMsg(response.data?.message || 'Failed to save booking. Please try again.');
+          const msg = response.data?.message || 'Failed to save booking. Please try again.';
+          setErrorMsg(msg);
+          alert(msg);
           setLoading(false);
         }
       } catch (e) {
         console.error('Local Taxi booking error:', e);
-        setErrorMsg(e.response?.data?.message || e.message || 'Error communicating with the server. Please try again.');
+        const errMsg = e.response?.data?.message || e.message || 'Error communicating with the server. Please try again.';
+        setErrorMsg(errMsg);
+        alert(errMsg);
         setLoading(false);
       }
       return;

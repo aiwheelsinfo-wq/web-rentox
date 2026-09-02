@@ -121,8 +121,10 @@ const Invoice = () => {
   // Daily KM Limit (default to 300 for Round-Trip matching Flutter app)
   const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || (tripType === 'Round-Trip' ? 300 : 250)) : (tripType === 'Round-Trip' ? 300 : 250);
   
-  // Commission calculation
-  const currentCommission = userRole === 'agent' 
+  const isLocalTaxi = (tripType || '').toLowerCase().replace(/[-_]/g, ' ').includes('local taxi');
+
+  // Commission calculation (Disabled for Local Taxi)
+  const currentCommission = (!isLocalTaxi && userRole === 'agent')
     ? (tripType === 'Round-Trip' ? (commissionRatePerKm * dailyLimit * days) : (parseFloat(agentCommission) || 0))
     : 0;
 
@@ -145,7 +147,7 @@ const Invoice = () => {
     advanceAmount = 250;
     gstAmount = 0;
     remainingBalance = Math.max(0, tripFare - 250);
-  } else if (tripType === 'Local-taxi') {
+  } else if (isLocalTaxi) {
     payableNow = 0;
     advanceAmount = 0;
     gstAmount = 0;
@@ -182,7 +184,7 @@ const Invoice = () => {
     setShowConfirmModal(false);
     setLoading(true);
 
-    if (tripType === 'Local-taxi') {
+    if (isLocalTaxi) {
       try {
         const response = await axios.post(endpoints.saveLocalTaxi, {
           booking_number: custMobile,
@@ -365,179 +367,181 @@ const Invoice = () => {
             </div>
           )}
 
-          {/* Booking Role & Agent Commission Card (Lightweight SaaS Style) */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col gap-4">
-            {/* Booking Role Header Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold">
-                  <i className="fas fa-user-shield"></i>
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-brandCharcoal tracking-tight">Booking Role</h3>
-                  <p className="text-4xs text-gray-400 font-medium">Select account mode for this checkout</p>
-                </div>
-              </div>
-
-              {/* Segmented Control */}
-              <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200/70 h-11 self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setUserRole('customer')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all h-9 flex items-center gap-1.5 ${
-                    userRole === 'customer'
-                      ? 'bg-white text-brandCharcoal shadow-sm border border-gray-200/50'
-                      : 'text-gray-500 hover:text-brandCharcoal'
-                  }`}
-                >
-                  <i className="fas fa-user text-3xs"></i>
-                  Customer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserRole('agent')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all h-9 flex items-center gap-1.5 ${
-                    userRole === 'agent'
-                      ? 'bg-amber-400 text-brandCharcoal shadow-sm font-extrabold'
-                      : 'text-gray-500 hover:text-brandCharcoal'
-                  }`}
-                >
-                  <i className="fas fa-briefcase text-3xs"></i>
-                  Agent Mode
-                </button>
-              </div>
-            </div>
-
-            {/* Agent Commission Section (Visible only when Agent Mode is selected) */}
-            {userRole === 'agent' && (
-              <div className="pt-3.5 border-t border-gray-100 flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-brandCharcoal">
-                    <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-3xs font-black">
-                      ₹
-                    </span>
-                    <span>Agent Commission {tripType === 'Round-Trip' ? '(Per KM)' : ''}</span>
+          {/* Booking Role & Agent Commission Card (Visible only for One-Way & Round-Trip, hidden for Local Taxi) */}
+          {!isLocalTaxi && (
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col gap-4">
+              {/* Booking Role Header Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold">
+                    <i className="fas fa-user-shield"></i>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-slate-600 bg-slate-100/90 border border-slate-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    Included in total fare
-                  </span>
+                  <div>
+                    <h3 className="text-xs font-bold text-brandCharcoal tracking-tight">Booking Role</h3>
+                    <p className="text-4xs text-gray-400 font-medium">Select account mode for this checkout</p>
+                  </div>
                 </div>
 
-                {tripType === 'Round-Trip' ? (
-                  <div className="flex flex-col gap-3">
-                    {/* Interactive 4-Chip Selector */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[
-                        { rate: 0.0, label: '₹0 / KM', sub: 'No Comm.' },
-                        { rate: 1.0, label: '₹1 / KM', sub: `+₹${Math.round(1.0 * dailyLimit * days).toLocaleString('en-IN')}` },
-                        { rate: 2.0, label: '₹2 / KM', sub: `+₹${Math.round(2.0 * dailyLimit * days).toLocaleString('en-IN')}` },
-                        { rate: 3.0, label: '₹3 / KM', sub: `+₹${Math.round(3.0 * dailyLimit * days).toLocaleString('en-IN')}` },
-                      ].map((opt) => {
-                        const isSelected = commissionRatePerKm === opt.rate;
-                        return (
-                          <button
-                            key={opt.rate}
-                            type="button"
-                            onClick={() => {
-                              setCommissionRatePerKm(opt.rate);
-                              setAgentCommission(opt.rate * dailyLimit * days);
-                            }}
-                            className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-amber-400 border-amber-500 text-brandCharcoal shadow-sm ring-2 ring-amber-400/40 font-black'
-                                : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300 hover:bg-amber-50/50'
-                            }`}
-                          >
-                            <span className="text-xs font-bold">{opt.label}</span>
-                            <span className={`text-4xs mt-0.5 font-semibold ${isSelected ? 'text-brandCharcoal' : 'text-gray-500'}`}>
-                              {opt.sub}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                {/* Segmented Control */}
+                <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200/70 h-11 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setUserRole('customer')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all h-9 flex items-center gap-1.5 ${
+                      userRole === 'customer'
+                        ? 'bg-white text-brandCharcoal shadow-sm border border-gray-200/50'
+                        : 'text-gray-500 hover:text-brandCharcoal'
+                    }`}
+                  >
+                    <i className="fas fa-user text-3xs"></i>
+                    Customer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserRole('agent')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all h-9 flex items-center gap-1.5 ${
+                      userRole === 'agent'
+                        ? 'bg-amber-400 text-brandCharcoal shadow-sm font-extrabold'
+                        : 'text-gray-500 hover:text-brandCharcoal'
+                    }`}
+                  >
+                    <i className="fas fa-briefcase text-3xs"></i>
+                    Agent Mode
+                  </button>
+                </div>
+              </div>
 
-                    {/* Formula & Total Calculation Pill */}
-                    <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-3 text-3xs text-amber-950 font-semibold flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <i className="fas fa-calculator text-amber-600"></i>
-                        <span>₹{commissionRatePerKm}/KM × {dailyLimit} KM/day × {days} Days</span>
-                      </div>
-                      <span className="font-extrabold text-xs text-amber-900 bg-amber-200/60 px-2 py-0.5 rounded-md">
-                        +₹{Math.round(currentCommission).toLocaleString('en-IN')}
+              {/* Agent Commission Section (Visible only when Agent Mode is selected) */}
+              {userRole === 'agent' && (
+                <div className="pt-3.5 border-t border-gray-100 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-brandCharcoal">
+                      <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-3xs font-black">
+                        ₹
                       </span>
+                      <span>Agent Commission {tripType === 'Round-Trip' ? '(Per KM)' : ''}</span>
                     </div>
+                    <span className="inline-flex items-center gap-1.5 text-[10.5px] font-medium text-slate-600 bg-slate-100/90 border border-slate-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      Included in total fare
+                    </span>
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    {/* Quick Preset Chips for One-Way */}
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {[0, 100, 200, 300, 500].map((amt) => {
-                        const isSelected = (parseFloat(agentCommission) || 0) === amt;
-                        return (
-                          <button
-                            key={amt}
-                            type="button"
-                            onClick={() => setAgentCommission(amt)}
-                            className={`py-1.5 px-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-amber-400 border-amber-500 text-brandCharcoal font-extrabold shadow-sm'
-                                : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300 hover:bg-amber-50/50'
-                            }`}
-                          >
-                            ₹{amt}
-                          </button>
-                        );
-                      })}
-                    </div>
 
-                    {/* Custom Input Field with Easy Clear & Type */}
-                    <div className="relative flex items-center">
-                      <span className="absolute left-3.5 text-gray-500 font-bold text-xs">₹</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={agentCommission === 0 || agentCommission === '0' ? '' : agentCommission}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setAgentCommission(val === '' ? '' : Math.max(0, parseFloat(val) || 0));
-                        }}
-                        onFocus={() => {
-                          if (agentCommission === 0 || agentCommission === '0') {
-                            setAgentCommission('');
-                          }
-                        }}
-                        onBlur={() => {
-                          if (agentCommission === '' || isNaN(parseFloat(agentCommission))) {
-                            setAgentCommission(0);
-                          }
-                        }}
-                        placeholder="Enter custom commission (e.g. 250)"
-                        className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-8 pr-16 text-sm font-extrabold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11"
-                      />
-                      {agentCommission !== '' && agentCommission !== 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setAgentCommission(0)}
-                          className="absolute right-2.5 text-3xs text-gray-400 hover:text-red-500 font-bold bg-gray-100 hover:bg-red-50 px-2 py-1 rounded-md transition-all cursor-pointer"
-                        >
-                          Clear
-                        </button>
-                      )}
+                  {tripType === 'Round-Trip' ? (
+                    <div className="flex flex-col gap-3">
+                      {/* Interactive 4-Chip Selector */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { rate: 0.0, label: '₹0 / KM', sub: 'No Comm.' },
+                          { rate: 1.0, label: '₹1 / KM', sub: `+₹${Math.round(1.0 * dailyLimit * days).toLocaleString('en-IN')}` },
+                          { rate: 2.0, label: '₹2 / KM', sub: `+₹${Math.round(2.0 * dailyLimit * days).toLocaleString('en-IN')}` },
+                          { rate: 3.0, label: '₹3 / KM', sub: `+₹${Math.round(3.0 * dailyLimit * days).toLocaleString('en-IN')}` },
+                        ].map((opt) => {
+                          const isSelected = commissionRatePerKm === opt.rate;
+                          return (
+                            <button
+                              key={opt.rate}
+                              type="button"
+                              onClick={() => {
+                                setCommissionRatePerKm(opt.rate);
+                                setAgentCommission(opt.rate * dailyLimit * days);
+                              }}
+                              className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-amber-400 border-amber-500 text-brandCharcoal shadow-sm ring-2 ring-amber-400/40 font-black'
+                                  : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300 hover:bg-amber-50/50'
+                              }`}
+                            >
+                              <span className="text-xs font-bold">{opt.label}</span>
+                              <span className={`text-4xs mt-0.5 font-semibold ${isSelected ? 'text-brandCharcoal' : 'text-gray-500'}`}>
+                                {opt.sub}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Formula & Total Calculation Pill */}
+                      <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-3 text-3xs text-amber-950 font-semibold flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <i className="fas fa-calculator text-amber-600"></i>
+                          <span>₹{commissionRatePerKm}/KM × {dailyLimit} KM/day × {days} Days</span>
+                        </div>
+                        <span className="font-extrabold text-xs text-amber-900 bg-amber-200/60 px-2 py-0.5 rounded-md">
+                          +₹{Math.round(currentCommission).toLocaleString('en-IN')}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
-                <p className="text-4xs text-gray-400 font-medium flex items-center gap-1">
-                  <i className="fas fa-info-circle text-amber-500 text-3xs"></i>
-                  {tripType === 'Round-Trip'
-                    ? 'Commission is included in the total trip fare (advance payment stays fixed at ₹4/KM).'
-                    : 'Commission is added to the total trip fare.'}
-                </p>
-              </div>
-            )}
-          </div>
+                  ) : (
+                    <div className="flex flex-col gap-2.5">
+                      {/* Quick Preset Chips for One-Way */}
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[0, 100, 200, 300, 500].map((amt) => {
+                          const isSelected = (parseFloat(agentCommission) || 0) === amt;
+                          return (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => setAgentCommission(amt)}
+                              className={`py-1.5 px-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-amber-400 border-amber-500 text-brandCharcoal font-extrabold shadow-sm'
+                                  : 'bg-white border-gray-200 text-gray-700 hover:border-amber-300 hover:bg-amber-50/50'
+                              }`}
+                            >
+                              ₹{amt}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom Input Field with Easy Clear & Type */}
+                      <div className="relative flex items-center">
+                        <span className="absolute left-3.5 text-gray-500 font-bold text-xs">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={agentCommission === 0 || agentCommission === '0' ? '' : agentCommission}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setAgentCommission(val === '' ? '' : Math.max(0, parseFloat(val) || 0));
+                          }}
+                          onFocus={() => {
+                            if (agentCommission === 0 || agentCommission === '0') {
+                              setAgentCommission('');
+                            }
+                          }}
+                          onBlur={() => {
+                            if (agentCommission === '' || isNaN(parseFloat(agentCommission))) {
+                              setAgentCommission(0);
+                            }
+                          }}
+                          placeholder="Enter custom commission (e.g. 250)"
+                          className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-8 pr-16 text-sm font-extrabold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-400/20 transition-all h-11"
+                        />
+                        {agentCommission !== '' && agentCommission !== 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setAgentCommission(0)}
+                            className="absolute right-2.5 text-3xs text-gray-400 hover:text-red-500 font-bold bg-gray-100 hover:bg-red-50 px-2 py-1 rounded-md transition-all cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-4xs text-gray-400 font-medium flex items-center gap-1">
+                    <i className="fas fa-info-circle text-amber-500 text-3xs"></i>
+                    {tripType === 'Round-Trip'
+                      ? 'Commission is included in the total trip fare (advance payment stays fixed at ₹4/KM).'
+                      : 'Commission is added to the total trip fare.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <h2 className="text-base font-extrabold text-brandCharcoal border-b border-gray-100 pb-3 mb-5 uppercase tracking-wider">
@@ -696,7 +700,7 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    {tripType === 'Local-taxi' ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
+                    {isLocalTaxi ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
                   </>
                 )}
               </button>
@@ -916,10 +920,10 @@ const Invoice = () => {
             </div>
             <div>
               <h3 className="text-base font-extrabold text-brandCharcoal">
-                {tripType === 'Local-taxi' ? 'Confirm Booking' : 'Confirm Advance Payment'}
+                {isLocalTaxi ? 'Confirm Booking' : 'Confirm Advance Payment'}
               </h3>
               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                {tripType === 'Local-taxi' ? (
+                {isLocalTaxi ? (
                   <>
                     Confirm your booking for this <strong>{selectedCar.carType}</strong> trip. No advance payment is required.
                   </>
@@ -941,7 +945,7 @@ const Invoice = () => {
                 onClick={submitBookingAndPayment}
                 className="flex-1 bg-brandBlue text-white hover:bg-blue-600 text-xs font-bold py-3 rounded-xl transition-all shadow-sm"
               >
-                {tripType === 'Local-taxi' ? 'Confirm' : 'Pay Now'}
+                {isLocalTaxi ? 'Confirm' : 'Pay Now'}
               </button>
             </div>
           </div>

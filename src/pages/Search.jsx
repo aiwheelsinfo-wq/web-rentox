@@ -478,7 +478,18 @@ const Search = () => {
         if (routeDistance) {
           const distKm = parseFloat(routeDistance.replace(/[^0-9.]/g, ''));
           if (distKm > 80) {
-            setErrorMsg(`Local Taxi is restricted to local city rides up to 80 KM. For this ${routeDistance} outstation route, please select One-Way.`);
+            setErrorMsg(`Local Taxi is restricted to local city rides up to 80 KM. For this ${routeDistance} outstation route, please choose One-Way.`);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      if (tripType === 'One-way' || tripType === 'Round-Trip') {
+        if (routeDistance) {
+          const distKm = parseFloat(routeDistance.replace(/[^0-9.]/g, ''));
+          if (distKm > 0 && distKm < 50) {
+            setErrorMsg(`This route is ${routeDistance} (within city limits). One-Way & Round-Trip are for outstation routes (50+ KM). Please choose Local Taxi.`);
             setLoading(false);
             return;
           }
@@ -639,8 +650,37 @@ const Search = () => {
           {/* Form */}
           <form onSubmit={handleSearch} className="p-4 sm:p-5 md:p-6">
             {errorMsg && (
-              <div className="mb-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-3 px-4 text-xs font-semibold flex items-center gap-2">
-                <i className="fas fa-exclamation-circle text-rose-600"></i> <span>{errorMsg}</span>
+              <div className="mb-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-3 px-4 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-exclamation-circle text-rose-600 text-base flex-shrink-0"></i>
+                  <span>{errorMsg}</span>
+                </div>
+                {errorMsg.toLowerCase().includes('local taxi') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMsg('');
+                      setTripType('Local-taxi');
+                    }}
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <span>Choose Local Taxi</span>
+                    <i className="fas fa-arrow-right text-[10px]"></i>
+                  </button>
+                )}
+                {errorMsg.toLowerCase().includes('one-way') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMsg('');
+                      setTripType('One-way');
+                    }}
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <span>Switch to One-Way</span>
+                    <i className="fas fa-arrow-right text-[10px]"></i>
+                  </button>
+                )}
               </div>
             )}
 

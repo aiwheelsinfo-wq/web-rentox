@@ -163,82 +163,6 @@ const Search = () => {
   const [swapRotation, setSwapRotation] = useState(0);
   const [routeDistance, setRouteDistance] = useState('');
   const [routeDuration, setRouteDuration] = useState('');
-  const [activeBoundaries, setActiveBoundaries] = useState([]);
-  const [boundaryMatch, setBoundaryMatch] = useState(null);
-
-  const isLocalTaxi = (tripType || '').toLowerCase().replace(/[-_]/g, ' ').includes('local taxi');
-
-  // Load Active City Boundaries once for Geo-Fencing
-  useEffect(() => {
-    let isMounted = true;
-    const fetchCityBoundaries = async () => {
-      try {
-        const res = await axios.get('https://agnicarrental.com/2025/get_city_boundaries.php?action=active_only');
-        if (isMounted && res.data && res.data.cities) {
-          setActiveBoundaries(res.data.cities);
-        }
-      } catch (e) {
-        // Fallback default Maharashtra boundaries
-        if (isMounted) {
-          setActiveBoundaries([
-            { city_name: 'Mumbai', min_lat: 18.88, max_lat: 19.51, min_lng: 72.73, max_lng: 73.26, status: 'active' },
-            { city_name: 'Pune', min_lat: 17.92, max_lat: 18.92, min_lng: 73.39, max_lng: 74.41, status: 'active' }
-          ]);
-        }
-      }
-    };
-    fetchCityBoundaries();
-    return () => { isMounted = false; };
-  }, []);
-
-  // Validate Geo-Fence when fromLat / fromLng / tripType changes
-  useEffect(() => {
-    if (!isLocalTaxi || !fromLat || !fromLng || activeBoundaries.length === 0) {
-      setBoundaryMatch(null);
-      return;
-    }
-
-    const lat = parseFloat(fromLat);
-    const lng = parseFloat(fromLng);
-    if (isNaN(lat) || isNaN(lng)) {
-      setBoundaryMatch(null);
-      return;
-    }
-
-    let match = null;
-    for (const city of activeBoundaries) {
-      if (city.status !== 'active') continue;
-
-      // Check Polygon coords if available
-      if (city.polygon_coords && Array.isArray(city.polygon_coords) && city.polygon_coords.length >= 3) {
-        let inside = false;
-        const poly = city.polygon_coords;
-        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-          const xi = poly[i].lat, yi = poly[i].lng;
-          const xj = poly[j].lat, yj = poly[j].lng;
-          const intersect = ((yi > lng) !== (yj > lng)) &&
-              (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
-          if (intersect) inside = !inside;
-        }
-        if (inside) {
-          match = { isInside: true, cityName: city.city_name };
-          break;
-        }
-      }
-
-      // Fallback Bounding Box check
-      if (lat >= city.min_lat && lat <= city.max_lat && lng >= city.min_lng && lng <= city.max_lng) {
-        match = { isInside: true, cityName: city.city_name };
-        break;
-      }
-    }
-
-    if (match) {
-      setBoundaryMatch(match);
-    } else {
-      setBoundaryMatch({ isInside: false });
-    }
-  }, [fromLat, fromLng, isLocalTaxi, activeBoundaries]);
 
   // Live Road Distance & Duration Calculator
   useEffect(() => {
@@ -474,28 +398,6 @@ const Search = () => {
         return false;
       };
 
-      if (tripType === 'Local-taxi' || tripType === 'Local Taxi') {
-        if (routeDistance) {
-          const distKm = parseFloat(routeDistance.replace(/[^0-9.]/g, ''));
-          if (distKm > 80) {
-            setErrorMsg(`Local Taxi is restricted to local city rides up to 80 KM. For this ${routeDistance} outstation route, please choose One-Way.`);
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      if (tripType === 'One-way' || tripType === 'Round-Trip') {
-        if (routeDistance) {
-          const distKm = parseFloat(routeDistance.replace(/[^0-9.]/g, ''));
-          if (distKm > 0 && distKm < 50) {
-            setErrorMsg(`This route is ${routeDistance} (within city limits). One-Way & Round-Trip are for outstation routes (50+ KM). Please choose Local Taxi.`);
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
       setLoading(true);
       try {
         const boundaryResp = await axios.get(endpoints.getCityBoundaries);
@@ -650,37 +552,8 @@ const Search = () => {
           {/* Form */}
           <form onSubmit={handleSearch} className="p-4 sm:p-5 md:p-6">
             {errorMsg && (
-              <div className="mb-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-3 px-4 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-exclamation-circle text-rose-600 text-base flex-shrink-0"></i>
-                  <span>{errorMsg}</span>
-                </div>
-                {errorMsg.toLowerCase().includes('local taxi') && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setErrorMsg('');
-                      setTripType('Local-taxi');
-                    }}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
-                  >
-                    <span>Choose Local Taxi</span>
-                    <i className="fas fa-arrow-right text-[10px]"></i>
-                  </button>
-                )}
-                {errorMsg.toLowerCase().includes('one-way') && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setErrorMsg('');
-                      setTripType('One-way');
-                    }}
-                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
-                  >
-                    <span>Switch to One-Way</span>
-                    <i className="fas fa-arrow-right text-[10px]"></i>
-                  </button>
-                )}
+              <div className="mb-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-3 px-4 text-xs font-semibold flex items-center gap-2">
+                <i className="fas fa-exclamation-circle text-rose-600"></i> <span>{errorMsg}</span>
               </div>
             )}
 
@@ -814,77 +687,23 @@ const Search = () => {
               )}
             </div>
 
-            {/* Geo-Fence & Road Distance Information Bar for Local Taxi & One-Way */}
-            <div className="flex flex-wrap items-center gap-2 mb-3.5">
-              {/* Boundary Matched Inside Badge */}
-              {isLocalTaxi && boundaryMatch?.isInside && (
-                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200/90 rounded-xl py-1.5 px-3 text-xs font-semibold text-blue-800 shadow-2xs">
-                  <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0 text-[10px]">
-                    <i className="fas fa-map-pin"></i>
-                  </span>
-                  <span>Pickup inside <strong>{boundaryMatch.cityName}</strong> Local Taxi Zone</span>
-                </div>
-              )}
-
-              {/* Live Calculated Road Distance Pill */}
-              {routeDistance && tripType !== 'Local-Duty' && (
-                <div className="flex items-center gap-2.5 bg-emerald-50/90 border border-emerald-200/90 rounded-xl py-1.5 px-3.5 text-xs font-semibold text-emerald-800 shadow-2xs">
-                  <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0 text-[10px]">
-                    <i className="fas fa-route"></i>
-                  </span>
-                  <span>
-                    Road Distance: <strong className="text-emerald-950 font-extrabold">{routeDistance}</strong>
-                  </span>
-                  {routeDuration && (
-                    <>
-                      <span className="text-emerald-300">•</span>
-                      <span className="text-emerald-700 font-medium">
-                        <i className="fas fa-clock text-emerald-500 mr-1 text-[11px]"></i>~{routeDuration} driving time
-                      </span>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Out-of-Boundary Alert Recommendation for Local Taxi */}
-            {isLocalTaxi && boundaryMatch && boundaryMatch.isInside === false && fromAddress.trim().length > 3 && (
-              <div className="mb-3.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-circle-exclamation text-amber-600 text-sm flex-shrink-0"></i>
-                  <span>
-                    Local Taxi currently serves <strong>Mumbai, Pune, Thane & MMR</strong>. For outstation pickup, please choose <strong>One-Way</strong>.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setTripType('One-way')}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer self-start sm:self-auto"
-                >
-                  Switch to One-Way
-                </button>
-              </div>
-            )}
-
-            {/* Recommendation to choose Local Taxi for short intra-city trips on One-Way / Round-Trip */}
-            {(tripType === 'One-way' || tripType === 'Round-Trip') && routeDistance && parseFloat(routeDistance.replace(/[^0-9.]/g, '')) < 50 && fromAddress.trim() && toAddress.trim() && (
-              <div className="mb-3.5 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-black flex-shrink-0">
-                    🚕
-                  </span>
-                  <span>
-                    Short city ride (<strong>{routeDistance}</strong>). <strong>Please choose Local Taxi</strong> for lower per-KM city fares & ₹0 advance!
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setTripType('Local-taxi')}
-                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
-                >
-                  <span>Switch to Local Taxi</span>
-                  <i className="fas fa-arrow-right text-[10px]"></i>
-                </button>
+            {/* Live Calculated Road Distance Pill */}
+            {routeDistance && tripType !== 'Local-Duty' && (
+              <div className="mb-3.5 flex items-center gap-2.5 bg-emerald-50/90 border border-emerald-200/90 rounded-xl py-2 px-3.5 w-fit text-xs font-semibold text-emerald-800 shadow-2xs">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0 text-[10px]">
+                  <i className="fas fa-route"></i>
+                </span>
+                <span>
+                  Road Distance: <strong className="text-emerald-950 font-extrabold">{routeDistance}</strong>
+                </span>
+                {routeDuration && (
+                  <>
+                    <span className="text-emerald-300">•</span>
+                    <span className="text-emerald-700 font-medium">
+                      <i className="fas fa-clock text-emerald-500 mr-1 text-[11px]"></i>~{routeDuration} driving time
+                    </span>
+                  </>
+                )}
               </div>
             )}
 

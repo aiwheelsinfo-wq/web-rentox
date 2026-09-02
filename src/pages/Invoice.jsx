@@ -177,72 +177,40 @@ const Invoice = () => {
       if (!businessPincode.trim() || businessPincode.trim().length !== 6) return setErrorMsg('Please enter a valid 6-digit business pincode.');
     }
 
-    if (isLocalTaxi) {
-      submitBookingAndPayment();
-    } else {
-      setShowConfirmModal(true);
-    }
+    setShowConfirmModal(true);
   };
 
   const submitBookingAndPayment = async () => {
     setShowConfirmModal(false);
     setLoading(true);
-    setErrorMsg('');
-
-    const activePhone = (custMobile || phoneNumber || '').trim();
-    const activeName = (name || '').trim();
-    const activeEmail = (email || '').trim();
-    const activeCity = (city || '').trim() || 'Mumbai';
-    const activePincode = (pincode || '').trim() || '400080';
-
-    if (!activePhone || activePhone.length !== 10) {
-      setErrorMsg('Please enter a valid 10-digit mobile number.');
-      setLoading(false);
-      return;
-    }
 
     if (isLocalTaxi) {
       try {
-        const payload = {
-          booking_number: activePhone,
-          phone_number: activePhone,
-          name: activeName,
-          email: activeEmail,
-          city: activeCity,
-          pincode: activePincode,
+        const response = await axios.post(endpoints.saveLocalTaxi, {
+          booking_number: custMobile,
+          phone_number: phoneNumber,
+          name: name,
+          email: email,
+          city: city,
+          pincode: pincode,
           from_address: fromAddress,
           to_address: toAddress || '',
-          car_type: selectedCar?.carType || 'Hatchback',
-          total_amount: Math.round(tripFare),
-          distance: selectedCar?.packageKm || '7',
-          from_lat: fromLat || null,
-          from_lng: fromLng || null,
-          to_lat: toLat || null,
-          to_lng: toLng || null,
-          date: pickupDate,
-          tripTime: pickupTime
-        };
-
-        const response = await axios.post(endpoints.saveLocalTaxi, payload, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 10000
+          car_type: selectedCar.carType,
+          total_amount: tripFare,
+          distance: selectedCar.packageKm || '40'
+        }, {
+          headers: { 'Content-Type': 'application/json' }
         });
 
-        if (response.data && (response.data.status === 'success' || response.data.booking_id)) {
-          const savedBookingId = (response.data.booking_id || '').toString();
-          window.location.href = `/booking-success?id=${savedBookingId}`;
-          return;
+        if (response.data && response.data.status === 'success' && response.data.booking_id) {
+          const savedBookingId = response.data.booking_id.toString();
+          navigate(`/booking-success?id=${savedBookingId}`);
         } else {
-          const msg = response.data?.message || 'Failed to save booking. Please try again.';
-          setErrorMsg(msg);
-          alert(msg);
+          setErrorMsg(response.data.message || 'Failed to save booking. Please try again.');
           setLoading(false);
         }
       } catch (e) {
-        console.error('Local Taxi booking error:', e);
-        const errMsg = e.response?.data?.message || e.message || 'Error communicating with the server. Please try again.';
-        setErrorMsg(errMsg);
-        alert(errMsg);
+        setErrorMsg('Error communicating with the server. Please try again.');
         setLoading(false);
       }
       return;
@@ -320,84 +288,61 @@ const Invoice = () => {
   };
 
   const launchRazorpayModal = async (bookingId) => {
+    let activeKey = RAZORPAY_KEY;
     try {
-      let activeKey = RAZORPAY_KEY;
-      try {
-        const configRes = await axios.get(endpoints.getPaymentConfig);
-        if (configRes.data && configRes.data.success && configRes.data.razorpay_key) {
-          activeKey = configRes.data.razorpay_key;
-        }
-      } catch (e) {
-        console.warn("Using fallback Razorpay test key:", e);
+      const configRes = await axios.get(endpoints.getPaymentConfig);
+      if (configRes.data && configRes.data.success && configRes.data.razorpay_key) {
+        activeKey = configRes.data.razorpay_key;
       }
-
-      if (!window.Razorpay) {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => launchRazorpayModal(bookingId);
-        script.onerror = () => {
-          setErrorMsg('Failed to load Razorpay payment gateway. Please disable ad-blockers and try again.');
-          setLoading(false);
-        };
-        document.body.appendChild(script);
-        return;
-      }
-
-      const options = {
-        key: activeKey,
-        amount: Math.round(payableNow * 100), // in paise
-        currency: "INR",
-        name: "Rentox Car Rental",
-        description: `Advance Booking for Trip #${bookingId}`,
-        image: "https://agnicarrental.com/admin2025/images/pnglogoagni.png",
-        handler: async function (response) {
-          setLoading(true);
-          try {
-            const verifyResponse = await axios.post(endpoints.updatePayment, {
-              booking_id: bookingId,
-              payment_id: response.razorpay_payment_id,
-              status: "success",
-              amount: payableNow.toFixed(2)
-            });
-            if (verifyResponse.data && verifyResponse.data.success === true) {
-              window.location.href = `/booking-success?id=${bookingId}`;
-            } else {
-              setErrorMsg('Payment successful, but failed to update status on server. Please contact support.');
-              setLoading(false);
-            }
-          } catch (e) {
-            setErrorMsg('Error verifying payment. Please do not close this window and contact support.');
-            setLoading(false);
-          }
-        },
-        modal: {
-          ondismiss: function () {
-            setErrorMsg('Payment checkout was closed. Please try again.');
-            setLoading(false);
-          }
-        },
-        prefill: {
-          name: (name || '').trim(),
-          email: (email || '').trim(),
-          contact: (custMobile || phoneNumber || '').trim()
-        },
-        theme: {
-          color: "#008CFF"
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (resp) {
-        setErrorMsg(`Payment Failed: ${resp.error?.description || 'Transaction declined'}`);
-        setLoading(false);
-      });
-      rzp.open();
-      setLoading(false);
-    } catch (err) {
-      console.error('Razorpay launch error:', err);
-      setErrorMsg('Failed to open payment gateway. Please check your browser popup blocker.');
-      setLoading(false);
+    } catch (e) {
+      console.error("Failed to load active Razorpay configuration, using fallback test key:", e);
     }
+
+    const options = {
+      key: activeKey,
+      amount: Math.round(payableNow * 100), // in paise
+      currency: "INR",
+      name: "Rentox Car Rental",
+      description: `Advance Booking for Trip #${bookingId}`,
+      image: "https://agnicarrental.com/admin2025/images/pnglogoagni.png",
+      handler: async function (response) {
+        // Successful payment, verify and update
+        try {
+          const verifyResponse = await axios.post(endpoints.updatePayment, {
+            booking_id: bookingId,
+            payment_id: response.razorpay_payment_id,
+            status: "success",
+            amount: payableNow.toFixed(2)
+          });
+          if (verifyResponse.data && verifyResponse.data.success === true) {
+            navigate(`/booking-success?id=${bookingId}`);
+          } else {
+            setErrorMsg('Payment successful, but failed to update status on server. Please contact support.');
+          }
+        } catch (e) {
+          setErrorMsg('Error verifying payment. Please do not close this window and contact support.');
+        } finally {
+          setLoading(false);
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          setErrorMsg('Payment checkout was closed. Please try again.');
+          setLoading(false);
+        }
+      },
+      prefill: {
+        name: name,
+        email: email,
+        contact: phoneNumber
+      },
+      theme: {
+        color: "#008CFF"
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
   };
 
   if (!selectedCar) return null;
@@ -604,12 +549,6 @@ const Invoice = () => {
             </h2>
 
             <form onSubmit={handlePayNow} className="flex flex-col gap-4">
-              {errorMsg && (
-                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center gap-2 shadow-2xs">
-                  <i className="fas fa-exclamation-circle text-red-500 text-sm flex-shrink-0"></i>
-                  <span>{errorMsg}</span>
-                </div>
-              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-3xs font-extrabold text-gray-400 uppercase mb-2">FULL NAME</label>

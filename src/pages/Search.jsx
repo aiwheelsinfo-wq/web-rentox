@@ -163,6 +163,92 @@ const Search = () => {
   const [swapRotation, setSwapRotation] = useState(0);
   const [routeDistance, setRouteDistance] = useState('');
   const [routeDuration, setRouteDuration] = useState('');
+  const [boundaries, setBoundaries] = useState([]);
+  const [boundaryMatch, setBoundaryMatch] = useState(null);
+
+  // Fetch configured city boundaries from database
+  useEffect(() => {
+    let isMounted = true;
+    axios.get(endpoints.getCityBoundaries)
+      .then((res) => {
+        if (isMounted && res.data && res.data.status === 'success') {
+          const list = res.data.cities || res.data.data || [];
+          setBoundaries(list);
+        }
+      })
+      .catch((err) => console.warn('Could not load city boundaries:', err));
+    return () => { isMounted = false; };
+  }, []);
+
+  // Ray Casting Polygon Point-in-Polygon Check
+  const isPointInPolygon = (lat, lng, polygonCoords) => {
+    if (!polygonCoords) return true;
+    let coords = polygonCoords;
+    if (typeof coords === 'string') {
+      try { coords = JSON.parse(coords); } catch (_) { return true; }
+    }
+    if (!Array.isArray(coords) || coords.length === 0) return true;
+
+    let inside = false;
+    for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+      const xi = parseFloat(coords[i].lat ?? coords[i][0]);
+      const yi = parseFloat(coords[i].lng ?? coords[i][1]);
+      const xj = parseFloat(coords[j].lat ?? coords[j][0]);
+      const yj = parseFloat(coords[j].lng ?? coords[j][1]);
+
+      const intersect = ((yi > lng) !== (yj > lng)) &&
+        (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
+  const checkCoordinatesInBoundary = (lat, lng, city) => {
+    const cLat = parseFloat(lat);
+    const cLng = parseFloat(lng);
+    if (isNaN(cLat) || isNaN(cLng)) return false;
+
+    const minLat = parseFloat(city.min_lat ?? city.minLat);
+    const maxLat = parseFloat(city.max_lat ?? city.maxLat);
+    const minLng = parseFloat(city.min_lng ?? city.minLng);
+    const maxLng = parseFloat(city.max_lng ?? city.maxLng);
+
+    const withinBoundingBox = (
+      cLat >= minLat && cLat <= maxLat &&
+      cLng >= minLng && cLng <= maxLng
+    );
+
+    if (!withinBoundingBox) return false;
+
+    const poly = city.polygon_coords ?? city.polygonCoords;
+    if (poly) {
+      return isPointInPolygon(cLat, cLng, poly);
+    }
+    return true;
+  };
+
+  // Live real-time boundary verification
+  useEffect(() => {
+    if (!fromLat || !fromLng || boundaries.length === 0 || !fromAddress || tripType !== 'Local-taxi') {
+      setBoundaryMatch(null);
+      return;
+    }
+
+    const activeBoundaries = boundaries.filter(b => (b.status || 'active').toLowerCase() === 'active');
+    const matchedCity = activeBoundaries.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+
+    if (matchedCity) {
+      setBoundaryMatch({
+        isInside: true,
+        cityName: matchedCity.city_name || matchedCity.cityName || 'City'
+      });
+    } else {
+      setBoundaryMatch({
+        isInside: false,
+        cityName: null
+      });
+    }
+  }, [fromLat, fromLng, boundaries, fromAddress, tripType]);
 
   // Live Road Distance & Duration Calculator
   useEffect(() => {
@@ -353,75 +439,28 @@ const Search = () => {
     }
     if (!isLoggedIn) { navigate('/profile'); return; }
 
-    if (tripType === 'Local-taxi' || tripType === 'One-way' || tripType === 'Round-Trip') {
-      const isPointInPolygon = (lat, lng, polygonCoordsStr) => {
-        if (!polygonCoordsStr) return true;
+    if (tripType === 'Local-taxi') {
+      let activeList = boundaries;
+      if (activeList.length === 0) {
         try {
-          const coords = JSON.parse(polygonCoordsStr);
-          if (!Array.isArray(coords) || coords.length === 0) return true;
-          let oddNodes = false;
-          let j = coords.length - 1;
-          const x = lng;
-          const y = lat;
-          for (let i = 0; i < coords.length; i++) {
-            const pi = coords[i];
-            const pj = coords[j];
-            const latI = parseFloat(pi.lat);
-            const latJ = parseFloat(pj.lat);
-            const lngI = parseFloat(pi.lng);
-            const lngJ = parseFloat(pj.lng);
-            if ((latI < y && latJ >= y || latJ < y && latI >= y) &&
-              (lngI + (y - latI) / (latJ - latI) * (lngJ - lngI) < x)) {
-              oddNodes = !oddNodes;
-            }
-            j = i;
+          const boundaryResp = await axios.get(endpoints.getCityBoundaries);
+          if (boundaryResp.data && boundaryResp.data.status === 'success') {
+            activeList = boundaryResp.data.cities || boundaryResp.data.data || [];
+            setBoundaries(activeList);
           }
-          return oddNodes;
-        } catch (_) {
-          return true;
+        } catch (err) {
+          console.warn('Boundary verification fetch error:', err);
         }
-      };
+      }
 
-      const checkCoordinatesInBoundary = (lat, lng, city) => {
-        const withinCoords = (
-          lat >= parseFloat(city.minLat) &&
-          lat <= parseFloat(city.maxLat) &&
-          lng >= parseFloat(city.minLng) &&
-          lng <= parseFloat(city.maxLng)
-        );
-        if (withinCoords) {
-          if (city.polygonCoords) {
-            return isPointInPolygon(lat, lng, city.polygonCoords);
-          }
-          return true;
+      if (activeList.length > 0) {
+        const activeCities = activeList.filter(b => (b.status || 'active').toLowerCase() === 'active');
+        const isInside = activeCities.some(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+        if (!isInside) {
+          const cityNames = activeCities.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune';
+          setErrorMsg(`Local Taxi is not available for this pickup location. Local Taxi operates strictly within municipal boundaries (${cityNames}). Please choose One-Way.`);
+          return;
         }
-        return false;
-      };
-
-      setLoading(true);
-      try {
-        const boundaryResp = await axios.get(endpoints.getCityBoundaries);
-        if (boundaryResp.data && boundaryResp.data.status === 'success') {
-          const boundaryList = boundaryResp.data.data;
-          let fromAllowed = false;
-          let toAllowed = false;
-          for (const city of boundaryList) {
-            if (checkCoordinatesInBoundary(fromLat, fromLng, city)) fromAllowed = true;
-            if (tripType === 'Local-taxi') {
-              toAllowed = true;
-            } else {
-              if (checkCoordinatesInBoundary(toLat, toLng, city)) toAllowed = true;
-            }
-            if (fromAllowed && toAllowed) break;
-          }
-          if (!fromAllowed && !toAllowed) {
-            setErrorMsg('Currently Rentox operates specifically within verified city zones.');
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Boundary verification error, proceeding to backend:', err);
       }
     }
 
@@ -552,8 +591,24 @@ const Search = () => {
           {/* Form */}
           <form onSubmit={handleSearch} className="p-4 sm:p-5 md:p-6">
             {errorMsg && (
-              <div className="mb-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-3 px-4 text-xs font-semibold flex items-center gap-2">
-                <i className="fas fa-exclamation-circle text-rose-600"></i> <span>{errorMsg}</span>
+              <div className="mb-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-3 px-4 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-exclamation-circle text-rose-600 text-base flex-shrink-0"></i>
+                  <span>{errorMsg}</span>
+                </div>
+                {errorMsg.toLowerCase().includes('one-way') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMsg('');
+                      setTripType('One-way');
+                    }}
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <span>Switch to One-Way</span>
+                    <i className="fas fa-arrow-right text-[10px]"></i>
+                  </button>
+                )}
               </div>
             )}
 
@@ -687,23 +742,59 @@ const Search = () => {
               )}
             </div>
 
-            {/* Live Calculated Road Distance Pill */}
-            {routeDistance && tripType !== 'Local-Duty' && (
-              <div className="mb-3.5 flex items-center gap-2.5 bg-emerald-50/90 border border-emerald-200/90 rounded-xl py-2 px-3.5 w-fit text-xs font-semibold text-emerald-800 shadow-2xs">
-                <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0 text-[10px]">
-                  <i className="fas fa-route"></i>
-                </span>
-                <span>
-                  Road Distance: <strong className="text-emerald-950 font-extrabold">{routeDistance}</strong>
-                </span>
-                {routeDuration && (
-                  <>
-                    <span className="text-emerald-300">•</span>
-                    <span className="text-emerald-700 font-medium">
-                      <i className="fas fa-clock text-emerald-500 mr-1 text-[11px]"></i>~{routeDuration} driving time
-                    </span>
-                  </>
-                )}
+            {/* Geo-Fence & Road Distance Information Bar for Local Taxi & One-Way */}
+            <div className="flex flex-wrap items-center gap-2 mb-3.5">
+              {/* Boundary Matched Inside Badge */}
+              {tripType === 'Local-taxi' && boundaryMatch?.isInside && (
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200/90 rounded-xl py-1.5 px-3 text-xs font-semibold text-blue-800 shadow-2xs">
+                  <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0 text-[10px]">
+                    <i className="fas fa-map-pin"></i>
+                  </span>
+                  <span>Pickup inside <strong>{boundaryMatch.cityName}</strong> Local Taxi Zone</span>
+                </div>
+              )}
+
+              {/* Live Calculated Road Distance Pill */}
+              {routeDistance && tripType !== 'Local-Duty' && (
+                <div className="flex items-center gap-2.5 bg-emerald-50/90 border border-emerald-200/90 rounded-xl py-1.5 px-3.5 text-xs font-semibold text-emerald-800 shadow-2xs">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0 text-[10px]">
+                    <i className="fas fa-route"></i>
+                  </span>
+                  <span>
+                    Road Distance: <strong className="text-emerald-950 font-extrabold">{routeDistance}</strong>
+                  </span>
+                  {routeDuration && (
+                    <>
+                      <span className="text-emerald-300">•</span>
+                      <span className="text-emerald-700 font-medium">
+                        <i className="fas fa-clock text-emerald-500 mr-1 text-[11px]"></i>~{routeDuration} driving time
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Out-of-Boundary Alert Recommendation for Local Taxi */}
+            {tripType === 'Local-taxi' && boundaryMatch && boundaryMatch.isInside === false && fromAddress.trim().length > 3 && (
+              <div className="mb-3.5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <i className="fas fa-circle-exclamation text-amber-600 text-sm flex-shrink-0"></i>
+                  <span>
+                    Local Taxi currently serves <strong>{boundaries.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune'}</strong> within city boundaries. For this pickup location, please choose <strong>One-Way</strong>.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorMsg('');
+                    setTripType('One-way');
+                  }}
+                  className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
+                >
+                  <span>Switch to One-Way</span>
+                  <i className="fas fa-arrow-right text-[10px]"></i>
+                </button>
               </div>
             )}
 

@@ -183,20 +183,27 @@ const Invoice = () => {
   const submitBookingAndPayment = async () => {
     setShowConfirmModal(false);
     setLoading(true);
+    setErrorMsg('');
+
+    const activePhone = (custMobile || phoneNumber || '').trim();
+    const activeName = (name || '').trim();
+    const activeEmail = (email || '').trim();
+    const activeCity = (city || '').trim() || 'Mumbai';
+    const activePincode = (pincode || '').trim() || '400080';
 
     if (isLocalTaxi) {
       try {
         const response = await axios.post(endpoints.saveLocalTaxi, {
-          booking_number: phoneNumber,
-          phone_number: phoneNumber,
-          name: name,
-          email: email,
-          city: city,
-          pincode: pincode,
+          booking_number: activePhone,
+          phone_number: activePhone,
+          name: activeName,
+          email: activeEmail,
+          city: activeCity,
+          pincode: activePincode,
           from_address: fromAddress,
           to_address: toAddress || '',
           car_type: selectedCar.carType,
-          total_amount: tripFare,
+          total_amount: Math.round(tripFare),
           distance: selectedCar.packageKm || '7',
           from_lat: fromLat || null,
           from_lng: fromLng || null,
@@ -208,15 +215,16 @@ const Invoice = () => {
           headers: { 'Content-Type': 'application/json' }
         });
 
-        if (response.data && response.data.status === 'success' && response.data.booking_id) {
+        if (response.data && (response.data.status === 'success' || response.data.booking_id)) {
           const savedBookingId = response.data.booking_id.toString();
           navigate(`/booking-success?id=${savedBookingId}`);
         } else {
-          setErrorMsg(response.data.message || 'Failed to save booking. Please try again.');
+          setErrorMsg(response.data?.message || 'Failed to save booking. Please try again.');
           setLoading(false);
         }
       } catch (e) {
-        setErrorMsg('Error communicating with the server. Please try again.');
+        console.error('Local Taxi booking submission error:', e);
+        setErrorMsg(e.response?.data?.message || e.message || 'Error communicating with the server. Please try again.');
         setLoading(false);
       }
       return;
@@ -555,6 +563,12 @@ const Invoice = () => {
             </h2>
 
             <form onSubmit={handlePayNow} className="flex flex-col gap-4">
+              {errorMsg && (
+                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center gap-2 shadow-2xs">
+                  <i className="fas fa-exclamation-circle text-red-500 text-sm flex-shrink-0"></i>
+                  <span>{errorMsg}</span>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-3xs font-extrabold text-gray-400 uppercase mb-2">FULL NAME</label>

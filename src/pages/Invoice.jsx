@@ -177,7 +177,11 @@ const Invoice = () => {
       if (!businessPincode.trim() || businessPincode.trim().length !== 6) return setErrorMsg('Please enter a valid 6-digit business pincode.');
     }
 
-    setShowConfirmModal(true);
+    if (isLocalTaxi) {
+      submitBookingAndPayment();
+    } else {
+      setShowConfirmModal(true);
+    }
   };
 
   const submitBookingAndPayment = async () => {
@@ -193,7 +197,7 @@ const Invoice = () => {
 
     if (isLocalTaxi) {
       try {
-        const response = await axios.post(endpoints.saveLocalTaxi, {
+        const payload = {
           booking_number: activePhone,
           phone_number: activePhone,
           name: activeName,
@@ -211,7 +215,9 @@ const Invoice = () => {
           to_lng: toLng || null,
           date: pickupDate,
           tripTime: pickupTime
-        }, {
+        };
+
+        const response = await axios.post(endpoints.saveLocalTaxi, payload, {
           headers: { 'Content-Type': 'application/json' }
         });
 
@@ -223,7 +229,7 @@ const Invoice = () => {
           setLoading(false);
         }
       } catch (e) {
-        console.error('Local Taxi booking submission error:', e);
+        console.error('Local Taxi booking error:', e);
         setErrorMsg(e.response?.data?.message || e.message || 'Error communicating with the server. Please try again.');
         setLoading(false);
       }

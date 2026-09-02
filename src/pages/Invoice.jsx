@@ -187,7 +187,7 @@ const Invoice = () => {
     if (isLocalTaxi) {
       try {
         const response = await axios.post(endpoints.saveLocalTaxi, {
-          booking_number: custMobile,
+          booking_number: phoneNumber,
           phone_number: phoneNumber,
           name: name,
           email: email,
@@ -197,7 +197,13 @@ const Invoice = () => {
           to_address: toAddress || '',
           car_type: selectedCar.carType,
           total_amount: tripFare,
-          distance: selectedCar.packageKm || '40'
+          distance: selectedCar.packageKm || '7',
+          from_lat: fromLat || null,
+          from_lng: fromLng || null,
+          to_lat: toLat || null,
+          to_lng: toLng || null,
+          date: pickupDate,
+          tripTime: pickupTime
         }, {
           headers: { 'Content-Type': 'application/json' }
         });

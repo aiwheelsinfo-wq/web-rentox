@@ -161,6 +161,58 @@ const Search = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [swapRotation, setSwapRotation] = useState(0);
+  const [routeDistance, setRouteDistance] = useState('');
+  const [routeDuration, setRouteDuration] = useState('');
+
+  // Live Road Distance & Duration Calculator
+  useEffect(() => {
+    if (!fromAddress || !toAddress || tripType === 'Local-Duty') {
+      setRouteDistance('');
+      setRouteDuration('');
+      return;
+    }
+
+    let isMounted = true;
+    const calculateRoadDistance = () => {
+      if (window.google && window.google.maps) {
+        const service = new window.google.maps.DistanceMatrixService();
+        const origin = (fromLat && fromLng)
+          ? new window.google.maps.LatLng(fromLat, fromLng)
+          : fromAddress;
+        const destination = (toLat && toLng)
+          ? new window.google.maps.LatLng(toLat, toLng)
+          : toAddress;
+
+        service.getDistanceMatrix(
+          {
+            origins: [origin],
+            destinations: [destination],
+            travelMode: window.google.maps.TravelMode.DRIVING,
+            unitSystem: window.google.maps.UnitSystem.METRIC,
+          },
+          (data, status) => {
+            if (
+              isMounted &&
+              status === 'OK' &&
+              data.rows &&
+              data.rows.length > 0 &&
+              data.rows[0].elements &&
+              data.rows[0].elements[0].status === 'OK'
+            ) {
+              const el = data.rows[0].elements[0];
+              setRouteDistance(el.distance.text);
+              setRouteDuration(el.duration.text);
+            }
+          }
+        );
+      } else {
+        setTimeout(calculateRoadDistance, 350);
+      }
+    };
+
+    calculateRoadDistance();
+    return () => { isMounted = false; };
+  }, [fromAddress, toAddress, fromLat, fromLng, toLat, toLng, tripType]);
 
   useEffect(() => {
     if (!pickupDate) {
@@ -634,6 +686,26 @@ const Search = () => {
                 </div>
               )}
             </div>
+
+            {/* Live Calculated Road Distance Pill */}
+            {routeDistance && tripType !== 'Local-Duty' && (
+              <div className="mb-3.5 flex items-center gap-2.5 bg-emerald-50/90 border border-emerald-200/90 rounded-xl py-2 px-3.5 w-fit text-xs font-semibold text-emerald-800 shadow-2xs">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0 text-[10px]">
+                  <i className="fas fa-route"></i>
+                </span>
+                <span>
+                  Road Distance: <strong className="text-emerald-950 font-extrabold">{routeDistance}</strong>
+                </span>
+                {routeDuration && (
+                  <>
+                    <span className="text-emerald-300">•</span>
+                    <span className="text-emerald-700 font-medium">
+                      <i className="fas fa-clock text-emerald-500 mr-1 text-[11px]"></i>~{routeDuration} driving time
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* DATE / TIME row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 mb-3.5">

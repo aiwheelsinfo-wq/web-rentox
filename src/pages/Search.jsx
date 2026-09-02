@@ -227,7 +227,7 @@ const Search = () => {
     return true;
   };
 
-  // Live real-time boundary verification
+  // Live real-time boundary verification (Checks BOTH pickup & destination for Local Taxi)
   useEffect(() => {
     if (!fromLat || !fromLng || boundaries.length === 0 || !fromAddress || tripType !== 'Local-taxi') {
       setBoundaryMatch(null);
@@ -235,20 +235,69 @@ const Search = () => {
     }
 
     const activeBoundaries = boundaries.filter(b => (b.status || 'active').toLowerCase() === 'active');
-    const matchedCity = activeBoundaries.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+    const fromCity = activeBoundaries.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
 
-    if (matchedCity) {
-      setBoundaryMatch({
-        isInside: true,
-        cityName: matchedCity.city_name || matchedCity.cityName || 'City'
-      });
-    } else {
+    if (!fromCity) {
       setBoundaryMatch({
         isInside: false,
-        cityName: null
+        reason: 'pickup',
+        cityName: null,
+        message: 'Pickup location is outside our Local Taxi service zone.'
       });
+      return;
     }
-  }, [fromLat, fromLng, boundaries, fromAddress, tripType]);
+
+    const cName = fromCity.city_name || fromCity.cityName || 'City';
+
+    // Check destination if provided
+    if (toAddress && toAddress.trim().length > 1 && toLat && toLng) {
+      const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
+      if (!isToInside) {
+        const destShort = toAddress.split(',')[0].trim();
+        setBoundaryMatch({
+          isInside: false,
+          reason: 'destination',
+          cityName: cName,
+          destinationName: destShort,
+          message: `Destination (${destShort}) is outside the ${cName} Local Taxi boundary.`
+        });
+        return;
+      }
+    }
+
+    setBoundaryMatch({
+      isInside: true,
+      cityName: cName
+    });
+  }, [fromLat, fromLng, toLat, toLng, boundaries, fromAddress, toAddress, tripType]);
+
+  // Dynamic geocode sync for destination address
+  useEffect(() => {
+    if (!toAddress || !window.google || !window.google.maps) return;
+    const timer = setTimeout(() => {
+      new window.google.maps.Geocoder().geocode({ address: toAddress, componentRestrictions: { country: 'in' } }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setToLat(results[0].geometry.location.lat());
+          setToLng(results[0].geometry.location.lng());
+        }
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [toAddress]);
+
+  // Dynamic geocode sync for pickup address
+  useEffect(() => {
+    if (!fromAddress || !window.google || !window.google.maps) return;
+    const timer = setTimeout(() => {
+      new window.google.maps.Geocoder().geocode({ address: fromAddress, componentRestrictions: { country: 'in' } }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setFromLat(results[0].geometry.location.lat());
+          setFromLng(results[0].geometry.location.lng());
+        }
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [fromAddress]);
 
   // Live Road Distance & Duration Calculator
   useEffect(() => {
@@ -455,11 +504,21 @@ const Search = () => {
 
       if (activeList.length > 0) {
         const activeCities = activeList.filter(b => (b.status || 'active').toLowerCase() === 'active');
-        const isInside = activeCities.some(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
-        if (!isInside) {
+        const fromCity = activeCities.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+        if (!fromCity) {
           const cityNames = activeCities.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune';
           setErrorMsg(`Local Taxi is not available for this pickup location. Local Taxi operates strictly within municipal boundaries (${cityNames}). Please choose One-Way.`);
           return;
+        }
+
+        if (toAddress && toAddress.trim().length > 0 && toLat && toLng) {
+          const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
+          if (!isToInside) {
+            const destShort = toAddress.split(',')[0].trim();
+            const cName = fromCity.city_name || fromCity.cityName;
+            setErrorMsg(`Destination (${destShort}) is outside the ${cName} Local Taxi boundary. For trips traveling outside the city boundary, please choose One-Way.`);
+            return;
+          }
         }
       }
     }
@@ -776,12 +835,19 @@ const Search = () => {
             </div>
 
             {/* Out-of-Boundary Alert Recommendation for Local Taxi */}
-            {tripType === 'Local-taxi' && boundaryMatch && boundaryMatch.isInside === false && fromAddress.trim().length > 3 && (
+            {tripType === 'Local-taxi' && boundaryMatch && boundaryMatch.isInside === false && (
               <div className="mb-3.5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
                 <div className="flex items-center gap-2.5">
-                  <i className="fas fa-circle-exclamation text-amber-600 text-sm flex-shrink-0"></i>
+                  <i className="fas fa-circle-exclamation text-amber-600 text-base flex-shrink-0"></i>
                   <span>
-                    Local Taxi currently serves <strong>{boundaries.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune'}</strong> within city boundaries. For this pickup location, please choose <strong>One-Way</strong>.
+                    {boundaryMatch.message ? (
+                      <strong>{boundaryMatch.message} </strong>
+                    ) : (
+                      <>
+                        Local Taxi operates strictly within municipal boundaries (<strong>{boundaries.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune'}</strong>).{' '}
+                      </>
+                    )}
+                    For trips outside the city polygon boundary, please choose <strong>One-Way</strong>.
                   </span>
                 </div>
                 <button

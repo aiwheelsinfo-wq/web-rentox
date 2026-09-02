@@ -471,22 +471,29 @@ const CarResults = () => {
                   {/* Fare and Actions */}
                   <div className="w-full md:w-1/4 text-center md:text-right flex flex-col items-center md:items-end border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
                     {hasDiscount && tripType !== 'Round-Trip' && (
-                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-2.5 py-0.5 rounded-md text-3xs font-extrabold uppercase tracking-wide flex items-center gap-1">
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2.5 py-0.5 rounded-md text-3xs font-extrabold uppercase tracking-wide flex items-center gap-1 mb-1">
                         <i className="fas fa-tag text-emerald-500"></i> Save {Math.round(car.discount_percentage)}%
                       </span>
                     )}
 
-                    <div className="mt-2.5 flex items-baseline gap-1.5 justify-center md:justify-end">
+                    <div className="mt-1 flex flex-col items-center md:items-end">
                       {tripType === 'Round-Trip' ? (
-                        <>
+                        <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-black text-brandCharcoal">{"\u20B9"}{car.kmRate}</span>
                           <span className="text-xs text-gray-500 font-bold">/km</span>
-                        </>
+                        </div>
                       ) : (
                         <>
-                          <span className="text-2xl font-black text-brandCharcoal">{"\u20B9"}{discountedPrice.toLocaleString('en-IN')}</span>
+                          <div className="flex items-center gap-1.5 justify-center md:justify-end">
+                            <i className="fas fa-tag text-[#E15B45] text-sm"></i>
+                            <span className="text-2xl font-black text-brandCharcoal">
+                              {"\u20B9"}{discountedPrice.toLocaleString('en-IN')}
+                            </span>
+                          </div>
                           {hasDiscount && (
-                            <span className="text-xs text-rose-500/80 font-bold line-through ml-1.5">{"\u20B9"}{basePrice.toLocaleString('en-IN')}</span>
+                            <span className="text-xs text-rose-500/90 font-bold line-through mt-0.5">
+                              {"\u20B9"}{basePrice.toLocaleString('en-IN')}
+                            </span>
                           )}
                         </>
                       )}
@@ -500,7 +507,7 @@ const CarResults = () => {
 
                     <button
                       onClick={() => selectCarAndBook(car)}
-                      className="mt-4 bg-brandBlue text-white hover:bg-blue-600 transition-all font-extrabold text-xs px-6 py-3 rounded-xl shadow-sm tracking-wider w-full"
+                      className="mt-4 bg-brandBlue text-white hover:bg-blue-600 transition-all font-extrabold text-xs px-6 py-3 rounded-xl shadow-sm tracking-wider w-full cursor-pointer hover:shadow-md active:scale-95"
                     >
                       BOOK NOW
                     </button>

@@ -165,6 +165,7 @@ const Search = () => {
   const [routeDuration, setRouteDuration] = useState('');
   const [boundaries, setBoundaries] = useState([]);
   const [boundaryMatch, setBoundaryMatch] = useState(null);
+  const [intraCityMatch, setIntraCityMatch] = useState(null);
 
   // Fetch configured city boundaries from database
   useEffect(() => {
@@ -269,6 +270,31 @@ const Search = () => {
       isInside: true,
       cityName: cName
     });
+  }, [fromLat, fromLng, toLat, toLng, boundaries, fromAddress, toAddress, tripType]);
+
+  // Real-time Intra-City check for One-Way & Round-Trip (e.g. Mulund to Thane inside Mumbai)
+  useEffect(() => {
+    if (
+      !fromLat || !fromLng || !toLat || !toLng ||
+      boundaries.length === 0 || !fromAddress || !toAddress ||
+      (tripType !== 'One-way' && tripType !== 'Round-Trip')
+    ) {
+      setIntraCityMatch(null);
+      return;
+    }
+
+    const activeBoundaries = boundaries.filter(b => (b.status || 'active').toLowerCase() === 'active');
+    const fromCity = activeBoundaries.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+    const toCity = activeBoundaries.find(b => checkCoordinatesInBoundary(toLat, toLng, b));
+
+    if (fromCity && toCity && (fromCity.id === toCity.id || fromCity.city_name === toCity.city_name)) {
+      setIntraCityMatch({
+        isInsideSameCity: true,
+        cityName: fromCity.city_name || fromCity.cityName || 'City'
+      });
+    } else {
+      setIntraCityMatch(null);
+    }
   }, [fromLat, fromLng, toLat, toLng, boundaries, fromAddress, toAddress, tripType]);
 
   // Dynamic geocode sync for destination address
@@ -523,6 +549,38 @@ const Search = () => {
       }
     }
 
+    // Check if One-Way or Round-Trip is being booked for an Intra-City route (e.g. Mulund to Thane within Mumbai)
+    if (tripType === 'One-way' || tripType === 'Round-Trip') {
+      let activeList = boundaries;
+      if (activeList.length === 0) {
+        try {
+          const boundaryResp = await axios.get(endpoints.getCityBoundaries);
+          if (boundaryResp.data && boundaryResp.data.status === 'success') {
+            activeList = boundaryResp.data.cities || boundaryResp.data.data || [];
+            setBoundaries(activeList);
+          }
+        } catch (err) {
+          console.warn('Boundary verification fetch error:', err);
+        }
+      }
+
+      if (activeList.length > 0 && fromLat && fromLng && toLat && toLng && toAddress && toAddress.trim().length > 0) {
+        const activeCities = activeList.filter(b => (b.status || 'active').toLowerCase() === 'active');
+        const fromCity = activeCities.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+        const toCity = activeCities.find(b => checkCoordinatesInBoundary(toLat, toLng, b));
+
+        if (fromCity && toCity && (fromCity.id === toCity.id || fromCity.city_name === toCity.city_name)) {
+          const fromShort = fromAddress.split(',')[0].trim();
+          const toShort = toAddress.split(',')[0].trim();
+          const cName = fromCity.city_name || fromCity.cityName;
+          setErrorMsg(
+            `This route (${fromShort} to ${toShort}) is an intra-city trip within ${cName} city limits. One-Way and Round-Trip are for outstation journeys. Please switch to Local Taxi for lower city rates and ₹0 advance!`
+          );
+          return;
+        }
+      }
+    }
+
     try {
       navigate('/results');
     } catch {
@@ -655,7 +713,19 @@ const Search = () => {
                   <i className="fas fa-exclamation-circle text-rose-600 text-base flex-shrink-0"></i>
                   <span>{errorMsg}</span>
                 </div>
-                {errorMsg.toLowerCase().includes('one-way') && (
+                {errorMsg.toLowerCase().includes('switch to local taxi') || errorMsg.toLowerCase().includes('choose local taxi') ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMsg('');
+                      setTripType('Local-taxi');
+                    }}
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <span>Switch to Local Taxi</span>
+                    <i className="fas fa-arrow-right text-[10px]"></i>
+                  </button>
+                ) : errorMsg.toLowerCase().includes('one-way') ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -667,7 +737,7 @@ const Search = () => {
                     <span>Switch to One-Way</span>
                     <i className="fas fa-arrow-right text-[10px]"></i>
                   </button>
-                )}
+                ) : null}
               </div>
             )}
 
@@ -859,6 +929,31 @@ const Search = () => {
                   className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
                 >
                   <span>Switch to One-Way</span>
+                  <i className="fas fa-arrow-right text-[10px]"></i>
+                </button>
+              </div>
+            )}
+
+            {/* Recommendation to choose Local Taxi for short intra-city trips on One-Way / Round-Trip */}
+            {(tripType === 'One-way' || tripType === 'Round-Trip') && intraCityMatch?.isInsideSameCity && fromAddress.trim() && toAddress.trim() && (
+              <div className="mb-3.5 p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black flex-shrink-0 text-xs">
+                    🚕
+                  </span>
+                  <span>
+                    <strong>Intra-City Trip Detected ({fromAddress.split(',')[0]} ➔ {toAddress.split(',')[0]}):</strong> Both locations are within the <strong>{intraCityMatch.cityName}</strong> city zone. Please choose <strong>Local Taxi</strong> for lower per-KM city rates and ₹0 advance payment!
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorMsg('');
+                    setTripType('Local-taxi');
+                  }}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
+                >
+                  <span>Switch to Local Taxi</span>
                   <i className="fas fa-arrow-right text-[10px]"></i>
                 </button>
               </div>

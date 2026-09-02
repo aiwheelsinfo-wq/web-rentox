@@ -108,76 +108,43 @@ const CarResults = () => {
   }, [tripType, tempBookingId, distanceKm]);
 
   const fetchCars = async () => {
-    if (tripType === 'Local-taxi' && distanceKm === null) {
+    if ((tripType === 'Local-taxi' || tripType === 'Local Taxi') && distanceKm === null) {
       // Wait for distanceKm to be resolved by Google Maps API first
       return;
     }
     setLoading(true);
     setErrorMsg('');
     try {
-      if (tripType === 'Local-taxi') {
-        const response = await axios.get(`https://agnicarrental.com/2025/agni_taxi/fetch_fares.php?phone_number=${phoneNumber || ''}`);
-        if (Array.isArray(response.data)) {
-          const fares = response.data;
-          // Find the fare row where distanceKm <= kmLimit
-          const matchedFare = fares.find(f => distanceKm <= parseFloat(f.km)) || fares[fares.length - 1];
-          if (matchedFare) {
-            const carTypes = ['Hatchback', 'Sedan', 'Ertiga'];
-            const mappedCars = carTypes.map(type => {
-              const originalPrice = parseFloat(matchedFare[type]) || 0;
-              const discountedPrice = parseFloat(matchedFare[`${type}_discounted`]) || originalPrice;
-              const discountPercent = parseFloat(matchedFare.discount_percent) || 0;
-              
-              return {
-                carType: type,
-                baseAmount: originalPrice.toFixed(0),
-                discounted_price: discountedPrice.toFixed(0),
-                discount_percentage: discountPercent,
-                packageKm: matchedFare.km.toString(),
-                extraKMAmount: '0',
-                driverAllowance: '0',
-                gstPercent: '0',
-              };
-            });
-            setCars(mappedCars);
-            setFilteredCars(mappedCars);
-          } else {
-            setErrorMsg('No fare chart matches this distance.');
-          }
-        } else {
-          setErrorMsg('Failed to fetch local taxi fare chart.');
-        }
-      } else {
-        let url = `${endpoints.selectCarCostList}?tripType=${encodeURIComponent(tripType)}`;
-        if (distanceKm && distanceKm > 0 && distanceKm !== 999) {
-          url += `&distance=${encodeURIComponent(Math.round(distanceKm))}`;
-        }
-        if (fromAddress) {
-          url += `&fromAddress=${encodeURIComponent(fromAddress)}`;
-        }
-        if (toAddress) {
-          url += `&toAddress=${encodeURIComponent(toAddress)}`;
-        }
-        if (pickupDate) {
-          url += `&pickupDate=${encodeURIComponent(pickupDate)}`;
-        }
-        if (pickupTime) {
-          url += `&pickupTime=${encodeURIComponent(pickupTime)}`;
-        }
-        if (fromLat && fromLng) {
-          url += `&fromLat=${fromLat}&fromLng=${fromLng}`;
-        }
-        if (toLat && toLng) {
-          url += `&toLat=${toLat}&toLng=${toLng}`;
-        }
+      const normalizedTripType = (tripType === 'Local-taxi' || tripType === 'Local Taxi') ? 'Local Taxi' : tripType;
+      let url = `${endpoints.selectCarCostList}?tripType=${encodeURIComponent(normalizedTripType)}`;
+      if (distanceKm && distanceKm > 0 && distanceKm !== 999) {
+        url += `&distance=${encodeURIComponent(Math.round(distanceKm))}`;
+      }
+      if (fromAddress) {
+        url += `&fromAddress=${encodeURIComponent(fromAddress)}`;
+      }
+      if (toAddress) {
+        url += `&toAddress=${encodeURIComponent(toAddress)}`;
+      }
+      if (pickupDate) {
+        url += `&pickupDate=${encodeURIComponent(pickupDate)}`;
+      }
+      if (pickupTime) {
+        url += `&pickupTime=${encodeURIComponent(pickupTime)}`;
+      }
+      if (fromLat && fromLng) {
+        url += `&fromLat=${fromLat}&fromLng=${fromLng}`;
+      }
+      if (toLat && toLng) {
+        url += `&toLat=${toLat}&toLng=${toLng}`;
+      }
 
-        const response = await axios.get(url);
-        if (Array.isArray(response.data)) {
-          setCars(response.data);
-          setFilteredCars(response.data);
-        } else {
-          setErrorMsg('Invalid response received from the server.');
-        }
+      const response = await axios.get(url);
+      if (Array.isArray(response.data)) {
+        setCars(response.data);
+        setFilteredCars(response.data);
+      } else {
+        setErrorMsg('Invalid response received from the server.');
       }
     } catch (e) {
       setErrorMsg('Failed to load cars list. Please check your network.');

@@ -160,6 +160,7 @@ const Search = () => {
   const [showToDropdown, setShowToDropdown] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [swapRotation, setSwapRotation] = useState(0);
 
   useEffect(() => {
     if (!pickupDate) {
@@ -257,6 +258,8 @@ const Search = () => {
   const handleSwapLocations = (e) => {
     if (e) e.preventDefault();
     if (tripType === 'Local-Duty') return;
+
+    setSwapRotation(prev => prev + 180);
 
     const tempAddress = fromAddress;
     const tempLatVal = fromLat;
@@ -534,52 +537,59 @@ const Search = () => {
                 )}
               </div>
 
-              {/* SWAP BUTTON (Desktop Center) */}
+              {/* SWAP BUTTON (Desktop Center: 34px Minimal Floating Control) */}
               {tripType !== 'Local-Duty' && (
                 <button
                   type="button"
                   onClick={handleSwapLocations}
                   title="Swap pickup & destination"
                   aria-label="Swap pickup & destination"
-                  className="hidden md:flex absolute left-1/2 top-[43px] -translate-x-1/2 -translate-y-1/2 z-20 w-[42px] h-[42px] bg-white border border-slate-200 hover:border-[#008CFF] rounded-full items-center justify-center shadow-md shadow-slate-900/5 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer group"
+                  className="hidden md:flex absolute left-1/2 top-[41px] -translate-x-1/2 -translate-y-1/2 z-20 w-[34px] h-[34px] bg-white border border-[#D9E2EC] hover:border-[#F59E0B] hover:bg-[#FFF7ED] rounded-full items-center justify-center shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_2px_8px_rgba(245,158,11,0.18)] hover:scale-[1.04] active:scale-95 transition-all duration-150 cursor-pointer group"
                 >
                   <svg
-                    className="w-4 h-4 text-[#008CFF] group-hover:rotate-180 transition-transform duration-300"
+                    style={{
+                      transform: `rotate(${swapRotation}deg)`,
+                      transition: 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}
+                    className="w-4 h-4 text-[#2563EB] group-hover:text-[#D97706] transition-colors duration-150 flex-shrink-0"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2.3"
+                    strokeWidth="2.2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <path d="m16 3 4 4-4 4" />
-                    <path d="M20 7H4" />
-                    <path d="m8 21-4-4 4-4" />
-                    <path d="M4 17h16" />
+                    <path d="M7 10h14l-4-4" />
+                    <path d="M17 14H3l4 4" />
                   </svg>
                 </button>
               )}
 
-              {/* Mobile Swap Button */}
+              {/* Mobile Swap Button (34px Centered with Clean Spacing) */}
               {tripType !== 'Local-Duty' && (
-                <div className="flex md:hidden justify-center -my-2.5 z-20">
+                <div className="flex md:hidden justify-center my-1 z-20">
                   <button
                     type="button"
                     onClick={handleSwapLocations}
                     title="Swap pickup & destination"
                     aria-label="Swap pickup & destination"
-                    className="w-[36px] h-[36px] bg-white border border-slate-200 hover:border-[#008CFF] rounded-full flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    className="w-[34px] h-[34px] bg-white border border-[#D9E2EC] hover:border-[#F59E0B] hover:bg-[#FFF7ED] rounded-full flex items-center justify-center shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:scale-[1.04] active:scale-95 transition-all duration-150 cursor-pointer group"
                   >
                     <svg
-                      className="w-4 h-4 text-[#008CFF]"
+                      style={{
+                        transform: `rotate(${swapRotation}deg)`,
+                        transition: 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                      className="w-4 h-4 text-[#2563EB] group-hover:text-[#D97706] transition-colors duration-150"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2.3"
+                      strokeWidth="2.2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+                      <path d="M10 7v14l-4-4" />
+                      <path d="M14 17V3l4 4" />
                     </svg>
                   </button>
                 </div>

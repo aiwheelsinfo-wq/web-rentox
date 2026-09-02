@@ -320,61 +320,84 @@ const Invoice = () => {
   };
 
   const launchRazorpayModal = async (bookingId) => {
-    let activeKey = RAZORPAY_KEY;
     try {
-      const configRes = await axios.get(endpoints.getPaymentConfig);
-      if (configRes.data && configRes.data.success && configRes.data.razorpay_key) {
-        activeKey = configRes.data.razorpay_key;
+      let activeKey = RAZORPAY_KEY;
+      try {
+        const configRes = await axios.get(endpoints.getPaymentConfig);
+        if (configRes.data && configRes.data.success && configRes.data.razorpay_key) {
+          activeKey = configRes.data.razorpay_key;
+        }
+      } catch (e) {
+        console.warn("Using fallback Razorpay test key:", e);
       }
-    } catch (e) {
-      console.error("Failed to load active Razorpay configuration, using fallback test key:", e);
-    }
 
-    const options = {
-      key: activeKey,
-      amount: Math.round(payableNow * 100), // in paise
-      currency: "INR",
-      name: "Rentox Car Rental",
-      description: `Advance Booking for Trip #${bookingId}`,
-      image: "https://agnicarrental.com/admin2025/images/pnglogoagni.png",
-      handler: async function (response) {
-        // Successful payment, verify and update
-        try {
-          const verifyResponse = await axios.post(endpoints.updatePayment, {
-            booking_id: bookingId,
-            payment_id: response.razorpay_payment_id,
-            status: "success",
-            amount: payableNow.toFixed(2)
-          });
-          if (verifyResponse.data && verifyResponse.data.success === true) {
-            navigate(`/booking-success?id=${bookingId}`);
-          } else {
-            setErrorMsg('Payment successful, but failed to update status on server. Please contact support.');
+      if (!window.Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => launchRazorpayModal(bookingId);
+        script.onerror = () => {
+          setErrorMsg('Failed to load Razorpay payment gateway. Please disable ad-blockers and try again.');
+          setLoading(false);
+        };
+        document.body.appendChild(script);
+        return;
+      }
+
+      const options = {
+        key: activeKey,
+        amount: Math.round(payableNow * 100), // in paise
+        currency: "INR",
+        name: "Rentox Car Rental",
+        description: `Advance Booking for Trip #${bookingId}`,
+        image: "https://agnicarrental.com/admin2025/images/pnglogoagni.png",
+        handler: async function (response) {
+          setLoading(true);
+          try {
+            const verifyResponse = await axios.post(endpoints.updatePayment, {
+              booking_id: bookingId,
+              payment_id: response.razorpay_payment_id,
+              status: "success",
+              amount: payableNow.toFixed(2)
+            });
+            if (verifyResponse.data && verifyResponse.data.success === true) {
+              window.location.href = `/booking-success?id=${bookingId}`;
+            } else {
+              setErrorMsg('Payment successful, but failed to update status on server. Please contact support.');
+              setLoading(false);
+            }
+          } catch (e) {
+            setErrorMsg('Error verifying payment. Please do not close this window and contact support.');
+            setLoading(false);
           }
-        } catch (e) {
-          setErrorMsg('Error verifying payment. Please do not close this window and contact support.');
-        } finally {
-          setLoading(false);
+        },
+        modal: {
+          ondismiss: function () {
+            setErrorMsg('Payment checkout was closed. Please try again.');
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: (name || '').trim(),
+          email: (email || '').trim(),
+          contact: (custMobile || phoneNumber || '').trim()
+        },
+        theme: {
+          color: "#008CFF"
         }
-      },
-      modal: {
-        ondismiss: function () {
-          setErrorMsg('Payment checkout was closed. Please try again.');
-          setLoading(false);
-        }
-      },
-      prefill: {
-        name: name,
-        email: email,
-        contact: phoneNumber
-      },
-      theme: {
-        color: "#008CFF"
-      }
-    };
+      };
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (resp) {
+        setErrorMsg(`Payment Failed: ${resp.error?.description || 'Transaction declined'}`);
+        setLoading(false);
+      });
+      rzp.open();
+      setLoading(false);
+    } catch (err) {
+      console.error('Razorpay launch error:', err);
+      setErrorMsg('Failed to open payment gateway. Please check your browser popup blocker.');
+      setLoading(false);
+    }
   };
 
   if (!selectedCar) return null;

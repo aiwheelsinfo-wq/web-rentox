@@ -573,7 +573,37 @@ const CarResults = () => {
               <p className="text-sm font-bold text-gray-500">No cabs available matching this filter.</p>
             </div>
           ) : (
-            filteredCars.map((car, idx) => {
+            <>
+              {/* Suggestion banner to choose Local Taxi for short intra-city trips on One-Way / Round-Trip */}
+              {(tripType === 'One-way' || tripType === 'Round-Trip') && distanceKm !== null && distanceKm < 50 && (
+                <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0 shadow-sm">
+                      🚕
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-blue-950 uppercase tracking-wide">
+                        Looking for a City Ride? ({Math.round(distanceKm)} KM)
+                      </h4>
+                      <p className="text-xs text-blue-800 font-medium mt-0.5">
+                        This route is within city limits. <strong>Please choose Local Taxi</strong> for dynamic per-KM city rates and ₹0 advance payment.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTripType('Local-taxi');
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm whitespace-nowrap flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+                  >
+                    <span>Switch to Local Taxi</span>
+                    <i className="fas fa-arrow-right text-[10px]"></i>
+                  </button>
+                </div>
+              )}
+
+              {filteredCars.map((car, idx) => {
               const discountedPrice = parseInt(car.discounted_price, 10);
               const basePrice = parseInt(car.baseAmount, 10);
               const hasDiscount = car.discount_percentage > 0;
@@ -669,8 +699,9 @@ const CarResults = () => {
                     </button>
                   </div>
                 </div>
-              );
-            })
+                );
+              })}
+            </>
           )}
         </main>
       </div>

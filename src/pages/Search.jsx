@@ -826,6 +826,28 @@ const Search = () => {
               </div>
             )}
 
+            {/* Recommendation to choose Local Taxi for short intra-city trips on One-Way / Round-Trip */}
+            {(tripType === 'One-way' || tripType === 'Round-Trip') && routeDistance && parseFloat(routeDistance.replace(/[^0-9.]/g, '')) < 50 && fromAddress.trim() && toAddress.trim() && (
+              <div className="mb-3.5 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-black flex-shrink-0">
+                    🚕
+                  </span>
+                  <span>
+                    Short city ride (<strong>{routeDistance}</strong>). <strong>Please choose Local Taxi</strong> for lower per-KM city fares & ₹0 advance!
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTripType('Local-taxi')}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-lg text-xs transition-all shadow-2xs whitespace-nowrap cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
+                >
+                  <span>Switch to Local Taxi</span>
+                  <i className="fas fa-arrow-right text-[10px]"></i>
+                </button>
+              </div>
+            )}
+
             {/* DATE / TIME row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 mb-3.5">
               {/* Travel Date */}

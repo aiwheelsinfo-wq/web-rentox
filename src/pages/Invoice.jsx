@@ -20,6 +20,7 @@ const Invoice = () => {
     toLng,
     selectedCar,
     tempBookingId,
+    setTempBookingId,
     phoneNumber,
     isLoggedIn,
     userRole,
@@ -43,6 +44,13 @@ const Invoice = () => {
 
   const [commissionRatePerKm, setCommissionRatePerKm] = useState(0.0);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem('search_tempBookingId') === '347') {
+      localStorage.removeItem('search_tempBookingId');
+      setTempBookingId('');
+    }
+  }, []);
   const [errorMsg, setErrorMsg] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [razorpayKey, setRazorpayKey] = useState(RAZORPAY_KEY);
@@ -299,7 +307,7 @@ const Invoice = () => {
       body.append('return_date', returnDate);
       body.append('return_time', returnTime);
     }
-    if (tripType === 'One-way' && tempBookingId) {
+    if (tripType === 'One-way' && tempBookingId && tempBookingId !== '347') {
       body.append('bookingId', tempBookingId);
     }
 
@@ -360,6 +368,8 @@ const Invoice = () => {
               amount: payableNow.toFixed(2)
             });
             if (verifyResponse.data && verifyResponse.data.success === true) {
+              setTempBookingId('');
+              localStorage.removeItem('search_tempBookingId');
               window.location.href = `/booking-success?id=${bookingId}`;
             } else {
               setErrorMsg('Payment successful, but failed to update status on server. Please contact support.');

@@ -42,7 +42,15 @@ export const AppProvider = ({ children }) => {
       return null;
     }
   });
-  const [tempBookingId, setTempBookingId] = useState(() => localStorage.getItem('search_tempBookingId') || '');
+
+  const [tempBookingId, setTempBookingId] = useState(() => {
+    const saved = localStorage.getItem('search_tempBookingId');
+    if (saved === '347') {
+      localStorage.removeItem('search_tempBookingId');
+      return '';
+    }
+    return saved || '';
+  });
 
   // Sync state values back to localStorage on change
   useEffect(() => {
@@ -98,7 +106,11 @@ export const AppProvider = ({ children }) => {
   }, [selectedCar]);
 
   useEffect(() => {
-    localStorage.setItem('search_tempBookingId', tempBookingId);
+    if (tempBookingId && tempBookingId !== '347') {
+      localStorage.setItem('search_tempBookingId', tempBookingId);
+    } else {
+      localStorage.removeItem('search_tempBookingId');
+    }
   }, [tempBookingId]);
 
   const [userRole, setUserRole] = useState(() => localStorage.getItem('user_role') || 'customer');

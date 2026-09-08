@@ -14,10 +14,10 @@ export const generateInvoiceHtml = (booking) => {
 
   const startingKm = parseFloat(booking.starting_km || 0);
   const closingKm = parseFloat(booking.closing_km || 0);
-  const totalKm = closingKm > startingKm ? (closingKm - startingKm) : parseFloat(booking.distance || 0);
-  const kmRate = parseFloat(booking.kmRate || 13);
-  const dailyLimit = parseFloat(booking.daily_limit || 250);
-  const gstPercent = parseFloat(booking.gstPercent || 5);
+  const totalKm = closingKm > startingKm ? (closingKm - startingKm) : parseFloat(booking.distance || booking.running_km || 0);
+  const kmRate = parseFloat(booking.kmRate || booking.km_rate || 13);
+  const dailyLimit = parseFloat(booking.daily_limit || booking.dailyLimit || 250);
+  const gstPercent = parseFloat(booking.gstPercent || booking.gst_percent || 5);
   const parkingCharge = parseFloat(booking.parking_charge || 0);
   const tollCharge = parseFloat(booking.toll_charge || 0);
   const permitCharge = parseFloat(booking.permit_charge || 0);
@@ -67,39 +67,40 @@ export const generateInvoiceHtml = (booking) => {
   };
 
   if (isLocalDuty) {
-    const packageKm = parseFloat(booking.packageKm || 0);
-    const packageHours = parseFloat(booking.packageHours || 0);
-    const extraKmPrice = parseFloat(booking.extra_km_price || 0);
-    const extraHoursPrice = parseFloat(booking.extra_hours_price || 0);
-    const packageBaseFare = parseFloat(booking.packageBaseFare || booking.baseAmount || 0);
+    const packageKm = parseFloat(booking.packageKm || booking.package_km || 0);
+    const packageHours = parseFloat(booking.packageHours || booking.package_hours || 0);
+    const extraKmPrice = parseFloat(booking.extra_km_price || booking.extraKMAmount || booking.extraKmPrice || 0);
+    const extraHoursPrice = parseFloat(booking.extra_hours_price || booking.extraHoursAmount || booking.extraHoursPrice || 0);
+    const packageBaseFare = parseFloat(booking.packageBaseFare || booking.baseAmount || booking.package_base_fare || 0);
 
     const extraKm = totalKm > packageKm ? totalKm - packageKm : 0;
     const extrakmAmount = extraKm * extraKmPrice;
 
     let durationHours = 0;
+    let driverAllowanceLD = 0;
     try {
-      const startDT = new Date(`${startingDate}T${startingTime}`);
-      const endDT = new Date(`${closingDate}T${closingTime}`);
+      const startDT = new Date(`${startingDate} ${startingTime}`);
+      let endDT = new Date(`${closingDate} ${closingTime}`);
+      if (endDT < startDT) {
+        endDT.setDate(endDT.getDate() + 1);
+      }
       const diffMs = endDT - startDT;
       if (!isNaN(diffMs)) {
         const diffMins = Math.floor(diffMs / (1000 * 60));
         durationHours = Math.floor(diffMins / 60);
         if (diffMins % 60 > 30) durationHours += 1;
       }
-    } catch (_) {}
 
-    const extraHours = durationHours > packageHours ? durationHours - packageHours : 0;
-    const extraHoursAmount = extraHours * extraHoursPrice;
-
-    let driverAllowanceLD = 0;
-    try {
-      const startHour = parseInt(startingTime.split(':')[0], 10);
-      const endHour = parseInt(closingTime.split(':')[0], 10);
-      const endMin = parseInt(closingTime.split(':')[1], 10);
+      const startHour = startDT.getHours();
+      const endHour = endDT.getHours();
+      const endMin = endDT.getMinutes();
       if (startHour < 5 || endHour > 23 || (endHour === 23 && endMin > 30)) {
         driverAllowanceLD = driverAllowance;
       }
     } catch (_) {}
+
+    const extraHours = durationHours > packageHours ? durationHours - packageHours : 0;
+    const extraHoursAmount = extraHours * extraHoursPrice;
 
     const totalBeforeGst = packageBaseFare + extrakmAmount + extraHoursAmount + agent_commission;
     gstAmount = (totalBeforeGst * gstPercent) / 100;
@@ -113,8 +114,9 @@ export const generateInvoiceHtml = (booking) => {
     if (parkingCharge > 0) rows.push({ desc: 'Parking Charges', details: 'Parking Surcharge', amt: formatINR(parkingCharge) });
     if (permitCharge > 0) rows.push({ desc: 'State Permit Charges', details: 'Border Permit', amt: formatINR(permitCharge) });
     if (gstAmount > 0) {
-      rows.push({ desc: 'CGST (2.5%)', details: 'Central GST', amt: formatINR(gstAmount / 2) });
-      rows.push({ desc: 'SGST (2.5%)', details: 'State GST', amt: formatINR(gstAmount / 2) });
+      const halfRate = (gstPercent / 2).toFixed(1).replace('.0', '');
+      rows.push({ desc: `CGST (${halfRate}%)`, details: 'Central GST', amt: formatINR(gstAmount / 2) });
+      rows.push({ desc: `SGST (${halfRate}%)`, details: 'State GST', amt: formatINR(gstAmount / 2) });
     }
   } 
   else if (isRoundTrip) {
@@ -490,11 +492,11 @@ export const generateInvoiceHtml = (booking) => {
             </div>
             <div class="meta-field">
               <div class="label">Driver Assigned</div>
-              <div class="val">${booking.driver_name || 'Will be assigned'} ${booking.driver_phone ? `(${booking.driver_phone})` : ''}</div>
+              <div class="val">${booking.driver_name || 'Will be assigned'}</div>
             </div>
             <div class="meta-field">
               <div class="label">Pickup & Drop Route</div>
-              <div class="val">${booking.from_address || 'Pickup'} ➔ ${booking.to_address || 'Drop'}</div>
+              <div class="val">${booking.from_address || 'Pickup'} ➔ ${booking.to_address || (isLocalDuty ? 'Local Duty' : 'Drop')}</div>
             </div>
             <div class="meta-field">
               <div class="label">Journey Timing</div>

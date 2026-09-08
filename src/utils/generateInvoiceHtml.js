@@ -471,7 +471,6 @@ export const generateInvoiceHtml = (booking) => {
             <h2>RENTOX CAR</h2>
             <p>7, Jalaram Niwas, Ganesh Gawde Road, Mulund (W), Mumbai - 400080</p>
             <p>Tel: 9619936999 | Email: agnicarrental@gmail.com | Web: www.agnicarrental.com</p>
-            <p class="gstin">GSTIN: 27AABPG5706A3ZB</p>
           `}
           <div class="date-line">
             <span><strong>Trip Type:</strong> ${booking.trip_type || 'One-Way Trip'}</span>

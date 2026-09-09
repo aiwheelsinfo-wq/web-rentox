@@ -332,7 +332,7 @@ export default function CustomerSupportWidget() {
                   </div>
                 ) : (
                   messages.map(msg => {
-                    const isMe = msg.sender_type === 'customer';
+                    const isMe = msg.sender_type !== 'admin';
                     return (
                       <div
                         key={msg.id}

@@ -11,6 +11,7 @@ import Profile from './pages/Profile';
 import History from './pages/History';
 import Help from './pages/Help';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import CustomerSupportWidget from './components/CustomerSupportWidget';
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
               </div>
             </div>
           </footer>
+          <CustomerSupportWidget />
         </div>
       </Router>
     </AppProvider>

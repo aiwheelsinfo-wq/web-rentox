@@ -21,6 +21,44 @@ const CITIES = [
   'Chhatrapati Sambhajinagar, Maharashtra, India',
 ];
 
+export const convert12hTo24hInput = (time12h) => {
+  if (!time12h) return '';
+  const clean = time12h.trim().toUpperCase();
+  if (clean.includes('AM') || clean.includes('PM')) {
+    const parts = clean.split(' ');
+    const timePart = parts[0];
+    const modifier = parts[1] || (clean.includes('PM') ? 'PM' : 'AM');
+    let [hours, minutes] = timePart.split(':');
+    let h = parseInt(hours, 10);
+    if (modifier === 'AM' && h === 12) h = 0;
+    if (modifier === 'PM' && h !== 12) h += 12;
+    return `${h.toString().padStart(2, '0')}:${(minutes || '00').padStart(2, '0')}`;
+  }
+  const [h, m] = clean.split(':');
+  return `${(h || '00').padStart(2, '0')}:${(m || '00').padStart(2, '0')}`;
+};
+
+export const convert24hTo12h = (time24h) => {
+  if (!time24h) return '';
+  const [hStr, mStr] = time24h.split(':');
+  let h = parseInt(hStr, 10);
+  const m = (mStr || '00').padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12;
+  return `${h}:${m} ${ampm}`;
+};
+
+export const getCurrentTimeString = () => {
+  const now = new Date();
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${hours}:${minutes} ${ampm}`;
+};
+
 const TIME_OPTIONS = (() => {
   const opts = [];
   for (let i = 0; i < 24; i++) {
@@ -166,6 +204,7 @@ const Search = () => {
   const [boundaries, setBoundaries] = useState([]);
   const [boundaryMatch, setBoundaryMatch] = useState(null);
   const [intraCityMatch, setIntraCityMatch] = useState(null);
+  const [outstationBoundaryMatch, setOutstationBoundaryMatch] = useState(null);
 
   // Fetch configured city boundaries from database
   useEffect(() => {
@@ -296,6 +335,36 @@ const Search = () => {
       setIntraCityMatch(null);
     }
   }, [fromLat, fromLng, toLat, toLng, boundaries, fromAddress, toAddress, tripType]);
+
+  // Real-time pickup boundary verification for One-Way & Round-Trip
+  useEffect(() => {
+    if (
+      !fromLat || !fromLng ||
+      boundaries.length === 0 || !fromAddress ||
+      (tripType !== 'One-way' && tripType !== 'Round-Trip' && tripType !== 'Local-Duty')
+    ) {
+      setOutstationBoundaryMatch(null);
+      return;
+    }
+
+    const activeBoundaries = boundaries.filter(b => (b.status || 'active').toLowerCase() === 'active');
+    const fromCity = activeBoundaries.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+
+    if (!fromCity) {
+      const pickupCity = fromAddress.split(',')[0].trim() || 'This location';
+      const cityNames = activeBoundaries.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune, Nashik, Aurangabad';
+      setOutstationBoundaryMatch({
+        isInside: false,
+        cityName: pickupCity,
+        message: `Pickup location "${pickupCity}" is outside Rentox's service boundary. Cab pickups are currently available from: ${cityNames}.`
+      });
+    } else {
+      setOutstationBoundaryMatch({
+        isInside: true,
+        cityName: fromCity.city_name || fromCity.cityName || 'City'
+      });
+    }
+  }, [fromLat, fromLng, boundaries, fromAddress, tripType]);
 
   // Dynamic geocode sync for destination address
   useEffect(() => {
@@ -488,11 +557,20 @@ const Search = () => {
   };
 
   const convertTimeTo24h = (time12h) => {
-    const [time, modifier] = time12h.split(' ');
-    let [hours, minutes] = time.split(':');
-    if (hours === '12') hours = '00';
-    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
-    return `${hours.toString().padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
+    if (!time12h) return '00:00:00';
+    const clean = time12h.trim().toUpperCase();
+    if (clean.includes('AM') || clean.includes('PM')) {
+      const parts = clean.split(' ');
+      const timePart = parts[0];
+      const modifier = parts[1] || (clean.includes('PM') ? 'PM' : 'AM');
+      let [hours, minutes] = timePart.split(':');
+      let h = parseInt(hours, 10);
+      if (modifier === 'AM' && h === 12) h = 0;
+      if (modifier === 'PM' && h !== 12) h += 12;
+      return `${h.toString().padStart(2, '0')}:${(minutes || '00').padStart(2, '0')}:00`;
+    }
+    const [h, m] = clean.split(':');
+    return `${(h || '00').padStart(2, '0')}:${(m || '00').padStart(2, '0')}:00`;
   };
 
   const handleSearch = async (e) => {
@@ -504,8 +582,12 @@ const Search = () => {
 
     const travelDateTime = new Date(`${pickupDate}T${convertTimeTo24h(pickupTime)}`);
     const now = new Date();
-    if ((travelDateTime - now) / (1000 * 60 * 60) < 5) {
-      setErrorMsg('Pickup time must be at least 5 hours from now.');
+    if (tripType !== 'Local-taxi' && (travelDateTime - now) / (1000 * 60 * 60) < 5) {
+      setErrorMsg('Pickup time must be at least 5 hours from now for Outstation trips.');
+      return;
+    }
+    if (tripType === 'Local-taxi' && travelDateTime < new Date(now.getTime() - 10 * 60 * 1000)) {
+      setErrorMsg('Pickup time cannot be in the past.');
       return;
     }
     if (tripType === 'Round-Trip') {
@@ -549,8 +631,8 @@ const Search = () => {
       }
     }
 
-    // Check if One-Way or Round-Trip is being booked for an Intra-City route (e.g. Mulund to Thane within Mumbai)
-    if (tripType === 'One-way' || tripType === 'Round-Trip') {
+    // Check if One-Way, Round-Trip or Local Duty pickup is within operational boundaries
+    if (tripType === 'One-way' || tripType === 'Round-Trip' || tripType === 'Local-Duty') {
       let activeList = boundaries;
       if (activeList.length === 0) {
         try {
@@ -564,19 +646,31 @@ const Search = () => {
         }
       }
 
-      if (activeList.length > 0 && fromLat && fromLng && toLat && toLng && toAddress && toAddress.trim().length > 0) {
+      if (activeList.length > 0 && fromLat && fromLng) {
         const activeCities = activeList.filter(b => (b.status || 'active').toLowerCase() === 'active');
         const fromCity = activeCities.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
-        const toCity = activeCities.find(b => checkCoordinatesInBoundary(toLat, toLng, b));
 
-        if (fromCity && toCity && (fromCity.id === toCity.id || fromCity.city_name === toCity.city_name)) {
-          const fromShort = fromAddress.split(',')[0].trim();
-          const toShort = toAddress.split(',')[0].trim();
-          const cName = fromCity.city_name || fromCity.cityName;
+        if (!fromCity) {
+          const pickupCity = fromAddress.split(',')[0].trim() || 'This location';
+          const cityNames = activeCities.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune, Nashik, Aurangabad';
           setErrorMsg(
-            `This route (${fromShort} to ${toShort}) is an intra-city trip within ${cName} city limits. One-Way and Round-Trip are for outstation journeys. Please switch to Local Taxi for lower city rates and ₹0 advance!`
+            `Pickup location "${pickupCity}" is outside Rentox's service boundary. Cab pickups are currently available from: ${cityNames}.`
           );
           return;
+        }
+
+        if (tripType !== 'Local-Duty' && toLat && toLng && toAddress && toAddress.trim().length > 0) {
+          const toCity = activeCities.find(b => checkCoordinatesInBoundary(toLat, toLng, b));
+
+          if (toCity && (fromCity.id === toCity.id || fromCity.city_name === toCity.city_name)) {
+            const fromShort = fromAddress.split(',')[0].trim();
+            const toShort = toAddress.split(',')[0].trim();
+            const cName = fromCity.city_name || fromCity.cityName;
+            setErrorMsg(
+              `This route (${fromShort} to ${toShort}) is an intra-city trip within ${cName} city limits. One-Way and Round-Trip are for outstation journeys. Please switch to Local Taxi for lower city rates and ₹0 advance!`
+            );
+            return;
+          }
         }
       }
     }
@@ -959,6 +1053,16 @@ const Search = () => {
               </div>
             )}
 
+            {/* Out-of-Boundary Alert for One-Way, Round-Trip & Local Duty */}
+            {(tripType === 'One-way' || tripType === 'Round-Trip' || tripType === 'Local-Duty') && outstationBoundaryMatch && !outstationBoundaryMatch.isInside && fromAddress.trim() && (
+              <div className="mb-3.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 text-xs flex items-center gap-2.5 shadow-2xs">
+                <i className="fas fa-circle-exclamation text-rose-600 text-base flex-shrink-0"></i>
+                <div className="flex-1">
+                  <strong>Pickup Outside Operational Boundary:</strong> {outstationBoundaryMatch.message}
+                </div>
+              </div>
+            )}
+
             {/* DATE / TIME row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 mb-3.5">
               {/* Travel Date */}
@@ -978,17 +1082,36 @@ const Search = () => {
 
               {/* Pickup Time */}
               <div>
-                <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">PICKUP TIME</label>
-                <div className="relative">
-                  <i className="fas fa-clock absolute left-4 top-1/2 -translate-y-1/2 text-[#008CFF] text-sm"></i>
-                  <select
-                    className="agni-input w-full pl-10 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none appearance-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
-                    value={pickupTime}
-                    onChange={(e) => setPickupTime(e.target.value)}
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">PICKUP TIME</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nowTime = getCurrentTimeString();
+                      setPickupTime(nowTime);
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      if (!pickupDate || pickupDate < todayStr) {
+                        setPickupDate(todayStr);
+                      }
+                    }}
+                    className="text-[10px] font-bold text-[#008CFF] hover:text-[#0070cc] flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100"
+                    title="Set to current time"
                   >
-                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    <i className="fas fa-bolt text-amber-500"></i> Set to Now
+                  </button>
+                </div>
+                <div className="relative">
+                  <i className="fas fa-clock absolute left-4 top-1/2 -translate-y-1/2 text-[#008CFF] text-sm pointer-events-none"></i>
+                  <input
+                    type="time"
+                    className="agni-input w-full pl-10 pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                    value={convert12hTo24hInput(pickupTime)}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setPickupTime(convert24hTo12h(e.target.value));
+                      }
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -1012,15 +1135,17 @@ const Search = () => {
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">RETURN TIME</label>
                   <div className="relative">
-                    <i className="fas fa-clock absolute left-4 top-1/2 -translate-y-1/2 text-[#008CFF] text-sm"></i>
-                    <select
-                      className="agni-input w-full pl-10 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none appearance-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
-                      value={returnTime}
-                      onChange={(e) => setReturnTime(e.target.value)}
-                    >
-                      {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    <i className="fas fa-clock absolute left-4 top-1/2 -translate-y-1/2 text-[#008CFF] text-sm pointer-events-none"></i>
+                    <input
+                      type="time"
+                      className="agni-input w-full pl-10 pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 outline-none cursor-pointer focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                      value={convert12hTo24hInput(returnTime)}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setReturnTime(convert24hTo12h(e.target.value));
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               </div>

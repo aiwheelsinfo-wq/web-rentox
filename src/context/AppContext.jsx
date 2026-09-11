@@ -10,8 +10,25 @@ export const AppProvider = ({ children }) => {
   const [tripType, setTripType] = useState(() => localStorage.getItem('search_tripType') || 'One-way');
   const [fromAddress, setFromAddress] = useState(() => localStorage.getItem('search_fromAddress') || 'Pune, Maharashtra, India');
   const [toAddress, setToAddress] = useState(() => localStorage.getItem('search_toAddress') || 'Mumbai, Maharashtra, India');
-  const [pickupDate, setPickupDate] = useState(() => localStorage.getItem('search_pickupDate') || '');
-  const [pickupTime, setPickupTime] = useState(() => localStorage.getItem('search_pickupTime') || '10:00 AM');
+  const getInitialPickupDate = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const saved = localStorage.getItem('search_pickupDate');
+    if (saved && saved >= today) return saved;
+    return today;
+  };
+
+  const getInitialPickupTime = () => {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes} ${ampm}`;
+  };
+
+  const [pickupDate, setPickupDate] = useState(getInitialPickupDate);
+  const [pickupTime, setPickupTime] = useState(getInitialPickupTime);
   const [returnDate, setReturnDate] = useState(() => localStorage.getItem('search_returnDate') || '');
   const [returnTime, setReturnTime] = useState(() => localStorage.getItem('search_returnTime') || '10:00 AM');
 

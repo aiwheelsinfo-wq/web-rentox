@@ -489,13 +489,13 @@ const BookingStatus = () => {
                 <div className="grid grid-cols-2 gap-4 mt-3.5">
                   <div className="bg-slate-50/80 border border-slate-200/70 rounded-xl p-3.5 sm:p-4">
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block">
-                      Advance Paid
+                      {details.advancePaid > 0 ? 'Advance Paid' : 'Advance Required'}
                     </span>
-                    <span className="text-xl sm:text-2xl font-black text-emerald-600 block mt-1">
+                    <span className={`text-xl sm:text-2xl font-black block mt-1 ${details.advancePaid > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
                       ₹{details.advancePaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     <span className="text-[10px] text-slate-400 mt-0.5 block">
-                      Paid online via Razorpay
+                      {details.advancePaid > 0 ? 'Paid online via Razorpay' : 'Payable directly to driver'}
                     </span>
                   </div>
 

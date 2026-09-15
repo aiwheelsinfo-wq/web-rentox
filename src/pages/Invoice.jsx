@@ -171,7 +171,7 @@ const Invoice = () => {
     advanceAmount = 250;
     gstAmount = 0;
     remainingBalance = Math.max(0, tripFare - 250);
-  } else if (isLocalTaxi) {
+  } else if (isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way') {
     payableNow = 0;
     advanceAmount = 0;
     gstAmount = 0;
@@ -277,7 +277,8 @@ const Invoice = () => {
     body.append('toll_charge', '0');
     const finalTotalAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare;
     body.append('total_amount', finalTotalAmount.toFixed(2));
-    body.append('payment_type', 'Advance');
+    const isOneWayTrip = tripType === 'One-way' || tripType === 'One-Way';
+    body.append('payment_type', isOneWayTrip ? 'Pay to Driver' : 'Advance');
     body.append('agent_commission', userRole === 'agent' ? currentCommission.toFixed(2) : '0');
     body.append('city', city);
     const isLocalTaxiTrip = tripType === 'Local-taxi';
@@ -318,6 +319,12 @@ const Invoice = () => {
 
       if (response.data && response.data.success === true && response.data.booking_id) {
         const savedBookingId = response.data.booking_id.toString();
+        if (tripType === 'One-way' || tripType === 'One-Way') {
+          setTempBookingId('');
+          localStorage.removeItem('search_tempBookingId');
+          window.location.href = `/booking-success?id=${savedBookingId}`;
+          return;
+        }
         launchRazorpayModal(savedBookingId);
       } else {
         const msg = response.data?.message || 'Failed to save booking. Please try again.';
@@ -771,7 +778,7 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    {isLocalTaxi ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
+                    {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way') ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
                   </>
                 )}
               </button>
@@ -940,6 +947,30 @@ const Invoice = () => {
                     <div className="flex justify-between text-3xs text-gray-400 mt-1">
                       <span>Balance payable to Driver:</span>
                       <span className="font-bold">{"\u20B9"}{Math.round(remainingBalance)}</span>
+                    </div>
+                  </>
+                ) : (tripType === 'One-way' || tripType === 'One-Way') ? (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Advance Required</span>
+                      <span className="font-semibold text-emerald-600">₹0 (Free Booking)</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Tolls, Taxes & Driver TA</span>
+                      <span className="font-semibold text-gray-500">Included in Total</span>
+                    </div>
+                    <hr className="border-brandAmber/20" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-emerald-700">Payable Now</span>
+                      <span className="text-base font-black text-emerald-700">₹0</span>
+                    </div>
+                    <div className="flex justify-between text-3xs text-gray-500 mt-1">
+                      <span>Total Payable to Driver at Trip End:</span>
+                      <span className="font-bold text-brandCharcoal">₹{Math.round(tripFare).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="text-4xs text-emerald-800 mt-1.5 leading-relaxed bg-emerald-50 p-2.5 rounded-lg border border-emerald-200/60">
+                      <i className="fas fa-check-circle text-emerald-600 mr-1.5"></i>
+                      <strong>Pay on Arrival:</strong> No advance payment required. Pay ₹{Math.round(tripFare).toLocaleString('en-IN')} directly to your driver via Cash or UPI (Google Pay / PhonePe / Paytm) when you reach your destination.
                     </div>
                   </>
                 ) : (

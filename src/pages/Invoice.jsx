@@ -277,8 +277,8 @@ const Invoice = () => {
     body.append('toll_charge', '0');
     const finalTotalAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare;
     body.append('total_amount', finalTotalAmount.toFixed(2));
-    const isOneWayTrip = tripType === 'One-way' || tripType === 'One-Way';
-    body.append('payment_type', isOneWayTrip ? 'Pay to Driver' : 'Advance');
+    const isPayToDriver = tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty';
+    body.append('payment_type', isPayToDriver ? 'Pay to Driver' : 'Advance');
     body.append('agent_commission', userRole === 'agent' ? currentCommission.toFixed(2) : '0');
     body.append('city', city);
     const isLocalTaxiTrip = tripType === 'Local-taxi';
@@ -319,7 +319,7 @@ const Invoice = () => {
 
       if (response.data && response.data.success === true && response.data.booking_id) {
         const savedBookingId = response.data.booking_id.toString();
-        if (tripType === 'One-way' || tripType === 'One-Way') {
+        if (isPayToDriver) {
           setTempBookingId('');
           localStorage.removeItem('search_tempBookingId');
           window.location.href = `/booking-success?id=${savedBookingId}`;

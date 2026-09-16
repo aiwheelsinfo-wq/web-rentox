@@ -539,14 +539,21 @@ export const generateInvoiceHtml = (booking) => {
             <span>TOTAL FARE</span>
             <span class="amount">${formatINR(netTotal)}</span>
           </div>
-          <div class="summary-row advance">
-            <span>Advance Amount (Paid via Razorpay)</span>
-            <span class="amt">${formatINR(advancedAmount)}</span>
-          </div>
-          <div class="summary-row balance">
-            <span>Balance Amount (Payable to Driver)</span>
-            <span class="amt">${formatINR(balanceAmount)}</span>
-          </div>
+          ${advancedAmount > 0 ? `
+            <div class="summary-row advance">
+              <span>Advance Amount (Paid via Razorpay)</span>
+              <span class="amt">${formatINR(advancedAmount)}</span>
+            </div>
+            <div class="summary-row balance">
+              <span>Balance Amount (Payable to Driver)</span>
+              <span class="amt">${formatINR(balanceAmount)}</span>
+            </div>
+          ` : `
+            <div class="summary-row balance">
+              <span>Payment Mode: Cash / UPI (Payable to Driver)</span>
+              <span class="amt" style="color: #10B981; font-weight: 800;">${formatINR(netTotal)}</span>
+            </div>
+          `}
         </div>
 
         <!-- Agent Commission Note -->

@@ -156,9 +156,7 @@ const BookingStatus = () => {
     let advancePaid = parseFloat(booking.paid_amount || 0);
 
     if (booking.payment_type === 'Advance' && advancePaid === 0) {
-      if (isLocalDuty) {
-        advancePaid = 250.0;
-      } else {
+      if (!isLocalDuty) {
         advancePaid = totalFare * 0.25;
       }
     }

@@ -165,13 +165,7 @@ const Invoice = () => {
     payableNow = roundTripAdvance;
     advanceAmount = roundTripAdvance;
     gstAmount = 0;
-    remainingBalance = Math.max(0, tripFare - roundTripAdvance);
-  } else if (tripType === 'Local-Duty') {
-    payableNow = 250;
-    advanceAmount = 250;
-    gstAmount = 0;
-    remainingBalance = Math.max(0, tripFare - 250);
-  } else if (isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way') {
+  } else if (isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') {
     payableNow = 0;
     advanceAmount = 0;
     gstAmount = 0;
@@ -778,7 +772,7 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way') ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
+                    {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
                   </>
                 )}
               </button>
@@ -933,30 +927,14 @@ const Invoice = () => {
                       *Remaining balance is settled directly with the driver based on actual distance and receipts at trip end.
                     </div>
                   </>
-                ) : tripType === 'Local-Duty' ? (
-                  <>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Flat Booking Advance</span>
-                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}250</span>
-                    </div>
-                    <hr className="border-brandAmber/20" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-green-700">Payable Now</span>
-                      <span className="text-base font-black text-green-700">{"\u20B9"}{Math.round(payableNow)}</span>
-                    </div>
-                    <div className="flex justify-between text-3xs text-gray-400 mt-1">
-                      <span>Balance payable to Driver:</span>
-                      <span className="font-bold">{"\u20B9"}{Math.round(remainingBalance)}</span>
-                    </div>
-                  </>
-                ) : (tripType === 'One-way' || tripType === 'One-Way') ? (
+                ) : (tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') ? (
                   <>
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-500">Advance Required</span>
                       <span className="font-semibold text-emerald-600">₹0 (Free Booking)</span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Tolls, Taxes & Driver TA</span>
+                      <span className="text-gray-500">Tolls, Taxes & Driver Allowance</span>
                       <span className="font-semibold text-gray-500">Included in Total</span>
                     </div>
                     <hr className="border-brandAmber/20" />
@@ -970,7 +948,7 @@ const Invoice = () => {
                     </div>
                     <div className="text-4xs text-emerald-800 mt-1.5 leading-relaxed bg-emerald-50 p-2.5 rounded-lg border border-emerald-200/60">
                       <i className="fas fa-check-circle text-emerald-600 mr-1.5"></i>
-                      <strong>Pay on Arrival:</strong> No advance payment required. Pay ₹{Math.round(tripFare).toLocaleString('en-IN')} directly to your driver via Cash or UPI (Google Pay / PhonePe / Paytm) when you reach your destination.
+                      <strong>Pay on Trip End:</strong> No advance payment required. Pay ₹{Math.round(tripFare).toLocaleString('en-IN')} directly to your driver via Cash or UPI when your trip completes.
                     </div>
                   </>
                 ) : (
@@ -1022,10 +1000,10 @@ const Invoice = () => {
             </div>
             <div>
               <h3 className="text-base font-extrabold text-brandCharcoal">
-                {isLocalTaxi ? 'Confirm Booking' : 'Confirm Advance Payment'}
+                {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') ? 'Confirm Booking' : 'Confirm Advance Payment'}
               </h3>
               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                {isLocalTaxi ? (
+                {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') ? (
                   <>
                     Confirm your booking for this <strong>{selectedCar.carType}</strong> trip. No advance payment is required.
                   </>

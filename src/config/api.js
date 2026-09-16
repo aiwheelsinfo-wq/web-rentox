@@ -25,6 +25,7 @@ export const endpoints = {
   tripLiveMapping: `${API_BASE_URL}/driver2025_src/trip_live_mapping_backend.php`,
   saveLocalTaxi: `${API_BASE_URL}/save_Local_taxi_booking_and_customer.php`,
   getCityBoundaries: `${API_BASE_URL}/get_city_boundaries.php`,
+  getBookingConfig: `${API_BASE_URL}/get_booking_config.php`,
 };
 
 // Create axios instance with default configurations

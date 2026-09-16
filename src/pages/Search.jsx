@@ -204,6 +204,20 @@ const Search = () => {
   const [boundaryMatch, setBoundaryMatch] = useState(null);
   const [intraCityMatch, setIntraCityMatch] = useState(null);
   const [outstationBoundaryMatch, setOutstationBoundaryMatch] = useState(null);
+  const [minAdvanceHours, setMinAdvanceHours] = useState(5.0);
+
+  // Fetch dynamic booking configuration (advance hours) from database
+  useEffect(() => {
+    let isMounted = true;
+    axios.get(endpoints.getBookingConfig)
+      .then((res) => {
+        if (isMounted && res.data && res.data.success && res.data.min_advance_booking_hours !== undefined) {
+          setMinAdvanceHours(Number(res.data.min_advance_booking_hours));
+        }
+      })
+      .catch((err) => console.warn('Could not load booking config:', err));
+    return () => { isMounted = false; };
+  }, []);
 
   // Fetch configured city boundaries from database
   useEffect(() => {
@@ -562,8 +576,9 @@ const Search = () => {
 
     const travelDateTime = new Date(`${pickupDate}T${convertTimeTo24h(pickupTime)}`);
     const now = new Date();
-    if (tripType !== 'Local-taxi' && (travelDateTime - now) / (1000 * 60 * 60) < 5) {
-      setErrorMsg('Pickup time must be at least 5 hours from now for Outstation trips.');
+    const leadHours = minAdvanceHours ?? 5.0;
+    if (tripType !== 'Local-taxi' && (travelDateTime - now) / (1000 * 60 * 60) < leadHours) {
+      setErrorMsg(`Pickup time must be at least ${leadHours} ${leadHours === 1 ? 'hour' : 'hours'} from now for Outstation trips.`);
       return;
     }
     if (tripType === 'Local-taxi' && travelDateTime < new Date(now.getTime() - 10 * 60 * 1000)) {

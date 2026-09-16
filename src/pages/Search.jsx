@@ -577,9 +577,16 @@ const Search = () => {
     const travelDateTime = new Date(`${pickupDate}T${convertTimeTo24h(pickupTime)}`);
     const now = new Date();
     const leadHours = minAdvanceHours ?? 5.0;
-    if (tripType !== 'Local-taxi' && (travelDateTime - now) / (1000 * 60 * 60) < leadHours) {
-      setErrorMsg(`Pickup time must be at least ${leadHours} ${leadHours === 1 ? 'hour' : 'hours'} from now for Outstation trips.`);
-      return;
+    if (tripType !== 'Local-taxi') {
+      if (leadHours <= 0) {
+        if (travelDateTime < new Date(now.getTime() - 5 * 60 * 1000)) {
+          setErrorMsg('Pickup time cannot be in the past.');
+          return;
+        }
+      } else if ((travelDateTime - now) / (1000 * 60 * 60) < leadHours) {
+        setErrorMsg(`Pickup time must be at least ${leadHours} ${leadHours === 1 ? 'hour' : 'hours'} from now for Outstation trips.`);
+        return;
+      }
     }
     if (tripType === 'Local-taxi' && travelDateTime < new Date(now.getTime() - 10 * 60 * 1000)) {
       setErrorMsg('Pickup time cannot be in the past.');

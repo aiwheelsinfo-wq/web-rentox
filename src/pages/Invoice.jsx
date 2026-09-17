@@ -161,11 +161,7 @@ const Invoice = () => {
   const roundTripAdvance = roundTripBaseAdvance;
 
   let payableNow, advanceAmount, gstAmount, remainingBalance;
-  if (tripType === 'Round-Trip') {
-    payableNow = roundTripAdvance;
-    advanceAmount = roundTripAdvance;
-    gstAmount = 0;
-  } else if (isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') {
+  if (isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') {
     payableNow = 0;
     advanceAmount = 0;
     gstAmount = 0;
@@ -269,9 +265,9 @@ const Invoice = () => {
     body.append('userNumber', activeContact);
     body.append('pincode', pincode);
     body.append('toll_charge', '0');
-    const finalTotalAmount = tripType === 'Round-Trip' ? roundTripAdvance : tripFare;
+    const finalTotalAmount = tripFare;
     body.append('total_amount', finalTotalAmount.toFixed(2));
-    const isPayToDriver = tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty';
+    const isPayToDriver = tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip';
     body.append('payment_type', isPayToDriver ? 'Pay to Driver' : 'Advance');
     body.append('agent_commission', userRole === 'agent' ? currentCommission.toFixed(2) : '0');
     body.append('city', city);
@@ -772,7 +768,7 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
+                    {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
                   </>
                 )}
               </button>
@@ -908,33 +904,14 @@ const Invoice = () => {
               {/* Breakdown Panel */}
               <div className="bg-brandBgLight rounded-xl p-4 border border-brandAmber/20 mt-2 flex flex-col gap-2.5">
                 <span className="text-3xs font-extrabold text-brandAmber uppercase tracking-wider">Advance Checkout Breakdown</span>
-                {tripType === 'Round-Trip' ? (
-                  <>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Booking Advance (₹4/KM)</span>
-                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(roundTripBaseAdvance).toLocaleString('en-IN')}</span>
-                    </div>
-                    <hr className="border-brandAmber/20" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-green-700">Payable Now</span>
-                      <span className="text-base font-black text-green-700">{"\u20B9"}{Math.round(payableNow).toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between text-3xs text-gray-500 mt-1">
-                      <span>Est. Balance Payable to Driver:</span>
-                      <span className="font-bold text-brandCharcoal">{"\u20B9"}{Math.round(remainingBalance).toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="text-4xs text-gray-400 mt-1 leading-relaxed italic">
-                      *Remaining balance is settled directly with the driver based on actual distance and receipts at trip end.
-                    </div>
-                  </>
-                ) : (tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') ? (
+                {(tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') ? (
                   <>
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-500">Advance Required</span>
                       <span className="font-semibold text-emerald-600">₹0 (Free Booking)</span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Tolls, Taxes & Driver Allowance</span>
+                      <span className="text-gray-500">Driver Allowance & Charges</span>
                       <span className="font-semibold text-gray-500">Included in Total</span>
                     </div>
                     <hr className="border-brandAmber/20" />
@@ -1000,10 +977,10 @@ const Invoice = () => {
             </div>
             <div>
               <h3 className="text-base font-extrabold text-brandCharcoal">
-                {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') ? 'Confirm Booking' : 'Confirm Advance Payment'}
+                {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') ? 'Confirm Booking' : 'Confirm Advance Payment'}
               </h3>
               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty') ? (
+                {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') ? (
                   <>
                     Confirm your booking for this <strong>{selectedCar.carType}</strong> trip. No advance payment is required.
                   </>
@@ -1025,7 +1002,7 @@ const Invoice = () => {
                 onClick={submitBookingAndPayment}
                 className="flex-1 bg-brandBlue text-white hover:bg-blue-600 text-xs font-bold py-3 rounded-xl transition-all shadow-sm"
               >
-                {isLocalTaxi ? 'Confirm' : 'Pay Now'}
+                {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') ? 'Confirm Booking' : 'Pay Now'}
               </button>
             </div>
           </div>

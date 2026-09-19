@@ -1,10 +1,76 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import { endpoints } from '../config/api';
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [phoneNumber, setPhoneNumber] = useState(() => localStorage.getItem('cust_phone_number') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('cust_phone_number'));
+
+  // Agent Status & Profile states
+  const [agentStatus, setAgentStatus] = useState(() => localStorage.getItem('rentox_agent_status') || 'not_checked');
+  const [agentProfile, setAgentProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rentox_agent_profile');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const fetchAgentStatus = useCallback(async (phoneToQuery) => {
+    const targetPhone = phoneToQuery || phoneNumber;
+    if (!targetPhone) return { registered: false, status: 'not_checked' };
+    try {
+      const res = await axios.get(`${endpoints.agentApi}?action=check_status&phone_number=${targetPhone}`);
+      if (res.data && res.data.status === 'success') {
+        if (res.data.registered && res.data.agent) {
+          const ag = res.data.agent;
+          setAgentStatus(ag.status);
+          setAgentProfile(ag);
+          localStorage.setItem('rentox_agent_status', ag.status);
+          localStorage.setItem('rentox_agent_profile', JSON.stringify(ag));
+
+          // If agent is NOT approved (e.g. rejected, revoked, pending), revoke agent mode immediately!
+          if (ag.status !== 'approved') {
+            setUserRole('customer');
+            localStorage.setItem('user_role', 'customer');
+          }
+
+          return { registered: true, status: ag.status, agent: ag };
+        } else {
+          setAgentStatus('not_registered');
+          setAgentProfile(null);
+          setUserRole('customer');
+          localStorage.setItem('rentox_agent_status', 'not_registered');
+          localStorage.setItem('user_role', 'customer');
+          localStorage.removeItem('rentox_agent_profile');
+          return { registered: false, status: 'not_registered' };
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching agent status:', e);
+    }
+    return { registered: false, status: 'error' };
+  }, [phoneNumber]);
+
+  useEffect(() => {
+    if (phoneNumber) {
+      fetchAgentStatus(phoneNumber);
+    }
+  }, [phoneNumber, fetchAgentStatus]);
+
+  // Re-verify agent status whenever tab regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (phoneNumber) {
+        fetchAgentStatus(phoneNumber);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [phoneNumber, fetchAgentStatus]);
 
   // Search parameters persisted to localStorage to prevent refresh data loss
   const [tripType, setTripType] = useState(() => localStorage.getItem('search_tripType') || 'One-way');
@@ -130,8 +196,24 @@ export const AppProvider = ({ children }) => {
     }
   }, [tempBookingId]);
 
-  const [userRole, setUserRole] = useState(() => localStorage.getItem('user_role') || 'customer');
+  const [userRole, setUserRole] = useState(() => {
+    const savedRole = localStorage.getItem('user_role') || 'customer';
+    const savedStatus = localStorage.getItem('rentox_agent_status');
+    if (savedRole === 'agent' && savedStatus !== 'approved') {
+      localStorage.setItem('user_role', 'customer');
+      return 'customer';
+    }
+    return savedRole;
+  });
   const [agentCommission, setAgentCommission] = useState(() => parseFloat(localStorage.getItem('agent_commission') || '0'));
+
+  // Auto-enforce: never allow userRole === 'agent' unless agentStatus === 'approved'
+  useEffect(() => {
+    if (userRole === 'agent' && agentStatus !== 'approved' && agentStatus !== 'not_checked') {
+      setUserRole('customer');
+      localStorage.setItem('user_role', 'customer');
+    }
+  }, [userRole, agentStatus]);
 
   useEffect(() => {
     localStorage.setItem('user_role', userRole);
@@ -142,10 +224,12 @@ export const AppProvider = ({ children }) => {
   }, [agentCommission]);
 
   const loginUser = (phone, role = 'customer') => {
+    const savedStatus = localStorage.getItem('rentox_agent_status');
+    const effectiveRole = (role === 'agent' && savedStatus !== 'approved') ? 'customer' : role;
     localStorage.setItem('cust_phone_number', phone);
-    localStorage.setItem('user_role', role);
+    localStorage.setItem('user_role', effectiveRole);
     setPhoneNumber(phone);
-    setUserRole(role);
+    setUserRole(effectiveRole);
     setIsLoggedIn(true);
   };
 
@@ -153,9 +237,14 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem('cust_phone_number');
     localStorage.removeItem('user_role');
     localStorage.removeItem('agent_commission');
+    localStorage.removeItem('rentox_agent_status');
+    localStorage.removeItem('rentox_agent_profile');
+    localStorage.removeItem('rentox_agent_wallet');
     setPhoneNumber('');
     setUserRole('customer');
     setAgentCommission(0);
+    setAgentStatus('not_checked');
+    setAgentProfile(null);
     setIsLoggedIn(false);
   };
 
@@ -167,6 +256,11 @@ export const AppProvider = ({ children }) => {
       logoutUser,
       userRole,
       setUserRole,
+      agentStatus,
+      setAgentStatus,
+      agentProfile,
+      setAgentProfile,
+      fetchAgentStatus,
       agentCommission,
       setAgentCommission,
       tripType,

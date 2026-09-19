@@ -34,7 +34,18 @@ const heroBgStyle = {
 const Profile = () => {
   useTicketFonts();
   const navigate = useNavigate();
-  const { isLoggedIn, phoneNumber, loginUser, logoutUser, userRole, setUserRole } = useContext(AppContext);
+  const {
+    isLoggedIn,
+    phoneNumber,
+    loginUser,
+    logoutUser,
+    userRole,
+    setUserRole,
+    agentStatus,
+    setAgentStatus,
+    agentProfile,
+    fetchAgentStatus
+  } = useContext(AppContext);
 
   const [phone, setPhone] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -45,6 +56,25 @@ const Profile = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [pendingLoginPhone, setPendingLoginPhone] = useState('');
+
+  // Agent State Controls
+  const [checkingAgent, setCheckingAgent] = useState(false);
+  const [showAgentRegModal, setShowAgentRegModal] = useState(false);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [showRejectedModal, setShowRejectedModal] = useState(false);
+  const [rejectedReason, setRejectedReason] = useState('');
+
+  // Agent Registration Form Fields
+  const [agentFullName, setAgentFullName] = useState('');
+  const [agentAgencyName, setAgentAgencyName] = useState('');
+  const [agentAddress, setAgentAddress] = useState('');
+  const [agentGst, setAgentGst] = useState('');
+  const [agentPanFile, setAgentPanFile] = useState(null);
+  const [agentPanName, setAgentPanName] = useState('');
+  const [agentPhotoFile, setAgentPhotoFile] = useState(null);
+  const [agentPhotoPreview, setAgentPhotoPreview] = useState(null);
+  const [agentSubmitting, setAgentSubmitting] = useState(false);
+  const [agentFormError, setAgentFormError] = useState('');
 
   const [profileData, setProfileData] = useState(null);
   const [fetchingProfile, setFetchingProfile] = useState(false);
@@ -57,8 +87,11 @@ const Profile = () => {
   useEffect(() => {
     if (isLoggedIn) {
       fetchProfile();
+      if (phoneNumber) {
+        fetchAgentStatus(phoneNumber);
+      }
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, phoneNumber, fetchAgentStatus]);
 
   const fetchProfile = async () => {
     setFetchingProfile(true);
@@ -73,6 +106,91 @@ const Profile = () => {
       console.error('Error fetching customer data:', e);
     } finally {
       setFetchingProfile(false);
+    }
+  };
+
+  // Handle User Clicking "Agent Mode" (Verification Guard)
+  const handleChooseAgentMode = async () => {
+    const targetPhone = pendingLoginPhone || phone || phoneNumber;
+    if (!targetPhone) return;
+    setCheckingAgent(true);
+    try {
+      const res = await fetchAgentStatus(targetPhone);
+      if (res.registered && res.status === 'approved') {
+        loginUser(targetPhone, 'agent');
+        setShowRoleModal(false);
+        setSuccessMsg(`Welcome back! Logged in as Verified Agent (${res.agent?.agency_name || ''})`);
+      } else if (res.registered && res.status === 'pending') {
+        setUserRole('customer');
+        setShowRoleModal(false);
+        setShowPendingModal(true);
+      } else if (res.registered && res.status === 'rejected') {
+        setUserRole('customer');
+        setShowRoleModal(false);
+        setRejectedReason(res.agent?.rejection_reason || 'Incomplete or unverified documentation.');
+        setShowRejectedModal(true);
+      } else {
+        setUserRole('customer');
+        // Not registered as agent yet
+        setShowRoleModal(false);
+        setAgentFullName(profileData?.name || regName || '');
+        setAgentAgencyName('');
+        setAgentAddress(profileData?.city ? `${profileData.city}, PIN: ${profileData.pincode || ''}` : '');
+        setAgentGst('');
+        setAgentPanFile(null);
+        setAgentPanName('');
+        setAgentPhotoFile(null);
+        setAgentPhotoPreview(null);
+        setAgentFormError('');
+        setShowAgentRegModal(true);
+      }
+    } catch (e) {
+      console.error('Error checking agent mode:', e);
+    } finally {
+      setCheckingAgent(false);
+    }
+  };
+
+  // Handle Submitting Agent Registration Application
+  const handleSubmitAgentRegistration = async (e) => {
+    e.preventDefault();
+    setAgentFormError('');
+    const targetPhone = pendingLoginPhone || phone || phoneNumber;
+
+    if (!agentFullName.trim()) return setAgentFormError('Please enter your full name.');
+    if (!agentAgencyName.trim()) return setAgentFormError('Please enter your company/agency name.');
+    if (!agentAddress.trim()) return setAgentFormError('Please enter your complete business address.');
+
+    setAgentSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('phone_number', targetPhone);
+      formData.append('full_name', agentFullName.trim());
+      formData.append('agency_name', agentAgencyName.trim());
+      formData.append('address', agentAddress.trim());
+      formData.append('gst_number', agentGst.trim());
+      if (agentPanFile) {
+        formData.append('pan_doc', agentPanFile);
+      }
+      if (agentPhotoFile) {
+        formData.append('profile_photo', agentPhotoFile);
+      }
+
+      const response = await axios.post(`${endpoints.agentApi}?action=register_agent`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data && response.data.status === 'success') {
+        setShowAgentRegModal(false);
+        await fetchAgentStatus(targetPhone);
+        setShowPendingModal(true);
+      } else {
+        setAgentFormError(response.data?.message || 'Failed to submit agent application.');
+      }
+    } catch (err) {
+      setAgentFormError(err.response?.data?.message || 'Server connection error during upload.');
+    } finally {
+      setAgentSubmitting(false);
     }
   };
 
@@ -486,41 +604,127 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* 7. AGENT ACCOUNT CARD (Sleek Lightweight Style) */}
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex flex-col justify-between">
+                {/* 7. AGENT ACCOUNT CARD (Guarded) */}
+                <div className={`rounded-2xl border p-5 shadow-sm flex flex-col justify-between ${
+                  agentStatus === 'rejected'
+                    ? 'bg-red-50/40 border-red-200'
+                    : 'bg-white border-gray-100'
+                }`}>
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-sm font-bold">
-                        <i className="fas fa-user-shield"></i>
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${
+                        agentStatus === 'rejected'
+                          ? 'bg-red-100 text-red-600'
+                          : 'bg-amber-50 border border-amber-100 text-amber-600'
+                      }`}>
+                        <i className={agentStatus === 'rejected' ? 'fas fa-ban' : 'fas fa-user-shield'}></i>
                       </div>
                       <span className={`text-4xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                        userRole === 'agent'
+                        userRole === 'agent' && agentStatus === 'approved'
                           ? 'bg-amber-50 text-amber-800 border-amber-200/70 font-extrabold'
+                          : agentStatus === 'rejected'
+                          ? 'bg-red-100 text-red-800 border-red-300 font-extrabold'
+                          : agentStatus === 'pending'
+                          ? 'bg-amber-50 text-amber-800 border-amber-200 font-extrabold'
                           : 'bg-gray-50 text-gray-500 border-gray-200/60'
                       }`}>
-                        {userRole === 'agent' ? 'Agent Mode' : 'Customer'}
+                        {userRole === 'agent' && agentStatus === 'approved'
+                          ? 'Agent Mode'
+                          : agentStatus === 'rejected'
+                          ? 'Approval Revoked'
+                          : agentStatus === 'pending'
+                          ? 'Under Review'
+                          : 'Customer'}
                       </span>
                     </div>
 
                     <h4 className="text-xs font-bold text-brandCharcoal">Agent Account</h4>
-                    <p className="text-4xs text-gray-400 mt-1 leading-snug">
-                      {userRole === 'agent'
-                        ? 'Commission enabled at checkout'
-                        : 'Standard customer ride booking'
+                    <p className="text-4xs text-gray-500 mt-1 leading-snug">
+                      {userRole === 'agent' && agentStatus === 'approved'
+                        ? (agentProfile?.agency_name ? `${agentProfile.agency_name} (Approved)` : 'Verified Agent Mode')
+                        : agentStatus === 'rejected'
+                        ? (agentProfile?.rejection_reason ? `Revoked: ${agentProfile.rejection_reason}` : 'Approval has been revoked by admin')
+                        : agentStatus === 'pending'
+                        ? 'Application under admin review'
+                        : 'Custom commission & B2B bookings'
                       }
                     </p>
                   </div>
 
                   <button
-                    onClick={() => setUserRole(userRole === 'agent' ? 'customer' : 'agent')}
-                    className="mt-4 w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-gray-900 text-white hover:bg-gray-800 shadow-2xs h-9"
+                    disabled={checkingAgent}
+                    onClick={() => {
+                      if (userRole === 'agent' && agentStatus === 'approved') {
+                        setUserRole('customer');
+                      } else {
+                        handleChooseAgentMode();
+                      }
+                    }}
+                    className={`mt-4 w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs h-9 disabled:opacity-60 ${
+                      agentStatus === 'rejected'
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                    }`}
                   >
-                    <i className="fas fa-arrows-rotate text-3xs text-amber-400"></i>
-                    {userRole === 'agent' ? 'Switch to Customer' : 'Switch to Agent'}
+                    {checkingAgent ? (
+                      <i className="fas fa-circle-notch fa-spin text-amber-400"></i>
+                    ) : (
+                      <>
+                        <i className="fas fa-arrows-rotate text-3xs text-amber-400"></i>
+                        {userRole === 'agent' && agentStatus === 'approved'
+                          ? 'Switch to Customer'
+                          : agentStatus === 'rejected'
+                          ? 'View Rejection / Re-apply'
+                          : agentStatus === 'pending'
+                          ? 'Check Review Status'
+                          : 'Switch to Agent'}
+                      </>
+                    )}
                   </button>
                 </div>
 
               </div>
+
+              {/* AGENT COMPANY BANNER (Visible ONLY when in Agent Mode AND Approved) */}
+              {userRole === 'agent' && agentStatus === 'approved' && (
+                <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 rounded-3xl p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-amber-400 text-brandCharcoal font-extrabold flex items-center justify-center text-2xl shadow-md overflow-hidden flex-shrink-0 border-2 border-white">
+                        {agentProfile?.profile_photo ? (
+                          <img src={agentProfile.profile_photo.startsWith('http') ? agentProfile.profile_photo : `https://agnicarrental.com/2025/${agentProfile.profile_photo}`} alt="Agent" className="w-full h-full object-cover" />
+                        ) : (
+                          <i className="fas fa-briefcase"></i>
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-lg font-extrabold text-brandCharcoal tracking-tight">
+                            {agentProfile?.agency_name || 'Rentox Partner Agency'}
+                          </h3>
+                          <span className="bg-amber-400 text-brandCharcoal text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                            <i className="fas fa-certificate text-3xs"></i> Verified Partner
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-0.5 font-medium">
+                          {agentProfile?.full_name ? `Proprietor: ${agentProfile.full_name}` : ''} {agentProfile?.gst_number ? `• GSTIN: ${agentProfile.gst_number}` : ''}
+                        </p>
+                        <p className="text-3xs text-gray-400 mt-1 max-w-md">
+                          <i className="fas fa-map-marker-alt text-amber-500 mr-1"></i> {agentProfile?.address}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto bg-white/80 border border-amber-200 rounded-2xl px-4 py-2.5 shadow-2xs">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                      <div className="text-left">
+                        <span className="text-3xs font-extrabold uppercase tracking-wider text-gray-400 block">Agent Access</span>
+                        <span className="text-xs font-black text-brandCharcoal">Commission Booking Active</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 8. QUICK ACTIONS */}
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -836,16 +1040,14 @@ const Profile = () => {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    loginUser(pendingLoginPhone || phone, 'agent');
-                    setShowRoleModal(false);
-                    setSuccessMsg('Logged in as Agent Mode successfully!');
-                  }}
-                  className="p-4 bg-amber-50 hover:bg-amber-100/60 border-2 border-amber-300 hover:border-amber-500 rounded-2xl flex items-center justify-between text-left transition-all group"
+                  disabled={checkingAgent}
+                  onClick={handleChooseAgentMode}
+                  className="p-4 bg-amber-50 hover:bg-amber-100/60 border-2 border-amber-300 hover:border-amber-500 rounded-2xl flex items-center justify-between text-left transition-all group disabled:opacity-60"
                 >
                   <div>
-                    <div className="font-extrabold text-sm text-amber-900">
+                    <div className="font-extrabold text-sm text-amber-900 flex items-center gap-2">
                       💼 Agent Mode
+                      {checkingAgent && <i className="fas fa-circle-notch fa-spin text-xs text-amber-600"></i>}
                     </div>
                     <div className="text-3xs text-amber-700 font-semibold mt-0.5">
                       Book rides with customizable agent commission
@@ -857,6 +1059,270 @@ const Profile = () => {
             </div>
           </div>
         )}
+
+        {/* 1. AGENT REGISTRATION FORM MODAL */}
+        {showAgentRegModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-gray-100 overflow-hidden my-8 animate-fadeIn">
+              <div className="bg-[#1C1F26] p-6 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-400 text-brandCharcoal flex items-center justify-center text-lg font-bold">
+                    <i className="fas fa-building"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Agent & Agency Registration</h3>
+                    <p className="text-3xs text-gray-400">Complete business details for admin verification</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAgentRegModal(false)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 flex items-center justify-center text-sm transition-all"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitAgentRegistration} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                {agentFormError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+                    <i className="fas fa-exclamation-circle text-sm"></i>
+                    {agentFormError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-3xs font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Agency Owner / Contact"
+                      value={agentFullName}
+                      onChange={(e) => setAgentFullName(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs font-semibold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-3xs font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                      Mobile Number (Verified)
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={pendingLoginPhone || phone || phoneNumber}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-100 px-3.5 py-2.5 text-xs font-bold text-gray-600 cursor-not-allowed outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-3xs font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                    Company / Agency Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Apex Tours & Travels"
+                    value={agentAgencyName}
+                    onChange={(e) => setAgentAgencyName(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs font-semibold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-3xs font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                    Complete Business Address *
+                  </label>
+                  <textarea
+                    required
+                    rows={2}
+                    placeholder="Shop/Office number, Street, Landmark, City, State, PIN"
+                    value={agentAddress}
+                    onChange={(e) => setAgentAddress(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs font-semibold text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-3xs font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                    GST Number (Optional / If Applicable)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 27AAAAA0000A1Z5"
+                    value={agentGst}
+                    onChange={(e) => setAgentGst(e.target.value.toUpperCase())}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs font-semibold uppercase text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white transition-all"
+                  />
+                </div>
+
+                {/* File Uploads: PAN / Business Doc & Profile Photo */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                  {/* PAN Document Upload */}
+                  <div>
+                    <label className="block text-3xs font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                      PAN / Business Document
+                    </label>
+                    <div className="relative border-2 border-dashed border-gray-300 hover:border-amber-400 rounded-2xl p-3 text-center transition-all bg-gray-50/50">
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf,.webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setAgentPanFile(file);
+                            setAgentPanName(file.name);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <i className="fas fa-file-invoice text-amber-500 text-lg mb-1 block"></i>
+                      <span className="text-3xs font-bold text-gray-600 block truncate">
+                        {agentPanName || 'Upload PAN / Reg Doc'}
+                      </span>
+                      <span className="text-4xs text-gray-400">PDF, JPG, PNG (Max 5MB)</span>
+                    </div>
+                  </div>
+
+                  {/* Profile Photo Upload */}
+                  <div>
+                    <label className="block text-3xs font-extrabold uppercase tracking-wider text-gray-500 mb-1">
+                      Profile Photo
+                    </label>
+                    <div className="relative border-2 border-dashed border-gray-300 hover:border-amber-400 rounded-2xl p-3 text-center transition-all bg-gray-50/50 flex flex-col items-center justify-center">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setAgentPhotoFile(file);
+                            const reader = new FileReader();
+                            reader.onload = () => setAgentPhotoPreview(reader.result);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      {agentPhotoPreview ? (
+                        <img src={agentPhotoPreview} alt="Preview" className="w-10 h-10 rounded-full object-cover mb-1 border border-amber-400" />
+                      ) : (
+                        <i className="fas fa-camera text-amber-500 text-lg mb-1 block"></i>
+                      )}
+                      <span className="text-3xs font-bold text-gray-600 block truncate">
+                        {agentPhotoFile ? agentPhotoFile.name : 'Upload Photo'}
+                      </span>
+                      <span className="text-4xs text-gray-400">JPG, PNG</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3">
+                  <button
+                    type="submit"
+                    disabled={agentSubmitting}
+                    className="w-full py-3 bg-brandCharcoal hover:bg-gray-800 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-sm transition-all"
+                  >
+                    {agentSubmitting ? (
+                      <>
+                        <i className="fas fa-circle-notch fa-spin text-amber-400"></i> Submitting Documents...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-paper-plane text-3xs text-amber-400"></i> Submit for Admin Approval
+                      </>
+                    )}
+                  </button>
+                  <p className="text-center text-4xs text-gray-400 mt-2">
+                    Our team reviews agent credentials within 2-4 hours. Once verified, partner access and commissions will activate.
+                  </p>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 2. PENDING APPROVAL MODAL */}
+        {showPendingModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl border border-gray-100">
+              <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mx-auto mb-4 shadow-inner">
+                <i className="fas fa-clock-rotate-left"></i>
+              </div>
+              <h3 className="text-lg font-black text-brandCharcoal uppercase tracking-tight">
+                Application Under Review
+              </h3>
+              <p className="text-xs text-gray-500 mt-2 font-medium leading-relaxed">
+                Your agent application for <span className="font-bold text-brandCharcoal">{agentProfile?.agency_name || 'your agency'}</span> has been received and is currently being verified by the Rentox Admin.
+              </p>
+              <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 my-5 text-left text-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-900 font-bold">
+                  <i className="fas fa-shield-halved text-amber-600"></i> Verification Steps:
+                </div>
+                <div className="text-3xs text-amber-800 font-medium pl-5 space-y-1">
+                  <div>• Document & PAN check by compliance team</div>
+                  <div>• Agency partner account activation</div>
+                  <div>• Instant activation upon admin approval</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPendingModal(false);
+                  loginUser(pendingLoginPhone || phone || phoneNumber, 'customer');
+                }}
+                className="w-full py-3 rounded-xl bg-brandCharcoal hover:bg-gray-800 text-white font-extrabold text-xs transition-all"
+              >
+                Continue in Customer Mode
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 3. APPLICATION REJECTED MODAL */}
+        {showRejectedModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl border border-gray-100">
+              <div className="w-16 h-16 rounded-3xl bg-red-100 text-red-600 flex items-center justify-center text-2xl mx-auto mb-4 shadow-inner">
+                <i className="fas fa-triangle-exclamation"></i>
+              </div>
+              <h3 className="text-lg font-black text-brandCharcoal uppercase tracking-tight">
+                Application Not Approved
+              </h3>
+              <p className="text-xs text-gray-500 mt-2 font-medium">
+                Admin review notes:
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 my-4 text-xs font-semibold text-red-700 text-left">
+                <i className="fas fa-info-circle mr-1.5"></i>
+                {rejectedReason || 'Submitted documentation was incomplete or unclear.'}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowRejectedModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-600 transition-all"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRejectedModal(false);
+                    setShowAgentRegModal(true);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-brandCharcoal font-extrabold text-xs transition-all shadow-sm"
+                >
+                  Resubmit Documents
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 import { AppContext } from '../context/AppContext';
 import { endpoints, RAZORPAY_KEY } from '../config/api';
 
@@ -25,6 +26,9 @@ const Invoice = () => {
     isLoggedIn,
     userRole,
     setUserRole,
+    agentStatus,
+    agentProfile,
+    fetchAgentStatus,
     agentCommission,
     setAgentCommission
   } = useContext(AppContext);
@@ -76,7 +80,10 @@ const Invoice = () => {
       return;
     }
     fetchCustomerDetails();
-  }, [isLoggedIn, selectedCar]);
+    if (phoneNumber && fetchAgentStatus) {
+      fetchAgentStatus(phoneNumber);
+    }
+  }, [isLoggedIn, selectedCar, phoneNumber, fetchAgentStatus]);
 
   const fetchCustomerDetails = async () => {
     try {
@@ -460,7 +467,46 @@ const Invoice = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setUserRole('agent')}
+                    onClick={() => {
+                      if (agentStatus === 'approved') {
+                        setUserRole('agent');
+                      } else if (agentStatus === 'rejected') {
+                        Swal.fire({
+                          icon: 'error',
+                          title: 'Agent Access Revoked',
+                          text: `Your agent application was rejected or revoked by admin (${agentProfile?.rejection_reason || 'Documentation incomplete'}). Please re-apply in Profile.`,
+                          confirmButtonColor: '#DC2626',
+                          confirmButtonText: 'Go to Profile',
+                          showCancelButton: true,
+                          cancelButtonText: 'Stay as Customer'
+                        }).then((result) => {
+                          if (result.isConfirmed) {
+                            navigate('/profile');
+                          }
+                        });
+                      } else if (agentStatus === 'pending') {
+                        Swal.fire({
+                          icon: 'info',
+                          title: 'Approval Pending',
+                          text: 'Your agent application is under review by admin. Agent Mode will unlock once approved.',
+                          confirmButtonColor: '#F5A623',
+                        });
+                      } else {
+                        Swal.fire({
+                          icon: 'warning',
+                          title: 'Verified Agent Required',
+                          text: 'Agent Mode requires an approved business account. Would you like to register in your Profile?',
+                          showCancelButton: true,
+                          confirmButtonText: 'Go to Profile',
+                          confirmButtonColor: '#1C1F26',
+                          cancelButtonText: 'Stay as Customer'
+                        }).then((result) => {
+                          if (result.isConfirmed) {
+                            navigate('/profile');
+                          }
+                        });
+                      }
+                    }}
                     className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all h-9 flex items-center gap-1.5 ${
                       userRole === 'agent'
                         ? 'bg-amber-400 text-brandCharcoal shadow-sm font-extrabold'

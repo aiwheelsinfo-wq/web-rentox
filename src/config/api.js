@@ -26,6 +26,7 @@ export const endpoints = {
   saveLocalTaxi: `${API_BASE_URL}/save_Local_taxi_booking_and_customer.php`,
   getCityBoundaries: `${API_BASE_URL}/get_city_boundaries.php`,
   getBookingConfig: `${API_BASE_URL}/get_booking_config.php`,
+  agentApi: `${API_BASE_URL}/agent_api.php`,
 };
 
 // Create axios instance with default configurations

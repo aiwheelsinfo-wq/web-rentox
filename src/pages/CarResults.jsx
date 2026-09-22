@@ -10,7 +10,8 @@ const CAR_IMAGES = {
   'Sedan': 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=400&q=80',
   'Ertiga': 'https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=400&q=80',
   'Innova': '/innova_crysta.png',
-  'SUV': 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&q=80'
+  'SUV': 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&q=80',
+  'Tempo Traveller': 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&q=80'
 };
 
 const CarResults = () => {
@@ -163,7 +164,8 @@ const CarResults = () => {
         const carTypeLower = c.carType.toLowerCase();
         if (selectedTypeFilter === 'Hatchback') return carTypeLower.includes('hatchback');
         if (selectedTypeFilter === 'Sedan') return carTypeLower.includes('sedan');
-        if (selectedTypeFilter === 'SUV') return carTypeLower.includes('ertiga') || carTypeLower.includes('innova') || carTypeLower.includes('suv');
+        if (selectedTypeFilter === 'SUV') return carTypeLower.includes('ertiga') || carTypeLower.includes('innova') || carTypeLower.includes('crysta') || carTypeLower.includes('suv');
+        if (selectedTypeFilter === 'Tempo Traveller') return carTypeLower.includes('tempo') || carTypeLower.includes('traveller') || carTypeLower.includes('van');
         return true;
       });
     }
@@ -205,10 +207,14 @@ const CarResults = () => {
   };
 
   const getCarModelPlaceholder = (carType) => {
-    if (carType.toLowerCase().includes('hatchback')) return 'Swift, WagonR or similar';
-    if (carType.toLowerCase().includes('sedan')) return 'Etios, DZire or similar';
-    if (carType.toLowerCase().includes('ertiga')) return 'Ertiga, Kia Carens or similar';
-    if (carType.toLowerCase().includes('innova')) return 'Innova Crysta, Xylo or similar';
+    const type = carType.toLowerCase();
+    if (type.includes('hatchback')) return 'Swift, WagonR or similar';
+    if (type.includes('sedan')) return 'Etios, DZire or similar';
+    if (type.includes('ertiga')) return 'Ertiga, Kia Carens or similar';
+    if (type.includes('crysta')) return 'Innova Crysta or similar';
+    if (type.includes('innova')) return 'Innova Crysta, Xylo or similar';
+    if (type.includes('tempo') || type.includes('traveller')) return 'Force Tempo Traveller (12-17 Seater)';
+    if (type.includes('suv')) return 'Mahindra Scorpio, XUV or similar';
     return 'Premium outstation cab';
   };
 
@@ -217,18 +223,21 @@ const CarResults = () => {
     if (type.includes('hatchback')) return CAR_IMAGES['Hatchback'];
     if (type.includes('sedan')) return CAR_IMAGES['Sedan'];
     if (type.includes('ertiga')) return CAR_IMAGES['Ertiga'];
-    if (type.includes('innova')) return CAR_IMAGES['Innova'];
+    if (type.includes('innova') || type.includes('crysta')) return CAR_IMAGES['Innova'];
+    if (type.includes('tempo') || type.includes('traveller')) return CAR_IMAGES['Tempo Traveller'];
     return CAR_IMAGES['SUV'];
   };
 
   const getSeats = (carType) => {
     const type = carType.toLowerCase();
+    if (type.includes('tempo') || type.includes('traveller')) return '12-17 Seats';
     if (type.includes('hatchback') || type.includes('sedan')) return '4 Seats';
     return '6-7 Seats';
   };
 
   const getLuggage = (carType) => {
     const type = carType.toLowerCase();
+    if (type.includes('tempo') || type.includes('traveller')) return '8+ Bags';
     if (type.includes('hatchback') || type.includes('sedan')) return '2 Bags';
     return '4 Bags';
   };
@@ -254,6 +263,19 @@ const CarResults = () => {
                 <i className="fas fa-route text-emerald-600 text-[11px]"></i>
                 <span>{Math.round(distanceKm)} KM Distance</span>
               </span>
+            )}
+            {(tripType === 'Local-taxi' || tripType === 'Local Taxi') && cars.length > 0 && cars[0].traffic_status && (
+              cars[0].traffic_delay_min > 5 ? (
+                <span className="bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                  <i className="fas fa-traffic-light text-amber-600 text-[11px]"></i>
+                  <span>Live Traffic: +{cars[0].traffic_delay_min} mins delay</span>
+                </span>
+              ) : (
+                <span className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                  <i className="fas fa-check-circle text-emerald-600 text-[11px]"></i>
+                  <span>Normal Traffic Conditions</span>
+                </span>
+              )
             )}
           </div>
           <h2 className="text-lg font-extrabold text-brandCharcoal mt-2 flex items-center gap-2">
@@ -292,7 +314,7 @@ const CarResults = () => {
             Filter Cabs
           </h3>
           <div className="flex flex-col gap-2.5">
-            {['All', 'Hatchback', 'Sedan', 'SUV'].map((filter) => (
+            {['All', 'Hatchback', 'Sedan', 'SUV', 'Tempo Traveller'].map((filter) => (
               <button
                 key={filter}
                 onClick={() => handleFilterChange(filter)}
@@ -306,6 +328,7 @@ const CarResults = () => {
                 {filter === 'Hatchback' && <i className="fas fa-car-rear mr-2"></i>}
                 {filter === 'Sedan' && <i className="fas fa-car-side mr-2"></i>}
                 {filter === 'SUV' && <i className="fas fa-truck-pickup mr-2"></i>}
+                {filter === 'Tempo Traveller' && <i className="fas fa-van-shuttle mr-2"></i>}
                 {filter}
               </button>
             ))}
@@ -464,6 +487,11 @@ const CarResults = () => {
                       )}
                       {parseFloat(car.tollCharge) > 0 && (
                         <span>• Toll: Included</span>
+                      )}
+                      {parseFloat(car.traffic_surcharge) > 0 && (
+                        <span className="text-amber-700 font-bold bg-amber-50/90 px-2 py-0.5 rounded border border-amber-200/60">
+                          • Live Traffic (+{car.traffic_delay_min}m): +{"\u20B9"}{car.traffic_surcharge} included
+                        </span>
                       )}
                     </div>
                   </div>

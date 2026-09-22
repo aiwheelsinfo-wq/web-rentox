@@ -148,6 +148,8 @@ const Invoice = () => {
   const days = calculateDays();
   const earlyMorningFee = (isEarlyMorning(pickupTime) && (tripType === 'One-Way' || tripType === 'Round-Trip')) ? 300 : 0;
   const rawBaseFare = selectedCar ? parseFloat(selectedCar.discounted_price || selectedCar.baseAmount) : 0;
+  const trafficSurcharge = selectedCar ? parseFloat(selectedCar.traffic_surcharge || 0) : 0;
+  const baseFareOnly = Math.max(0, rawBaseFare - trafficSurcharge);
   
   // Daily KM Limit (default to 300 for Round-Trip matching Flutter app)
   const dailyLimit = selectedCar ? parseFloat(selectedCar.kmPerDay || (tripType === 'Round-Trip' ? 300 : 250)) : (tripType === 'Round-Trip' ? 300 : 250);
@@ -914,10 +916,26 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Base Trip Rate</span>
-                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(rawBaseFare)}</span>
-                    </div>
+                    {isLocalTaxi && trafficSurcharge > 0 ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Standard Ride Fare</span>
+                          <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(baseFareOnly)}</span>
+                        </div>
+                        <div className="flex justify-between text-amber-700 font-bold bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/60 my-1">
+                          <span className="flex items-center gap-1.5 text-xs">
+                            <i className="fas fa-traffic-light text-amber-500 text-xs"></i>
+                            Live Traffic Surcharge (+{selectedCar.traffic_delay_min || Math.round(trafficSurcharge / parseFloat(selectedCar.extraHoursAmount || 2))} mins)
+                          </span>
+                          <span>+ {"\u20B9"}{Math.round(trafficSurcharge)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{isLocalTaxi ? 'Standard Ride Fare' : 'Base Trip Rate'}</span>
+                        <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(rawBaseFare)}</span>
+                      </div>
+                    )}
                     {userRole === 'agent' && currentCommission > 0 && (
                       <div className="flex justify-between text-amber-700 font-bold">
                         <span className="flex items-center gap-1"><i className="fas fa-coins text-xs"></i> Agent Commission</span>
@@ -935,9 +953,15 @@ const Invoice = () => {
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Tolls & Taxes (One-Way)</span>
+                      <span className="text-gray-500">{isLocalTaxi ? 'GST (5%)' : 'Tolls & Taxes (One-Way)'}</span>
                       <span className="text-gray-400">Included</span>
                     </div>
+                    {isLocalTaxi && trafficSurcharge > 0 && (
+                      <p className="text-4xs text-amber-800/90 font-medium bg-amber-50/50 p-2 rounded-lg border border-amber-100 mt-1">
+                        <i className="fas fa-info-circle text-amber-500 mr-1"></i>
+                        Includes {"\u20B9"}{Math.round(trafficSurcharge)} traffic delay surcharge directly compensating your driver for fuel & time. First 5 minutes delay are free.
+                      </p>
+                    )}
                     <hr className="border-gray-100 my-1" />
                     <div className="flex justify-between text-sm font-extrabold">
                       <span className="text-brandCharcoal">Total Trip Fare</span>

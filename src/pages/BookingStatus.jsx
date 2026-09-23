@@ -13,6 +13,8 @@ const BookingStatus = () => {
   const [booking, setBooking] = useState(null);
   const [driver, setDriver] = useState(null);
   const [otp, setOtp] = useState(null);
+  const [endOtp, setEndOtp] = useState(null);
+  const [gpsAccumulatedKm, setGpsAccumulatedKm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -21,6 +23,7 @@ const BookingStatus = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('Change of plans');
   const [copiedOtp, setCopiedOtp] = useState(false);
+  const [copiedEndOtp, setCopiedEndOtp] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   useEffect(() => {
@@ -40,6 +43,9 @@ const BookingStatus = () => {
       const response = await axios.get(`${endpoints.getInvoiceData}?bookingId=${id}`);
       if (response.data && !response.data.error) {
         setBooking(response.data);
+        if (response.data.otp) setOtp(response.data.otp);
+        if (response.data.end_otp) setEndOtp(response.data.end_otp);
+        if (response.data.gps_accumulated_km !== undefined) setGpsAccumulatedKm(response.data.gps_accumulated_km);
         fetchOtp();
         if (response.data.driver_id && response.data.driver_id.trim() !== '') {
           fetchDriverDetails(response.data.driver_id);
@@ -64,8 +70,10 @@ const BookingStatus = () => {
       const response = await axios.post(endpoints.tripLiveMapping, body, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
-      if (response.data && response.data.success && response.data.otp) {
-        setOtp(response.data.otp);
+      if (response.data && response.data.success) {
+        if (response.data.otp) setOtp(response.data.otp);
+        if (response.data.end_otp) setEndOtp(response.data.end_otp);
+        if (response.data.gps_accumulated_km !== undefined) setGpsAccumulatedKm(response.data.gps_accumulated_km);
       }
     } catch (e) {
       console.error('OTP fetch error:', e);
@@ -119,6 +127,18 @@ const BookingStatus = () => {
       await navigator.clipboard.writeText(otp);
       setCopiedOtp(true);
       setTimeout(() => setCopiedOtp(false), 2000);
+    } catch (e) {
+      console.error('Clipboard copy failed:', e);
+    }
+  };
+
+  const handleCopyEndOtp = async () => {
+    try {
+      const activeEndOtp = endOtp || booking?.end_otp;
+      if (!activeEndOtp) return;
+      await navigator.clipboard.writeText(String(activeEndOtp));
+      setCopiedEndOtp(true);
+      setTimeout(() => setCopiedEndOtp(false), 2000);
     } catch (e) {
       console.error('Clipboard copy failed:', e);
     }
@@ -522,49 +542,124 @@ const BookingStatus = () => {
               </div>
             )}
 
-            {/* 3. Trip Start OTP (Security Card) */}
-            {otp && (
-              <div className="bg-amber-50/50 border border-amber-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
-                      <i className="fas fa-key"></i>
-                    </span>
-                    <h3 className="text-xs font-black text-amber-950 uppercase tracking-wider">
-                      Trip Start OTP
-                    </h3>
-                  </div>
-                  <span className="text-[10.5px] font-bold text-amber-800 bg-amber-100/80 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                    Required for Pickup
-                  </span>
-                </div>
+            {/* 3. Trip OTP Security Card (Start OTP before trip / Completion OTP during In-Transit) */}
+            {(() => {
+              const currentStatus = (booking?.booking_status || '').toLowerCase();
+              const isInTransit = currentStatus === 'in-transit' || currentStatus === 'started';
+              const isCompleted = currentStatus.includes('complet');
+              const isCancelled = currentStatus.includes('cancel') || currentStatus.includes('declin');
+              const activeEndOtp = endOtp || booking?.end_otp;
+              const activeStartOtp = otp || booking?.otp;
+              const activeGpsKm = gpsAccumulatedKm !== null ? gpsAccumulatedKm : (booking?.gps_accumulated_km || 0);
+              const numericGpsKm = parseFloat(activeGpsKm || 0);
 
-                <p className="text-xs text-slate-600 mb-3.5 leading-relaxed">
-                  Share this 4-digit OTP with your driver only when your ride begins.
-                </p>
+              if (isCompleted || isCancelled) return null;
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-amber-200/80 rounded-xl p-3.5 sm:p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-[0.25em] font-mono">
-                      {otp}
+              // In-Transit: Show Emerald Green Drop-Off Completion OTP Card
+              if (isInTransit && activeEndOtp) {
+                return (
+                  <div className="bg-emerald-50/80 border border-emerald-300 rounded-2xl p-5 sm:p-6 shadow-sm animate-fade-in">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs shadow-xs">
+                          <i className="fas fa-flag-checkered"></i>
+                        </span>
+                        <div>
+                          <h3 className="text-xs font-black text-emerald-950 uppercase tracking-wider">
+                            Trip Completion OTP
+                          </h3>
+                          <span className="text-[10px] text-emerald-700 font-semibold">Drop-off Verification</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {numericGpsKm > 0 && (
+                          <span className="text-[10.5px] font-black text-blue-900 bg-blue-100/90 border border-blue-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                            <i className="fas fa-location-arrow text-[9px] text-blue-600"></i>
+                            {numericGpsKm.toFixed(1)} KM TRACKED
+                          </span>
+                        )}
+                        <span className="text-[10.5px] font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
+                          Required for Drop-off
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-700 mb-3.5 leading-relaxed font-medium">
+                      Share this 4-digit OTP with your driver <span className="font-bold text-emerald-900">only after reaching your final destination</span> to verify drop-off.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-emerald-200 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+                      <div className="flex items-center gap-3">
+                        <div className="text-3xl sm:text-4xl font-black text-emerald-900 tracking-[0.3em] font-mono">
+                          {activeEndOtp}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleCopyEndOtp}
+                        className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer"
+                      >
+                        <i className={`fas ${copiedEndOtp ? 'fa-check text-emerald-200' : 'fa-copy'}`}></i>
+                        {copiedEndOtp ? 'End OTP Copied!' : 'Copy End OTP'}
+                      </button>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-800 font-semibold">
+                      <i className="fas fa-shield-alt text-emerald-600 text-xs"></i>
+                      <span>For your billing safety, do not share this OTP over the phone or before final drop-off.</span>
                     </div>
                   </div>
+                );
+              }
 
-                  <button
-                    onClick={handleCopyOtp}
-                    className="inline-flex items-center justify-center gap-2 bg-[#1E3A8A] hover:bg-[#172554] text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-2xs cursor-pointer"
-                  >
-                    <i className={`fas ${copiedOtp ? 'fa-check text-emerald-300' : 'fa-copy'}`}></i>
-                    {copiedOtp ? 'OTP Copied!' : 'Copy OTP'}
-                  </button>
-                </div>
+              // Before Trip Start: Show Amber Start OTP Card
+              if (activeStartOtp && !isInTransit) {
+                return (
+                  <div className="bg-amber-50/50 border border-amber-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
+                          <i className="fas fa-key"></i>
+                        </span>
+                        <h3 className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                          Trip Start OTP
+                        </h3>
+                      </div>
+                      <span className="text-[10.5px] font-bold text-amber-800 bg-amber-100/80 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                        Required for Pickup
+                      </span>
+                    </div>
 
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-amber-800 font-medium">
-                  <i className="fas fa-shield-alt text-amber-600 text-xs"></i>
-                  <span>Do not share this OTP before the cab arrives at your pickup location.</span>
-                </div>
-              </div>
-            )}
+                    <p className="text-xs text-slate-600 mb-3.5 leading-relaxed">
+                      Share this 4-digit OTP with your driver only when your ride begins.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-amber-200/80 rounded-xl p-3.5 sm:p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-[0.25em] font-mono">
+                          {activeStartOtp}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleCopyOtp}
+                        className="inline-flex items-center justify-center gap-2 bg-[#1E3A8A] hover:bg-[#172554] text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-2xs cursor-pointer"
+                      >
+                        <i className={`fas ${copiedOtp ? 'fa-check text-emerald-300' : 'fa-copy'}`}></i>
+                        {copiedOtp ? 'OTP Copied!' : 'Copy OTP'}
+                      </button>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-1.5 text-[11px] text-amber-800 font-medium">
+                      <i className="fas fa-shield-alt text-amber-600 text-xs"></i>
+                      <span>Do not share this OTP before the cab arrives at your pickup location.</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
+            })()}
 
             {/* 4. Driver & Vehicle Details Card (when assigned) */}
             {driver && (

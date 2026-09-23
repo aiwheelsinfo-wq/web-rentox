@@ -870,43 +870,41 @@ const Search = () => {
               </div>
 
               {/* TO */}
-              {tripType !== 'Local-Duty' ? (
-                <div className="relative">
-                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">TO</label>
-                  <div className="relative">
-                    <i className="fas fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-rose-500 text-sm"></i>
-                    <input
-                      type="text"
-                      className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
-                      value={toAddress}
-                      onChange={handleToChange}
-                      onFocus={() => setShowToDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowToDropdown(false), 180)}
-                      placeholder="Enter destination city (e.g. Lonavala, Nashik)"
-                    />
-                    <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
-                  </div>
-                  {showToDropdown && toSuggestions.length > 0 && (
-                    <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
-                      {toSuggestions.map((item, idx) => (
-                        <li key={idx} onMouseDown={() => selectToSuggestion(item)}
-                          className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-sky-50/50 border-b border-gray-50"
-                        >
-                          <i className="fas fa-location-dot text-gray-300 w-4"></i>
-                          {item.description}
-                        </li>
-                      ))}
-                    </ul>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">
+                    {tripType === 'Local-Duty' ? 'TO (DROP LOCATION)' : 'TO'}
+                  </label>
+                  {tripType === 'Local-Duty' && (
+                    <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md">Optional</span>
                   )}
                 </div>
-              ) : (
-                <div className="flex items-end pb-2">
-                  <p className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-                    <i className="fas fa-circle-info text-slate-300 text-sm"></i>
-                    Local duty — pick your area at the next step.
-                  </p>
+                <div className="relative">
+                  <i className="fas fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-rose-500 text-sm"></i>
+                  <input
+                    type="text"
+                    className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                    value={toAddress}
+                    onChange={handleToChange}
+                    onFocus={() => setShowToDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowToDropdown(false), 180)}
+                    placeholder={tripType === 'Local-Duty' ? "Enter drop-off area / destination (e.g. Bandra, Pune)" : "Enter destination city (e.g. Lonavala, Nashik)"}
+                  />
+                  <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
                 </div>
-              )}
+                {showToDropdown && toSuggestions.length > 0 && (
+                  <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
+                    {toSuggestions.map((item, idx) => (
+                      <li key={idx} onMouseDown={() => selectToSuggestion(item)}
+                        className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-sky-50/50 border-b border-gray-50"
+                      >
+                        <i className="fas fa-location-dot text-gray-300 w-4"></i>
+                        {item.description}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             {/* Geo-Fence & Road Distance Information Bar for Local Taxi & One-Way */}

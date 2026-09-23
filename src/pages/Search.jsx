@@ -280,9 +280,9 @@ const Search = () => {
     return true;
   };
 
-  // Live real-time boundary verification (Checks BOTH pickup & destination for Local Taxi)
+  // Live real-time boundary verification (Checks BOTH pickup & destination for Local Taxi & Local Duty)
   useEffect(() => {
-    if (!fromLat || !fromLng || boundaries.length === 0 || !fromAddress || tripType !== 'Local-taxi') {
+    if (!fromLat || !fromLng || boundaries.length === 0 || !fromAddress || (tripType !== 'Local-taxi' && tripType !== 'Local-Duty')) {
       setBoundaryMatch(null);
       return;
     }
@@ -290,12 +290,14 @@ const Search = () => {
     const activeBoundaries = boundaries.filter(b => (b.status || 'active').toLowerCase() === 'active');
     const fromCity = activeBoundaries.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
 
+    const tripLabel = tripType === 'Local-Duty' ? 'Local Duty' : 'Local Taxi';
+
     if (!fromCity) {
       setBoundaryMatch({
         isInside: false,
         reason: 'pickup',
         cityName: null,
-        message: 'Pickup location is outside our Local Taxi service zone.'
+        message: `Pickup location is outside our ${tripLabel} service zone.`
       });
       return;
     }
@@ -312,7 +314,7 @@ const Search = () => {
           reason: 'destination',
           cityName: cName,
           destinationName: destShort,
-          message: `Destination (${destShort}) is outside the ${cName} Local Taxi boundary.`
+          message: `Destination (${destShort}) is outside the ${cName} ${tripLabel} boundary.`
         });
         return;
       }
@@ -320,7 +322,8 @@ const Search = () => {
 
     setBoundaryMatch({
       isInside: true,
-      cityName: cName
+      cityName: cName,
+      tripLabel: tripLabel
     });
   }, [fromLat, fromLng, toLat, toLng, boundaries, fromAddress, toAddress, tripType]);
 
@@ -598,7 +601,8 @@ const Search = () => {
     }
     if (!isLoggedIn) { navigate('/profile'); return; }
 
-    if (tripType === 'Local-taxi') {
+    if (tripType === 'Local-taxi' || tripType === 'Local-Duty') {
+      const tripLabel = tripType === 'Local-Duty' ? 'Local Duty' : 'Local Taxi';
       let activeList = boundaries;
       if (activeList.length === 0) {
         try {
@@ -617,7 +621,7 @@ const Search = () => {
         const fromCity = activeCities.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
         if (!fromCity) {
           const cityNames = activeCities.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune';
-          setErrorMsg(`Local Taxi is not available for this pickup location. Local Taxi operates strictly within municipal boundaries (${cityNames}). Please choose One-Way.`);
+          setErrorMsg(`${tripLabel} is not available for this pickup location. ${tripLabel} operates strictly within municipal boundaries (${cityNames}). Please choose One-Way.`);
           return;
         }
 
@@ -626,15 +630,15 @@ const Search = () => {
           if (!isToInside) {
             const destShort = toAddress.split(',')[0].trim();
             const cName = fromCity.city_name || fromCity.cityName;
-            setErrorMsg(`Destination (${destShort}) is outside the ${cName} Local Taxi boundary. For trips traveling outside the city boundary, please choose One-Way.`);
+            setErrorMsg(`Drop location (${destShort}) is outside the ${cName} ${tripLabel} boundary. For trips traveling outside the city boundary, please choose One-Way or Round-Trip.`);
             return;
           }
         }
       }
     }
 
-    // Check if One-Way, Round-Trip or Local Duty pickup is within operational boundaries
-    if (tripType === 'One-way' || tripType === 'Round-Trip' || tripType === 'Local-Duty') {
+    // Check if One-Way or Round-Trip pickup is within operational boundaries
+    if (tripType === 'One-way' || tripType === 'Round-Trip') {
       let activeList = boundaries;
       if (activeList.length === 0) {
         try {
@@ -910,12 +914,12 @@ const Search = () => {
             {/* Geo-Fence & Road Distance Information Bar for Local Taxi & One-Way */}
             <div className="flex flex-wrap items-center gap-2 mb-3.5">
               {/* Boundary Matched Inside Badge */}
-              {tripType === 'Local-taxi' && boundaryMatch?.isInside && (
+              {(tripType === 'Local-taxi' || tripType === 'Local-Duty') && boundaryMatch?.isInside && (
                 <div className="flex items-center gap-2 bg-blue-50 border border-blue-200/90 rounded-xl py-1.5 px-3 text-xs font-semibold text-blue-800 shadow-2xs">
                   <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0 text-[10px]">
                     <i className="fas fa-map-pin"></i>
                   </span>
-                  <span>Pickup inside <strong>{boundaryMatch.cityName}</strong> Local Taxi Zone</span>
+                  <span>Pickup inside <strong>{boundaryMatch.cityName}</strong> {tripType === 'Local-Duty' ? 'Local Duty' : 'Local Taxi'} Zone</span>
                 </div>
               )}
 

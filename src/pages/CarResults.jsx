@@ -154,6 +154,33 @@ const CarResults = () => {
     }
   };
 
+  // Calculate final display price with GST (Option 3: Add GST on top if not pre-included)
+  const getCarFareDetails = (car) => {
+    const isLocalDuty = (tripType || '').toLowerCase().replace(/[\s_]/g, '-').includes('local-duty');
+    const gstRate = parseFloat(car?.gstPercent || 5);
+    const rawDiscounted = parseInt(car?.discounted_price || 0, 10);
+    const rawBase = parseInt(car?.baseAmount || 0, 10);
+    const hasDiscount = (car?.discount_percentage || 0) > 0;
+
+    // For Local-Duty, base price in DB excludes GST. We add GST on top.
+    const gstAmount = isLocalDuty ? Math.round(rawDiscounted * (gstRate / 100)) : 0;
+    const baseGstAmount = isLocalDuty ? Math.round(rawBase * (gstRate / 100)) : 0;
+
+    const finalPrice = rawDiscounted + gstAmount;
+    const finalBasePrice = rawBase + baseGstAmount;
+
+    return {
+      isLocalDuty,
+      gstRate,
+      rawBase,
+      rawDiscounted,
+      gstAmount,
+      finalPrice,
+      finalBasePrice,
+      hasDiscount,
+    };
+  };
+
   // Unified filter and sort effect
   useEffect(() => {
     let result = [...cars];
@@ -174,7 +201,7 @@ const CarResults = () => {
     if (maxPriceFilter !== '') {
       const maxPrice = parseFloat(maxPriceFilter);
       result = result.filter(c => {
-        const price = tripType === 'Round-Trip' ? parseFloat(c.kmRate) : parseInt(c.discounted_price, 10);
+        const price = tripType === 'Round-Trip' ? parseFloat(c.kmRate) : getCarFareDetails(c).finalPrice;
         return price <= maxPrice;
       });
     }
@@ -182,14 +209,14 @@ const CarResults = () => {
     // 3. Sort by Price
     if (sortBy === 'price-asc') {
       result.sort((a, b) => {
-        const priceA = tripType === 'Round-Trip' ? parseFloat(a.kmRate) : parseInt(a.discounted_price, 10);
-        const priceB = tripType === 'Round-Trip' ? parseFloat(b.kmRate) : parseInt(b.discounted_price, 10);
+        const priceA = tripType === 'Round-Trip' ? parseFloat(a.kmRate) : getCarFareDetails(a).finalPrice;
+        const priceB = tripType === 'Round-Trip' ? parseFloat(b.kmRate) : getCarFareDetails(b).finalPrice;
         return priceA - priceB;
       });
     } else if (sortBy === 'price-desc') {
       result.sort((a, b) => {
-        const priceA = tripType === 'Round-Trip' ? parseFloat(a.kmRate) : parseInt(a.discounted_price, 10);
-        const priceB = tripType === 'Round-Trip' ? parseFloat(b.kmRate) : parseInt(b.discounted_price, 10);
+        const priceA = tripType === 'Round-Trip' ? parseFloat(a.kmRate) : getCarFareDetails(a).finalPrice;
+        const priceB = tripType === 'Round-Trip' ? parseFloat(b.kmRate) : getCarFareDetails(b).finalPrice;
         return priceB - priceA;
       });
     }
@@ -202,7 +229,15 @@ const CarResults = () => {
   };
 
   const selectCarAndBook = (car) => {
-    setSelectedCar(car);
+    const details = getCarFareDetails(car);
+    const updatedCar = {
+      ...car,
+      originalBaseAmount: details.rawDiscounted,
+      gstAmount: details.gstAmount,
+      discounted_price: details.finalPrice.toString(),
+      baseAmount: details.finalPrice.toString(),
+    };
+    setSelectedCar(updatedCar);
     navigate('/invoice');
   };
 
@@ -218,8 +253,11 @@ const CarResults = () => {
     return 'Premium outstation cab';
   };
 
-  const getCarImage = (carType) => {
-    const type = carType.toLowerCase();
+  const getCarImage = (car) => {
+    if (car?.imageUrl && typeof car.imageUrl === 'string' && car.imageUrl.trim() !== '') {
+      return car.imageUrl;
+    }
+    const type = (typeof car === 'string' ? car : (car?.carType || '')).toLowerCase();
     if (type.includes('hatchback')) return CAR_IMAGES['Hatchback'];
     if (type.includes('sedan')) return CAR_IMAGES['Sedan'];
     if (type.includes('ertiga')) return CAR_IMAGES['Ertiga'];
@@ -244,7 +282,7 @@ const CarResults = () => {
 
   const getPriceRange = () => {
     if (cars.length === 0) return { min: 0, max: 10000 };
-    const prices = cars.map(c => tripType === 'Round-Trip' ? parseFloat(c.kmRate) : parseInt(c.discounted_price, 10));
+    const prices = cars.map(c => tripType === 'Round-Trip' ? parseFloat(c.kmRate) : getCarFareDetails(c).finalPrice);
     return { min: Math.min(...prices), max: Math.max(...prices) };
   };
   const { min: minPriceLimit, max: maxPriceLimit } = getPriceRange();
@@ -404,7 +442,7 @@ const CarResults = () => {
                 Distance between your pickup and drop is approximately <strong>{distanceKm} km</strong>, which is less than <strong>50 km</strong>.
               </p>
               <p className="text-gray-400 text-xs font-medium mb-6">
-                One-Way and Round-Trip services are for outstation travel only. For short city rides, please use <strong>Local Taxi</strong> or <strong>Local Duty</strong>.
+                One-Way and Round-Trip services are for outstation travel only. For short city rides, please use <strong>Local Taxi</strong> or <strong>Hourly Rental</strong>.
               </p>
               <div className="flex gap-3 flex-wrap justify-center">
                 <button
@@ -415,7 +453,7 @@ const CarResults = () => {
                 </button>
               </div>
               <p className="mt-6 text-3xs text-gray-300 font-semibold">
-                Select "Local Duty" tab on the home page for trips within city limits.
+                Select "Hourly Rental" tab on the home page for trips within city limits.
               </p>
             </div>
           ) : loading ? (
@@ -441,9 +479,15 @@ const CarResults = () => {
             </div>
           ) : (
             filteredCars.map((car, idx) => {
-              const discountedPrice = parseInt(car.discounted_price, 10);
-              const basePrice = parseInt(car.baseAmount, 10);
-              const hasDiscount = car.discount_percentage > 0;
+              const {
+                isLocalDuty,
+                gstRate,
+                rawDiscounted,
+                gstAmount,
+                finalPrice,
+                finalBasePrice,
+                hasDiscount,
+              } = getCarFareDetails(car);
 
               return (
                 <div 
@@ -453,9 +497,13 @@ const CarResults = () => {
                   {/* Car Image Preview */}
                   <div className="w-full md:w-1/4 rounded-xl overflow-hidden bg-gray-50 aspect-video relative flex items-center justify-center">
                     <img 
-                      src={getCarImage(car.carType)} 
+                      src={getCarImage(car)} 
                       alt={car.carType} 
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = CAR_IMAGES[car.carType] || CAR_IMAGES['Sedan'];
+                      }}
                     />
                   </div>
 
@@ -515,23 +563,35 @@ const CarResults = () => {
                           <div className="flex items-center gap-1.5 justify-center md:justify-end">
                             <i className="fas fa-tag text-[#E15B45] text-sm"></i>
                             <span className="text-2xl font-black text-brandCharcoal">
-                              {"\u20B9"}{discountedPrice.toLocaleString('en-IN')}
+                              {"\u20B9"}{finalPrice.toLocaleString('en-IN')}
                             </span>
                           </div>
                           {hasDiscount && (
                             <span className="text-xs text-rose-500/90 font-bold line-through mt-0.5">
-                              {"\u20B9"}{basePrice.toLocaleString('en-IN')}
+                              {"\u20B9"}{finalBasePrice.toLocaleString('en-IN')}
                             </span>
                           )}
                         </>
                       )}
                     </div>
 
-                    <p className="text-gray-400 text-3xs font-semibold mt-1">
-                      {tripType === 'Round-Trip' 
-                        ? `Min. ${car.kmPerDay || 250} km/day` 
-                        : `Inclusive of ${car.gstPercent || 5}% GST${parseFloat(car.tollCharge) > 0 ? ' & Tolls' : ''}`}
-                    </p>
+                    {tripType === 'Round-Trip' ? (
+                      <p className="text-gray-400 text-3xs font-semibold mt-1">
+                        Min. {car.kmPerDay || 250} km/day
+                      </p>
+                    ) : (
+                      <div className="mt-1.5 flex flex-col items-center md:items-end gap-0.5">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-3xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
+                          <i className="fas fa-check-circle text-emerald-600 text-3xs"></i>
+                          Inclusive of {gstRate}% GST
+                        </span>
+                        {isLocalDuty && gstAmount > 0 && (
+                          <span className="text-4xs text-gray-400 font-medium">
+                            {"\u20B9"}{rawDiscounted.toLocaleString('en-IN')} base + {"\u20B9"}{gstAmount} GST
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     <button
                       onClick={() => selectCarAndBook(car)}

@@ -290,7 +290,7 @@ const Search = () => {
     const activeBoundaries = boundaries.filter(b => (b.status || 'active').toLowerCase() === 'active');
     const fromCity = activeBoundaries.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
 
-    const tripLabel = tripType === 'Local-Duty' ? 'Local Duty' : 'Local Taxi';
+    const tripLabel = tripType === 'Local-Duty' ? 'Hourly Rental' : 'Local Taxi';
 
     if (!fromCity) {
       setBoundaryMatch({
@@ -602,7 +602,7 @@ const Search = () => {
     if (!isLoggedIn) { navigate('/profile'); return; }
 
     if (tripType === 'Local-taxi' || tripType === 'Local-Duty') {
-      const tripLabel = tripType === 'Local-Duty' ? 'Local Duty' : 'Local Taxi';
+      const tripLabel = tripType === 'Local-Duty' ? 'Hourly Rental' : 'Local Taxi';
       let activeList = boundaries;
       if (activeList.length === 0) {
         try {
@@ -694,7 +694,7 @@ const Search = () => {
     { key: 'One-way', label: 'One-way', sub: 'One Destination', icon: 'fa-arrow-right' },
     { key: 'Round-Trip', label: 'Round-Trip', sub: 'Return Journey', icon: 'fa-arrows-rotate' },
     { key: 'Local-taxi', label: 'Local Taxi', sub: 'Within City limits', icon: 'fa-location-crosshairs' },
-    { key: 'Local-Duty', label: 'Local Duty', sub: 'Hourly / Daily', icon: 'fa-clock' },
+    { key: 'Local-Duty', label: 'Hourly Rental', sub: 'Hourly / Daily', icon: 'fa-clock' },
   ];
 
   const whyChoose = [

@@ -148,9 +148,19 @@ export const generateInvoiceHtml = (booking) => {
   else if (isOneWay) {
     // ONE-WAY BUSINESS RULE: NO Driver Allowance row, NO Details column in the invoice table!
     const distance = parseFloat(booking.distance || totalKm || 100);
-    baseAmount = parseFloat(booking.total_amount || (distance * kmRate));
-    gstAmount = (baseAmount * gstPercent) / 100;
-    netTotal = baseAmount + gstAmount + parkingCharge + tollCharge;
+    const bookedTotal = parseFloat(booking.total_amount || (distance * kmRate));
+    const nonTaxSurcharges = parkingCharge + tollCharge + permitCharge;
+    const inclusiveBase = Math.max(0, bookedTotal - nonTaxSurcharges);
+
+    // Option A: Back-calculate pre-tax base so (baseAmount + GST + surcharges) equals the exact booked total
+    if (gstPercent > 0) {
+      baseAmount = inclusiveBase / (1 + (gstPercent / 100));
+      gstAmount = inclusiveBase - baseAmount;
+    } else {
+      baseAmount = inclusiveBase;
+      gstAmount = 0;
+    }
+    netTotal = baseAmount + gstAmount + nonTaxSurcharges;
 
     rows.push({ desc: 'One-Way Base Trip Fare', details: '', amt: formatINR(baseAmount) });
     if (tollCharge > 0) rows.push({ desc: 'Estimated Toll Charges', details: '', amt: formatINR(tollCharge) });
@@ -160,6 +170,31 @@ export const generateInvoiceHtml = (booking) => {
       const halfRate = (gstPercent / 2).toFixed(1).replace('.0', '');
       rows.push({ desc: `CGST (${halfRate}%)`, details: '', amt: formatINR(gstAmount / 2) });
       rows.push({ desc: `SGST (${halfRate}%)`, details: '', amt: formatINR(gstAmount / 2) });
+    }
+  } 
+  else if (isLocalTaxi) {
+    const bookedTotal = parseFloat(booking.total_amount || 0);
+    const nonTaxSurcharges = parkingCharge + tollCharge + permitCharge;
+    const inclusiveBase = Math.max(0, bookedTotal - nonTaxSurcharges);
+
+    if (gstPercent > 0) {
+      baseAmount = inclusiveBase / (1 + (gstPercent / 100));
+      gstAmount = inclusiveBase - baseAmount;
+    } else {
+      baseAmount = inclusiveBase;
+      gstAmount = 0;
+    }
+    netTotal = baseAmount + gstAmount + nonTaxSurcharges;
+
+    const kmText = totalKm > 0 ? `${totalKm.toFixed(1)} KM` : (booking.distance ? `${booking.distance} KM` : '');
+    rows.push({ desc: 'Local-taxi Base Service Charge', details: kmText, amt: formatINR(baseAmount) });
+    if (tollCharge > 0) rows.push({ desc: 'Toll Charges', details: '', amt: formatINR(tollCharge) });
+    if (parkingCharge > 0) rows.push({ desc: 'Parking Charges', details: '', amt: formatINR(parkingCharge) });
+    if (permitCharge > 0) rows.push({ desc: 'Permit Charges', details: '', amt: formatINR(permitCharge) });
+    if (gstAmount > 0) {
+      const halfRate = (gstPercent / 2).toFixed(1).replace('.0', '');
+      rows.push({ desc: `CGST (${halfRate}%)`, details: 'Central GST', amt: formatINR(gstAmount / 2) });
+      rows.push({ desc: `SGST (${halfRate}%)`, details: 'State GST', amt: formatINR(gstAmount / 2) });
     }
   } 
   else {
@@ -473,7 +508,7 @@ export const generateInvoiceHtml = (booking) => {
             <p>Tel: 9619936999 | Email: agnicarrental@gmail.com | Web: www.agnicarrental.com</p>
           `}
           <div class="date-line">
-            <span><strong>Trip Type:</strong> ${booking.trip_type || 'One-Way Trip'}</span>
+            <span><strong>Trip Type:</strong> ${isLocalDuty ? 'Hourly Rental' : (booking.trip_type || 'One-Way Trip')}</span>
             <span><strong>Invoice Date:</strong> ${invoiceDate}</span>
           </div>
         </div>
@@ -495,7 +530,7 @@ export const generateInvoiceHtml = (booking) => {
             </div>
             <div class="meta-field">
               <div class="label">Pickup & Drop Route</div>
-              <div class="val">${booking.from_address || 'Pickup'} ➔ ${booking.to_address || (isLocalDuty ? 'Local Duty' : 'Drop')}</div>
+              <div class="val">${booking.from_address || 'Pickup'} ➔ ${booking.to_address || (isLocalDuty ? 'Hourly Rental' : 'Drop')}</div>
             </div>
             <div class="meta-field">
               <div class="label">Journey Timing</div>

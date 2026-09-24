@@ -291,7 +291,7 @@ const Invoice = () => {
       body.append('agni_amount', rentoxEarning.toFixed(2));
       body.append('vendor_amount', vendorEarning.toFixed(2));
     } else {
-      body.append('base_charge', selectedCar.baseAmount);
+      body.append('base_charge', selectedCar.originalBaseAmount ? selectedCar.originalBaseAmount.toString() : selectedCar.baseAmount);
       body.append('driver_ta', selectedCar.driverAllowance || '0');
       body.append('agni_amount', isLocalTaxiTrip ? '0.00' : (rawBaseFare * 0.10).toFixed(2));
       body.append('vendor_amount', isLocalTaxiTrip ? rawBaseFare.toFixed(2) : (rawBaseFare * 0.90).toFixed(2));
@@ -829,7 +829,7 @@ const Invoice = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="bg-brandCharcoal text-white p-4 flex justify-between items-center">
               <div>
-                <span className="text-3xs font-extrabold text-brandAmber uppercase tracking-wider">{tripType}</span>
+                <span className="text-3xs font-extrabold text-brandAmber uppercase tracking-wider">{tripType === 'Local-Duty' ? 'Hourly Rental' : tripType}</span>
                 <h3 className="text-sm font-extrabold">{selectedCar.carType}</h3>
               </div>
               <div className="text-right">
@@ -930,6 +930,17 @@ const Invoice = () => {
                           <span>+ {"\u20B9"}{Math.round(trafficSurcharge)}</span>
                         </div>
                       </>
+                    ) : selectedCar?.originalBaseAmount ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Package Base Rate</span>
+                          <span className="font-semibold text-brandCharcoal">{"\u20B9"}{Math.round(selectedCar.originalBaseAmount)}</span>
+                        </div>
+                        <div className="flex justify-between text-emerald-700 font-bold">
+                          <span className="flex items-center gap-1"><i className="fas fa-check-circle text-xs text-emerald-600"></i> GST ({selectedCar.gstPercent || 5}%)</span>
+                          <span>+ {"\u20B9"}{Math.round(selectedCar.gstAmount)}</span>
+                        </div>
+                      </>
                     ) : (
                       <div className="flex justify-between">
                         <span className="text-gray-500">{isLocalTaxi ? 'Standard Ride Fare' : 'Base Trip Rate'}</span>
@@ -952,10 +963,12 @@ const Invoice = () => {
                         <span>+ {"\u20B9"}300</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">{isLocalTaxi ? 'GST (5%)' : 'Tolls & Taxes (One-Way)'}</span>
-                      <span className="text-gray-400">Included</span>
-                    </div>
+                    {!selectedCar?.originalBaseAmount && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{isLocalTaxi ? 'GST (5%)' : 'Tolls & Taxes (One-Way)'}</span>
+                        <span className="text-gray-400">Included</span>
+                      </div>
+                    )}
                     {isLocalTaxi && trafficSurcharge > 0 && (
                       <p className="text-4xs text-amber-800/90 font-medium bg-amber-50/50 p-2 rounded-lg border border-amber-100 mt-1">
                         <i className="fas fa-info-circle text-amber-500 mr-1"></i>

@@ -231,7 +231,7 @@ const History = () => {
                           : 'bg-gray-50/80 text-gray-600 border-gray-200/80 hover:bg-gray-100'
                       }`}
                     >
-                      {type}
+                      {type === 'Local-Duty' ? 'Hourly Rental' : type}
                     </button>
                   ))}
                 </div>
@@ -344,7 +344,7 @@ const History = () => {
                           </span>
                           <span className="flex items-center gap-1.5 uppercase font-bold text-amber-600">
                             <i className="fas fa-[#F5A623] fa-route text-amber-500"></i>
-                            {booking.trip_type}
+                            {booking.trip_type === 'Local-Duty' ? 'Hourly Rental' : booking.trip_type}
                           </span>
                         </div>
                       </div>

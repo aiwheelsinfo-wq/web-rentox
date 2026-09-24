@@ -989,7 +989,7 @@ const BookingStatus = () => {
               <div className="flex justify-between items-start py-1">
                 <span className="text-slate-500 font-medium">Route</span>
                 <span className="font-bold text-right max-w-[200px] truncate">
-                  {booking.from_address} ➔ {booking.to_address || 'Local Duty'}
+                  {booking.from_address} ➔ {booking.to_address || (isLocalDuty ? 'Hourly Rental' : 'Local Duty')}
                 </span>
               </div>
 

@@ -233,6 +233,43 @@ const Search = () => {
     return () => { isMounted = false; };
   }, []);
 
+  // Fetch live service availability & coming soon statuses from database
+  const [serviceStatus, setServiceStatus] = useState({});
+  useEffect(() => {
+    let isMounted = true;
+    axios.get(endpoints.getServiceStatus)
+      .then((res) => {
+        if (isMounted && res.data?.success && res.data.services) {
+          setServiceStatus(res.data.services);
+        }
+      })
+      .catch((err) => console.warn('Could not load service status:', err));
+    return () => { isMounted = false; };
+  }, []);
+
+  const isServiceEnabled = (tripKey) => {
+    const keyMap = {
+      'One-way': 'one_way',
+      'Round-Trip': 'round_trip',
+      'Local-taxi': 'local_taxi',
+      'Local-Duty': 'local_duty',
+    };
+    const sKey = keyMap[tripKey];
+    if (!sKey || !serviceStatus[sKey]) return true;
+    return serviceStatus[sKey].is_enabled !== false;
+  };
+
+  const getServiceInfo = (tripKey) => {
+    const keyMap = {
+      'One-way': 'one_way',
+      'Round-Trip': 'round_trip',
+      'Local-taxi': 'local_taxi',
+      'Local-Duty': 'local_duty',
+    };
+    const sKey = keyMap[tripKey];
+    return serviceStatus[sKey] || {};
+  };
+
   // Ray Casting Polygon Point-in-Polygon Check
   const isPointInPolygon = (lat, lng, polygonCoords) => {
     if (!polygonCoords) return true;
@@ -573,6 +610,11 @@ const Search = () => {
   const handleSearch = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    if (!isServiceEnabled(tripType)) {
+      const info = getServiceInfo(tripType);
+      setErrorMsg(info.message || `${tripType} service is temporarily unavailable.`);
+      return;
+    }
     if (!fromAddress.trim()) { setErrorMsg('Please enter a pickup city.'); return; }
     if (tripType !== 'Local-Duty' && !toAddress.trim()) { setErrorMsg('Please enter a destination city.'); return; }
     if (!pickupDate) { setErrorMsg('Please choose your travel date.'); return; }
@@ -777,6 +819,9 @@ const Search = () => {
           <div className="grid grid-cols-2 md:flex border-b border-gray-100 bg-slate-50/80 p-1 gap-1">
             {tripTabs.map((tab) => {
               const active = tripType === tab.key;
+              const isEnabled = isServiceEnabled(tab.key);
+              const info = getServiceInfo(tab.key);
+
               return (
                 <button
                   key={tab.key}
@@ -798,6 +843,11 @@ const Search = () => {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <i className={`fas ${tab.icon}`} style={{ color: active ? '#008CFF' : '#64748B', fontSize: 12 }}></i>
                     <span className="text-[12px] sm:text-[13px] font-bold" style={{ color: active ? '#008CFF' : '#334155' }}>{tab.label}</span>
+                    {!isEnabled && (
+                      <span className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs">
+                        {info.badge_text || 'Coming Soon'}
+                      </span>
+                    )}
                   </div>
                   <div className="text-[9px] sm:text-[10px] text-gray-400 mt-0.5">{tab.sub}</div>
                 </button>
@@ -807,6 +857,46 @@ const Search = () => {
 
           {/* Form */}
           <form onSubmit={handleSearch} className="p-4 sm:p-5 md:p-6">
+            {!isServiceEnabled(tripType) ? (
+              <div className="py-10 px-4 sm:px-8 text-center flex flex-col items-center justify-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-orange-500/15 to-amber-100 flex items-center justify-center mb-4 ring-8 ring-amber-50/50">
+                  <i className="fas fa-clock text-amber-500 text-2xl sm:text-3xl"></i>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100/80 border border-amber-300 text-amber-900 text-[11px] font-bold tracking-wide uppercase mb-3">
+                  <i className="fas fa-sparkles text-amber-600 text-xs"></i>
+                  <span>{getServiceInfo(tripType).badge_text || 'Coming Soon'}</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight mb-2">
+                  {getServiceInfo(tripType).title || `${tripType} Service Launching Soon`}
+                </h3>
+                <p className="text-slate-500 text-xs sm:text-sm max-w-lg leading-relaxed mb-6">
+                  {getServiceInfo(tripType).message ||
+                    'This service is currently being fine-tuned for the best riding experience in your city. Please check out our other available services below.'}
+                </p>
+
+                <div className="w-full max-w-md bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
+                    Available Services You Can Book Right Now:
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {tripTabs
+                      .filter((t) => isServiceEnabled(t.key))
+                      .map((t) => (
+                        <button
+                          key={t.key}
+                          type="button"
+                          onClick={() => setTripType(t.key)}
+                          className="px-3.5 py-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <i className={`fas ${t.icon} text-blue-500 text-xs`}></i>
+                          <span>{t.label}</span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
             {errorMsg && (
               <div className="mb-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-3 px-4 text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
                 <div className="flex items-center gap-2">
@@ -1128,6 +1218,8 @@ const Search = () => {
                 )}
               </button>
             </div>
+              </>
+            )}
           </form>
         </div>
       </div>

@@ -27,6 +27,7 @@ export const endpoints = {
   getCityBoundaries: `${API_BASE_URL}/get_city_boundaries.php`,
   getBookingConfig: `${API_BASE_URL}/get_booking_config.php`,
   agentApi: `${API_BASE_URL}/agent_api.php`,
+  getServiceStatus: `${API_BASE_URL}/get_service_status.php`,
 };
 
 // Create axios instance with default configurations

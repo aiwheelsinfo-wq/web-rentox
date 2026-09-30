@@ -4,6 +4,7 @@ import axios from 'axios';
 import { AppContext } from '../context/AppContext';
 import { endpoints } from '../config/api';
 import { generateInvoiceHtml } from '../utils/generateInvoiceHtml';
+import { parseRoute } from '../utils/routeHelper';
 
 const BookingStatus = () => {
   const { id } = useParams();
@@ -729,37 +730,99 @@ const BookingStatus = () => {
                 
                 {/* Route */}
                 <div className="flex gap-3">
-                  <div className="flex flex-col items-center mt-1">
-                    <i className="fas fa-circle text-[9px] text-blue-600"></i>
-                    {booking.to_address && booking.to_address.trim() !== '' && (
-                      <>
-                        <div className="w-[1.5px] h-7 bg-slate-200 my-1"></div>
-                        <i className="fas fa-location-dot text-[11px] text-rose-500"></i>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 flex flex-col gap-3 text-xs">
-                    <div>
-                      <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
-                        Pickup Location
-                      </span>
-                      <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
-                        {booking.from_address}
-                      </p>
-                    </div>
+                  {(() => {
+                    const parsed = parseRoute(booking.to_address);
+                    if (parsed.isMultiStop) {
+                      return (
+                        <>
+                          <div className="flex flex-col items-center mt-1">
+                            <i className="fas fa-circle text-[9px] text-blue-600"></i>
+                            {parsed.intermediateStops.map((_, i) => (
+                              <React.Fragment key={i}>
+                                <div className="w-[1.5px] h-6 bg-slate-200 my-1"></div>
+                                <i className="fas fa-location-dot text-[10px] text-amber-500"></i>
+                              </React.Fragment>
+                            ))}
+                            {parsed.finalDrop && (
+                              <>
+                                <div className="w-[1.5px] h-6 bg-slate-200 my-1"></div>
+                                <i className="fas fa-location-dot text-[11px] text-rose-500"></i>
+                              </>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 flex flex-col gap-2.5 text-xs">
+                            <div>
+                              <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                                Pickup Location
+                              </span>
+                              <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
+                                {booking.from_address}
+                              </p>
+                            </div>
 
-                    {booking.to_address && booking.to_address.trim() !== '' && (
-                      <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
-                          Destination
-                        </span>
-                        <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
-                          {booking.to_address}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                            {parsed.intermediateStops.map((st, i) => (
+                              <div key={i}>
+                                <span className="text-amber-700 text-[10px] uppercase font-bold tracking-wider block">
+                                  Stop {i + 1}
+                                </span>
+                                <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
+                                  {st.address}
+                                </p>
+                              </div>
+                            ))}
+
+                            {parsed.finalDrop && (
+                              <div>
+                                <span className="text-rose-600 text-[10px] uppercase font-bold tracking-wider block">
+                                  Final Destination
+                                </span>
+                                <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
+                                  {parsed.finalDrop.address}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <div className="flex flex-col items-center mt-1">
+                          <i className="fas fa-circle text-[9px] text-blue-600"></i>
+                          {booking.to_address && booking.to_address.trim() !== '' && (
+                            <>
+                              <div className="w-[1.5px] h-7 bg-slate-200 my-1"></div>
+                              <i className="fas fa-location-dot text-[11px] text-rose-500"></i>
+                            </>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 flex flex-col gap-3 text-xs">
+                          <div>
+                            <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                              Pickup Location
+                            </span>
+                            <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
+                              {booking.from_address}
+                            </p>
+                          </div>
+
+                          {booking.to_address && booking.to_address.trim() !== '' && (
+                            <div>
+                              <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                                Destination
+                              </span>
+                              <p className="font-bold text-slate-900 text-[13px] mt-0.5 leading-snug">
+                                {booking.to_address}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Date & Time Row */}

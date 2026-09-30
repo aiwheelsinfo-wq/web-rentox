@@ -58,7 +58,7 @@ function App() {
                   Privacy & Policy
                 </Link>
                 <span style={{ color: '#9CA3AF', fontSize: '13px', fontWeight: 700, letterSpacing: '0.05em', fontFamily: "'Space Grotesk', sans-serif" }}>
-                  © {new Date().getFullYear()} <span style={{ color: '#F5A623' }}>RENTOX CAR RENTAL PVT. LTD.</span>
+                  © {new Date().getFullYear()} <span style={{ color: '#F5A623' }}>RENTOX  PRIVATE LIMITED</span>
                 </span>
               </div>
             </div>

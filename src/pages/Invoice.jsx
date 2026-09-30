@@ -4,6 +4,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { AppContext } from '../context/AppContext';
 import { endpoints, RAZORPAY_KEY } from '../config/api';
+import { parseRoute } from '../utils/routeHelper';
 
 const Invoice = () => {
   const navigate = useNavigate();
@@ -840,29 +841,77 @@ const Invoice = () => {
 
             <div className="p-6 flex flex-col gap-4">
               {/* Route Summary */}
-              <div className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  <i className="fas fa-circle-dot text-brandBlue text-xs"></i>
-                  {tripType !== 'Local-Duty' && (
-                    <>
-                      <div className="w-[1.5px] h-10 bg-gray-100"></div>
-                      <i className="fas fa-location-dot text-red-500 text-xs"></i>
-                    </>
-                  )}
-                </div>
-                <div className="flex-1 flex flex-col gap-5 text-2xs">
-                  <div>
-                    <span className="text-gray-400 uppercase tracking-wider font-extrabold">PICKUP ADDRESS</span>
-                    <p className="font-semibold text-brandCharcoal truncate mt-0.5">{fromAddress}</p>
-                  </div>
-                  {tripType !== 'Local-Duty' && (
-                    <div>
-                      <span className="text-gray-400 uppercase tracking-wider font-extrabold">DESTINATION ADDRESS</span>
-                      <p className="font-bold text-brandCharcoal truncate mt-0.5">{toAddress}</p>
+              {(() => {
+                const parsed = parseRoute(toAddress);
+                if (tripType === 'Local-Duty' && parsed.isMultiStop) {
+                  return (
+                    <div className="flex gap-3">
+                      {/* Vertical line with dots */}
+                      <div className="flex flex-col items-center pt-0.5">
+                        <i className="fas fa-circle-dot text-brandBlue text-xs"></i>
+                        {parsed.intermediateStops.map((_, i) => (
+                          <React.Fragment key={i}>
+                            <div className="w-[1.5px] h-8 bg-amber-200"></div>
+                            <i className="fas fa-location-dot text-amber-500 text-xs"></i>
+                          </React.Fragment>
+                        ))}
+                        {parsed.finalDrop && (
+                          <>
+                            <div className="w-[1.5px] h-8 bg-rose-200"></div>
+                            <i className="fas fa-location-dot text-rose-500 text-xs"></i>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex-1 flex flex-col gap-4 text-2xs">
+                        <div>
+                          <span className="text-gray-400 uppercase tracking-wider font-extrabold">PICKUP LOCATION</span>
+                          <p className="font-semibold text-brandCharcoal truncate mt-0.5">{fromAddress}</p>
+                        </div>
+                        {parsed.intermediateStops.map((st, i) => (
+                          <div key={i}>
+                            <span className="text-amber-700 uppercase tracking-wider font-extrabold">STOP {i + 1}</span>
+                            <p className="font-bold text-brandCharcoal truncate mt-0.5">{st.address}</p>
+                          </div>
+                        ))}
+                        {parsed.finalDrop && (
+                          <div>
+                            <span className="text-rose-600 uppercase tracking-wider font-extrabold">FINAL DROP LOCATION</span>
+                            <p className="font-bold text-brandCharcoal truncate mt-0.5">{parsed.finalDrop.address}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
+                  );
+                }
+
+                return (
+                  <div className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <i className="fas fa-circle-dot text-brandBlue text-xs"></i>
+                      {toAddress && toAddress.trim() !== '' && (
+                        <>
+                          <div className="w-[1.5px] h-10 bg-gray-100"></div>
+                          <i className="fas fa-location-dot text-red-500 text-xs"></i>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col gap-5 text-2xs">
+                      <div>
+                        <span className="text-gray-400 uppercase tracking-wider font-extrabold">PICKUP ADDRESS</span>
+                        <p className="font-semibold text-brandCharcoal truncate mt-0.5">{fromAddress}</p>
+                      </div>
+                      {toAddress && toAddress.trim() !== '' && (
+                        <div>
+                          <span className="text-gray-400 uppercase tracking-wider font-extrabold">
+                            {tripType === 'Local-Duty' ? 'DROP DESTINATION' : 'DESTINATION ADDRESS'}
+                          </span>
+                          <p className="font-bold text-brandCharcoal truncate mt-0.5">{toAddress}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <hr className="border-gray-100" />
 

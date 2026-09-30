@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
 import { endpoints } from '../config/api';
+import { parseRoute } from '../utils/routeHelper';
 
 // Fallback high-quality illustrative car images from Unsplash to look premium
 const CAR_IMAGES = {
@@ -316,13 +317,52 @@ const CarResults = () => {
               )
             )}
           </div>
-          <h2 className="text-lg font-extrabold text-brandCharcoal mt-2 flex items-center gap-2">
+          <h2 className="text-lg font-extrabold text-brandCharcoal mt-2 flex items-center gap-2 flex-wrap">
             <span>{fromAddress.split(',')[0]}</span>
-            {tripType !== 'Local-Duty' && (
-              <>
-                <i className="fas fa-arrow-right text-gray-400 text-xs"></i>
-                <span>{toAddress.split(',')[0]}</span>
-              </>
+            {tripType === 'Local-Duty' ? (
+              (() => {
+                const parsed = parseRoute(toAddress);
+                if (parsed.isMultiStop) {
+                  return (
+                    <>
+                      {parsed.intermediateStops.map((st, idx) => (
+                        <React.Fragment key={idx}>
+                          <i className="fas fa-arrow-right text-amber-500 text-xs"></i>
+                          <span className="text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md text-xs font-bold">
+                            {st.shortAddress}
+                          </span>
+                        </React.Fragment>
+                      ))}
+                      {parsed.finalDrop && (
+                        <>
+                          <i className="fas fa-arrow-right text-rose-500 text-xs"></i>
+                          <span className="text-rose-700 font-bold">{parsed.finalDrop.shortAddress}</span>
+                        </>
+                      )}
+                    </>
+                  );
+                } else if (parsed.finalDrop && toAddress && toAddress.trim()) {
+                  return (
+                    <>
+                      <i className="fas fa-arrow-right text-gray-400 text-xs"></i>
+                      <span>{parsed.finalDrop.shortAddress}</span>
+                    </>
+                  );
+                } else {
+                  return (
+                    <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-md">
+                      Hourly Rental
+                    </span>
+                  );
+                }
+              })()
+            ) : (
+              toAddress && (
+                <>
+                  <i className="fas fa-arrow-right text-gray-400 text-xs"></i>
+                  <span>{toAddress.split(',')[0]}</span>
+                </>
+              )
             )}
           </h2>
           <p className="text-gray-400 text-xs mt-1 flex items-center gap-2 flex-wrap">

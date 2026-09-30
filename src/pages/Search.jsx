@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
 import { endpoints } from '../config/api';
+import { parseRoute, buildRouteString } from '../utils/routeHelper';
 
 const CITIES = [
   'Pune, Maharashtra, India',
@@ -189,13 +190,17 @@ const Search = () => {
     fromLat, setFromLat,
     fromLng, setFromLng,
     toLat, setToLat,
-    toLng, setToLng
+    toLng, setToLng,
+    intermediateStops, setIntermediateStops,
+    dropAddress, setDropAddress
   } = useContext(AppContext);
 
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [toSuggestions, setToSuggestions] = useState([]);
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const [showToDropdown, setShowToDropdown] = useState(false);
+  const [activeStopIndex, setActiveStopIndex] = useState(null);
+  const [stopSuggestions, setStopSuggestions] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [routeDistance, setRouteDistance] = useState('');
@@ -205,6 +210,23 @@ const Search = () => {
   const [intraCityMatch, setIntraCityMatch] = useState(null);
   const [outstationBoundaryMatch, setOutstationBoundaryMatch] = useState(null);
   const [minAdvanceHours, setMinAdvanceHours] = useState(5.0);
+
+  // Restore stops and drop address if toAddress was populated previously for Local-Duty
+  useEffect(() => {
+    if (tripType === 'Local-Duty') {
+      if ((!intermediateStops || intermediateStops.length === 0) && (!dropAddress || dropAddress.trim() === '') && toAddress && toAddress.trim()) {
+        const parsed = parseRoute(toAddress);
+        if (parsed.isMultiStop) {
+          setIntermediateStops(parsed.intermediateStops.map(s => ({ address: s.address, lat: null, lng: null, isOutside: false })));
+          if (parsed.finalDrop) {
+            setDropAddress(parsed.finalDrop.address);
+          }
+        } else if (parsed.finalDrop) {
+          setDropAddress(parsed.finalDrop.address);
+        }
+      }
+    }
+  }, [tripType]);
 
   // Fetch dynamic booking configuration (advance hours) from database
   useEffect(() => {
@@ -590,6 +612,93 @@ const Search = () => {
     }
   };
 
+  // Intermediate Stops Handlers for Local Duty (Hourly Rental)
+  const addIntermediateStop = () => {
+    if (intermediateStops.length < 4) {
+      setIntermediateStops(prev => [
+        ...prev,
+        { address: '', lat: null, lng: null, isOutside: false }
+      ]);
+    }
+  };
+
+  const removeIntermediateStop = (index) => {
+    setIntermediateStops(prev => prev.filter((_, i) => i !== index));
+    if (activeStopIndex === index) {
+      setActiveStopIndex(null);
+      setStopSuggestions([]);
+    }
+  };
+
+  const handleStopChange = (index, value) => {
+    setIntermediateStops(prev => {
+      const next = [...prev];
+      if (next[index]) {
+        next[index] = { ...next[index], address: value, isOutside: false };
+      }
+      return next;
+    });
+    setActiveStopIndex(index);
+    fetchPlacesSuggestions(value, setStopSuggestions);
+  };
+
+  const selectStopSuggestion = (index, prediction) => {
+    setActiveStopIndex(null);
+    setStopSuggestions([]);
+
+    if (!prediction.isFallback && window.google && window.google.maps) {
+      new window.google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          const sLat = results[0].geometry.location.lat();
+          const sLng = results[0].geometry.location.lng();
+          const activeBoundaries = boundaries.filter(b => (b.status || 'active').toLowerCase() === 'active');
+          const fromCity = activeBoundaries.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+          const isInside = fromCity ? checkCoordinatesInBoundary(sLat, sLng, fromCity) : true;
+          setIntermediateStops(prev => {
+            const next = [...prev];
+            if (next[index]) {
+              next[index] = {
+                ...next[index],
+                address: prediction.description,
+                lat: sLat,
+                lng: sLng,
+                isOutside: !isInside,
+                cityName: fromCity ? (fromCity.city_name || fromCity.cityName) : 'City'
+              };
+            }
+            return next;
+          });
+        }
+      });
+    } else {
+      setIntermediateStops(prev => {
+        const next = [...prev];
+        if (next[index]) {
+          next[index] = { ...next[index], address: prediction.description };
+        }
+        return next;
+      });
+    }
+  };
+
+  const handleDropChange = (e) => {
+    setDropAddress(e.target.value);
+    fetchPlacesSuggestions(e.target.value, setToSuggestions);
+  };
+
+  const selectDropSuggestion = (prediction) => {
+    setDropAddress(prediction.description);
+    setShowToDropdown(false);
+    if (!prediction.isFallback && window.google && window.google.maps) {
+      new window.google.maps.Geocoder().geocode({ placeId: prediction.place_id }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setToLat(results[0].geometry.location.lat());
+          setToLng(results[0].geometry.location.lng());
+        }
+      });
+    }
+  };
+
   const convertTimeTo24h = (time12h) => {
     if (!time12h) return '00:00:00';
     const clean = time12h.trim().toUpperCase();
@@ -667,13 +776,44 @@ const Search = () => {
           return;
         }
 
-        if (toAddress && toAddress.trim().length > 0 && toLat && toLng) {
-          const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
-          if (!isToInside) {
-            const destShort = toAddress.split(',')[0].trim();
-            const cName = fromCity.city_name || fromCity.cityName;
-            setErrorMsg(`Drop location (${destShort}) is outside the ${cName} ${tripLabel} boundary. For trips traveling outside the city boundary, please choose One-Way or Round-Trip.`);
-            return;
+        if (tripType === 'Local-Duty') {
+          // Construct formatted multi-stop route
+          const fullRoute = buildRouteString(intermediateStops, dropAddress);
+          setToAddress(fullRoute);
+          localStorage.setItem('search_toAddress', fullRoute);
+
+          const cName = fromCity.city_name || fromCity.cityName || 'City';
+          // Check intermediate stops boundary
+          for (let i = 0; i < intermediateStops.length; i++) {
+            const stop = intermediateStops[i];
+            if (stop.lat && stop.lng) {
+              const isStopInside = checkCoordinatesInBoundary(stop.lat, stop.lng, fromCity);
+              if (!isStopInside) {
+                const sName = (stop.address || '').split(',')[0].trim() || `Stop ${i + 1}`;
+                setErrorMsg(`Stop ${i + 1} (${sName}) is outside the ${cName} Hourly Rental boundary.`);
+                return;
+              }
+            }
+          }
+          // Check final drop boundary if provided
+          if (dropAddress && dropAddress.trim().length > 0 && toLat && toLng) {
+            const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
+            if (!isToInside) {
+              const destShort = dropAddress.split(',')[0].trim();
+              setErrorMsg(`Drop location (${destShort}) is outside the ${cName} Hourly Rental boundary. For trips traveling outside the city boundary, please choose One-Way or Round-Trip.`);
+              return;
+            }
+          }
+        } else {
+          // Local Taxi single destination boundary check
+          if (toAddress && toAddress.trim().length > 0 && toLat && toLng) {
+            const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
+            if (!isToInside) {
+              const destShort = toAddress.split(',')[0].trim();
+              const cName = fromCity.city_name || fromCity.cityName;
+              setErrorMsg(`Drop location (${destShort}) is outside the ${cName} ${tripLabel} boundary. For trips traveling outside the city boundary, please choose One-Way or Round-Trip.`);
+              return;
+            }
           }
         }
       }
@@ -931,75 +1071,246 @@ const Search = () => {
               </div>
             )}
 
-            {/* FROM / TO row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-4 mb-3.5 relative">
-              {/* FROM */}
-              <div className="relative">
-                <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">FROM</label>
-                <div className="relative">
-                  <span className="agni-route-dot-from absolute left-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#008CFF] z-10"></span>
-                  <input
-                    type="text"
-                    className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
-                    value={fromAddress}
-                    onChange={handleFromChange}
-                    onFocus={() => setShowFromDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowFromDropdown(false), 180)}
-                    placeholder="Enter pickup city (e.g. Mumbai, Pune)"
-                  />
-                  <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
+            {/* ROUTE SELECTION: Multi-Stop for Local Duty, 2-Col Grid for Outstation & Local Taxi */}
+            {tripType === 'Local-Duty' ? (
+              <div className="flex flex-col gap-3.5 mb-3.5 relative bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs">
+                {/* Header Info */}
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold">
+                      <i className="fas fa-route"></i>
+                    </span>
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
+                      Route &amp; Multiple Stops
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-800 bg-amber-100/80 border border-amber-200/80 px-2.5 py-0.5 rounded-full">
+                    {intermediateStops.length > 0 ? `${intermediateStops.length} Intermediate ${intermediateStops.length === 1 ? 'Stop' : 'Stops'}` : 'Local Hourly Rental'}
+                  </span>
                 </div>
-                {showFromDropdown && fromSuggestions.length > 0 && (
-                  <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
-                    {fromSuggestions.map((item, idx) => (
-                      <li key={idx} onMouseDown={() => selectFromSuggestion(item)}
-                        className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-sky-50/50 border-b border-gray-50"
-                      >
-                        <i className="fas fa-location-dot text-gray-300 w-4"></i>
-                        {item.description}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
 
-              {/* TO */}
-              <div className="relative">
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">
-                    {tripType === 'Local-Duty' ? 'TO (DROP LOCATION)' : 'TO'}
+                {/* 1. PICKUP LOCATION */}
+                <div className="relative">
+                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">
+                    1. PICKUP LOCATION
                   </label>
-                  {tripType === 'Local-Duty' && (
-                    <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md">Optional</span>
+                  <div className="relative">
+                    <span className="agni-route-dot-from absolute left-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#008CFF] z-10"></span>
+                    <input
+                      type="text"
+                      className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all shadow-2xs"
+                      value={fromAddress}
+                      onChange={handleFromChange}
+                      onFocus={() => setShowFromDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowFromDropdown(false), 180)}
+                      placeholder="Enter pickup city (e.g. Mumbai, Pune)"
+                    />
+                    <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
+                  </div>
+                  {showFromDropdown && fromSuggestions.length > 0 && (
+                    <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
+                      {fromSuggestions.map((item, idx) => (
+                        <li key={idx} onMouseDown={() => selectFromSuggestion(item)}
+                          className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-sky-50/50 border-b border-gray-50"
+                        >
+                          <i className="fas fa-location-dot text-gray-300 w-4"></i>
+                          {item.description}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
-                <div className="relative">
-                  <i className="fas fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-rose-500 text-sm"></i>
-                  <input
-                    type="text"
-                    className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
-                    value={toAddress}
-                    onChange={handleToChange}
-                    onFocus={() => setShowToDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowToDropdown(false), 180)}
-                    placeholder={tripType === 'Local-Duty' ? "Enter drop-off area / destination (e.g. Bandra, Pune)" : "Enter destination city (e.g. Lonavala, Nashik)"}
-                  />
-                  <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
-                </div>
-                {showToDropdown && toSuggestions.length > 0 && (
-                  <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
-                    {toSuggestions.map((item, idx) => (
-                      <li key={idx} onMouseDown={() => selectToSuggestion(item)}
-                        className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-sky-50/50 border-b border-gray-50"
-                      >
-                        <i className="fas fa-location-dot text-gray-300 w-4"></i>
-                        {item.description}
-                      </li>
+
+                {/* 2. INTERMEDIATE STOPS LIST */}
+                {intermediateStops.length > 0 && (
+                  <div className="flex flex-col gap-2.5 pl-3 border-l-2 border-dashed border-amber-300 ml-4 py-1">
+                    {intermediateStops.map((stop, sIdx) => (
+                      <div key={sIdx} className="relative bg-white border border-amber-200/90 rounded-xl p-3 shadow-2xs">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-amber-800 uppercase tracking-wider bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md">
+                            <i className="fas fa-location-dot text-[9px] text-amber-500"></i> Stop {sIdx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeIntermediateStop(sIdx)}
+                            className="text-slate-400 hover:text-rose-600 text-xs transition-colors p-1 cursor-pointer"
+                            title="Remove Stop"
+                          >
+                            <i className="fas fa-trash-can"></i>
+                          </button>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={stop.address || ''}
+                            onChange={(e) => handleStopChange(sIdx, e.target.value)}
+                            onFocus={() => setActiveStopIndex(sIdx)}
+                            placeholder={`Enter stop ${sIdx + 1} (e.g. Bandra, Dadar, Mall)`}
+                            className="agni-input w-full pl-8 pr-8 py-2 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-amber-500 focus:bg-white transition-all"
+                          />
+                          <i className="fas fa-map-pin absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 text-xs"></i>
+                          {stop.address && (
+                            <button
+                              type="button"
+                              onClick={() => handleStopChange(sIdx, '')}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 text-xs cursor-pointer"
+                            >
+                              <i className="fas fa-xmark"></i>
+                            </button>
+                          )}
+                        </div>
+                        {activeStopIndex === sIdx && stopSuggestions.length > 0 && (
+                          <ul className="absolute z-50 left-0 right-0 top-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[180px] overflow-y-auto">
+                            {stopSuggestions.map((item, pIdx) => (
+                              <li
+                                key={pIdx}
+                                onMouseDown={() => selectStopSuggestion(sIdx, item)}
+                                className="px-3.5 py-2 flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-amber-50/60 border-b border-gray-50"
+                              >
+                                <i className="fas fa-location-dot text-amber-500 text-xs w-4"></i>
+                                {item.description}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {stop.isOutside && (
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md mt-2">
+                            <i className="fas fa-triangle-exclamation text-rose-500 text-xs"></i>
+                            <span>Stop {sIdx + 1} is outside the {stop.cityName || 'city'} service boundary.</span>
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
+
+                {/* 3. ADD STOP BUTTON */}
+                {intermediateStops.length < 4 && (
+                  <div className="ml-4">
+                    <button
+                      type="button"
+                      onClick={addIntermediateStop}
+                      className="inline-flex items-center gap-2 py-2 px-3.5 rounded-xl border border-dashed border-amber-400 bg-white hover:bg-amber-50 text-amber-900 text-xs font-extrabold transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                    >
+                      <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[9px]">
+                        <i className="fas fa-plus"></i>
+                      </span>
+                      <span>
+                        {intermediateStops.length === 0
+                          ? '+ Add Stop (Multiple Places)'
+                          : `+ Add Another Stop (${intermediateStops.length}/4)`}
+                      </span>
+                    </button>
+                  </div>
+                )}
+
+                {/* 4. DROP LOCATION (OPTIONAL) */}
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">
+                      {intermediateStops.length > 0 ? 'FINAL DROP DESTINATION' : 'DROP DESTINATION'}
+                    </label>
+                    <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md">Optional</span>
+                  </div>
+                  <div className="relative">
+                    <i className="fas fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-rose-500 text-sm"></i>
+                    <input
+                      type="text"
+                      className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all shadow-2xs"
+                      value={dropAddress}
+                      onChange={handleDropChange}
+                      onFocus={() => setShowToDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowToDropdown(false), 180)}
+                      placeholder={intermediateStops.length > 0 ? "Enter final drop destination (optional)" : "Enter drop-off area / destination (e.g. Bandra, Pune)"}
+                    />
+                    {dropAddress ? (
+                      <i
+                        onClick={() => { setDropAddress(''); setToLat(null); setToLng(null); }}
+                        className="fas fa-xmark absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-slate-600"
+                      ></i>
+                    ) : (
+                      <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
+                    )}
+                  </div>
+                  {showToDropdown && toSuggestions.length > 0 && (
+                    <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
+                      {toSuggestions.map((item, idx) => (
+                        <li key={idx} onMouseDown={() => selectDropSuggestion(item)}
+                          className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-sky-50/50 border-b border-gray-50"
+                        >
+                          <i className="fas fa-location-dot text-gray-300 w-4"></i>
+                          {item.description}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-4 mb-3.5 relative">
+                {/* FROM */}
+                <div className="relative">
+                  <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider mb-1.5 uppercase">FROM</label>
+                  <div className="relative">
+                    <span className="agni-route-dot-from absolute left-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#008CFF] z-10"></span>
+                    <input
+                      type="text"
+                      className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                      value={fromAddress}
+                      onChange={handleFromChange}
+                      onFocus={() => setShowFromDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowFromDropdown(false), 180)}
+                      placeholder="Enter pickup city (e.g. Mumbai, Pune)"
+                    />
+                    <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
+                  </div>
+                  {showFromDropdown && fromSuggestions.length > 0 && (
+                    <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
+                      {fromSuggestions.map((item, idx) => (
+                        <li key={idx} onMouseDown={() => selectFromSuggestion(item)}
+                          className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-sky-50/50 border-b border-gray-50"
+                        >
+                          <i className="fas fa-location-dot text-gray-300 w-4"></i>
+                          {item.description}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* TO */}
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">TO</label>
+                  </div>
+                  <div className="relative">
+                    <i className="fas fa-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-rose-500 text-sm"></i>
+                    <input
+                      type="text"
+                      className="agni-input w-full pl-9 pr-10 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 outline-none focus:border-[#008CFF] focus:bg-white focus:ring-4 focus:ring-[#008cff]/5 transition-all"
+                      value={toAddress}
+                      onChange={handleToChange}
+                      onFocus={() => setShowToDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowToDropdown(false), 180)}
+                      placeholder="Enter destination city (e.g. Lonavala, Nashik)"
+                    />
+                    <i className="fas fa-crosshairs absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm cursor-pointer hover:text-[#008CFF]"></i>
+                  </div>
+                  {showToDropdown && toSuggestions.length > 0 && (
+                    <ul className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-lg mt-1 p-0 list-none max-h-[200px] overflow-y-auto">
+                      {toSuggestions.map((item, idx) => (
+                        <li key={idx} onMouseDown={() => selectToSuggestion(item)}
+                          className="px-4 py-2.5 flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-800 hover:bg-sky-50/50 border-b border-gray-50"
+                        >
+                          <i className="fas fa-location-dot text-gray-300 w-4"></i>
+                          {item.description}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Geo-Fence & Road Distance Information Bar for Local Taxi & One-Way */}
             <div className="flex flex-wrap items-center gap-2 mb-3.5">

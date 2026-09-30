@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
 import { endpoints } from '../config/api';
+import { parseRoute } from '../utils/routeHelper';
 
 // One-time font injection — purely presentational, doesn't touch app logic.
 const useTicketFonts = () => {
@@ -311,21 +312,64 @@ const History = () => {
 
                         {/* 6. Vertical Route Display */}
                         <div className="flex gap-3">
-                          <div className="flex flex-col items-center pt-1">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-4 ring-amber-50 shrink-0" />
-                            {booking.to_address && booking.to_address.trim() !== '' && (
+                          {(() => {
+                            const parsed = parseRoute(booking.to_address);
+                            if (parsed.isMultiStop) {
+                              return (
+                                <>
+                                  <div className="flex flex-col items-center pt-1">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-[#008CFF] ring-4 ring-sky-50 shrink-0" />
+                                    {parsed.intermediateStops.map((_, i) => (
+                                      <React.Fragment key={i}>
+                                        <div className="w-0.5 flex-1 my-1 bg-amber-200" />
+                                        <span className="w-2 h-2 rounded-full bg-amber-400 ring-2 ring-amber-50 shrink-0" />
+                                      </React.Fragment>
+                                    ))}
+                                    {parsed.finalDrop && (
+                                      <>
+                                        <div className="w-0.5 flex-1 my-1 bg-gray-200" />
+                                        <i className="fas fa-location-dot text-red-500 text-xs shrink-0"></i>
+                                      </>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 flex flex-col gap-2.5 text-sm font-semibold text-brandCharcoal">
+                                    <p className="leading-tight">{booking.from_address}</p>
+                                    {parsed.intermediateStops.map((st, i) => (
+                                      <div key={i} className="flex items-center gap-1.5 text-xs text-slate-700">
+                                        <span className="text-[10px] font-extrabold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                          Stop {i + 1}
+                                        </span>
+                                        <span className="truncate">{st.address}</span>
+                                      </div>
+                                    ))}
+                                    {parsed.finalDrop && (
+                                      <p className="leading-tight font-bold text-slate-900">{parsed.finalDrop.address}</p>
+                                    )}
+                                  </div>
+                                </>
+                              );
+                            }
+
+                            return (
                               <>
-                                <div className="w-0.5 flex-1 my-1 bg-gray-200" />
-                                <i className="fas fa-location-dot text-red-500 text-xs shrink-0"></i>
+                                <div className="flex flex-col items-center pt-1">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-4 ring-amber-50 shrink-0" />
+                                  {booking.to_address && booking.to_address.trim() !== '' && (
+                                    <>
+                                      <div className="w-0.5 flex-1 my-1 bg-gray-200" />
+                                      <i className="fas fa-location-dot text-red-500 text-xs shrink-0"></i>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex-1 flex flex-col gap-3 text-sm font-semibold text-brandCharcoal">
+                                  <p className="leading-tight">{booking.from_address}</p>
+                                  {booking.to_address && booking.to_address.trim() !== '' && (
+                                    <p className="leading-tight">{booking.to_address}</p>
+                                  )}
+                                </div>
                               </>
-                            )}
-                          </div>
-                          <div className="flex-1 flex flex-col gap-3 text-sm font-semibold text-brandCharcoal">
-                            <p className="leading-tight">{booking.from_address}</p>
-                            {booking.to_address && booking.to_address.trim() !== '' && (
-                              <p className="leading-tight">{booking.to_address}</p>
-                            )}
-                          </div>
+                            );
+                          })()}
                         </div>
 
                         {/* 7. Trip Metadata Row */}

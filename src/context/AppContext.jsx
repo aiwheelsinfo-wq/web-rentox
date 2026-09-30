@@ -116,6 +116,17 @@ export const AppProvider = ({ children }) => {
     return saved ? parseFloat(saved) : 72.877707;
   });
 
+  // Multi-stop state for Local Duty (Hourly Rental)
+  const [intermediateStops, setIntermediateStops] = useState(() => {
+    try {
+      const saved = localStorage.getItem('search_intermediateStops');
+      return saved ? JSON.parse(saved) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+  const [dropAddress, setDropAddress] = useState(() => localStorage.getItem('search_dropAddress') || '');
+
   // Active selections
   const [selectedCar, setSelectedCar] = useState(() => {
     const saved = localStorage.getItem('search_selectedCar');
@@ -187,6 +198,16 @@ export const AppProvider = ({ children }) => {
       localStorage.removeItem('search_selectedCar');
     }
   }, [selectedCar]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('search_intermediateStops', JSON.stringify(intermediateStops));
+    } catch (_) {}
+  }, [intermediateStops]);
+
+  useEffect(() => {
+    localStorage.setItem('search_dropAddress', dropAddress);
+  }, [dropAddress]);
 
   useEffect(() => {
     if (tempBookingId && tempBookingId !== '347') {
@@ -285,6 +306,10 @@ export const AppProvider = ({ children }) => {
       setToLat,
       toLng,
       setToLng,
+      intermediateStops,
+      setIntermediateStops,
+      dropAddress,
+      setDropAddress,
       selectedCar,
       setSelectedCar,
       tempBookingId,

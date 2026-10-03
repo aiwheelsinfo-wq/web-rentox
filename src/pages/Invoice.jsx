@@ -163,7 +163,8 @@ const Invoice = () => {
     : 0;
 
   // Total Trip Fare (includes base km charge + driver allowance + agent commission + early morning fee)
-  const roundTripEstimatedFare = (dailyLimit * parseFloat(selectedCar?.kmRate || 13) * days) + (400 * days) + currentCommission + earlyMorningFee;
+  const driverAllowancePerDay = parseFloat(selectedCar?.driverAllowance || 400);
+  const roundTripEstimatedFare = (dailyLimit * parseFloat(selectedCar?.kmRate || 13) * days) + (driverAllowancePerDay * days) + currentCommission + earlyMorningFee;
   const tripFare = tripType === 'Round-Trip' ? roundTripEstimatedFare : (rawBaseFare + currentCommission + earlyMorningFee);
   
   // Round trip advance: Fixed base advance (₹4/KM) + early morning fee ONLY (Agent Commission is NOT added to advance)
@@ -283,7 +284,7 @@ const Invoice = () => {
     body.append('city', city);
     const isLocalTaxiTrip = tripType === 'Local-taxi';
     if (tripType === 'Round-Trip') {
-      const dailyAllowance = (400 * days) + earlyMorningFee;
+      const dailyAllowance = (driverAllowancePerDay * days) + earlyMorningFee;
       const baseFareTotal = dailyLimit * parseFloat(selectedCar.kmRate || 13) * days;
       const rentoxEarning = dailyLimit * 2.0 * days;
       const vendorEarning = (dailyLimit * 11.0 * days) + dailyAllowance;
@@ -943,7 +944,7 @@ const Invoice = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Driver Allowance</span>
-                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{(400 * days).toLocaleString('en-IN')} (₹400/day)</span>
+                      <span className="font-semibold text-brandCharcoal">{"\u20B9"}{(driverAllowancePerDay * days).toLocaleString('en-IN')} (₹{driverAllowancePerDay}/day)</span>
                     </div>
                     {earlyMorningFee > 0 && (
                       <div className="flex justify-between text-amber-800 font-semibold">

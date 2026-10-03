@@ -1052,12 +1052,19 @@ const Invoice = () => {
                       <span className="text-base font-black text-emerald-700">₹0</span>
                     </div>
                     <div className="flex justify-between text-3xs text-gray-500 mt-1">
-                      <span>Total Payable to Driver at Trip End:</span>
+                      <span>Approx. Payable to Driver at Trip End:</span>
                       <span className="font-bold text-brandCharcoal">₹{Math.round(tripFare).toLocaleString('en-IN')}</span>
                     </div>
                     <div className="text-4xs text-emerald-800 mt-1.5 leading-relaxed bg-emerald-50 p-2.5 rounded-lg border border-emerald-200/60">
-                      <i className="fas fa-check-circle text-emerald-600 mr-1.5"></i>
-                      <strong>Pay on Trip End:</strong> No advance payment required. Pay ₹{Math.round(tripFare).toLocaleString('en-IN')} directly to your driver via Cash or UPI when your trip completes.
+                      <div className="flex items-start gap-1.5">
+                        <i className="fas fa-check-circle text-emerald-600 mt-0.5"></i>
+                        <div>
+                          <strong>Pay on Trip End:</strong> No advance payment required. Pay estimated ₹{Math.round(tripFare).toLocaleString('en-IN')} directly to your driver via Cash or UPI when your trip completes.
+                        </div>
+                      </div>
+                      <div className="text-4xs text-emerald-700/80 italic mt-1.5 border-t border-emerald-200/50 pt-1">
+                        * Note: The final payable amount may vary at the end of the trip based on actual KM traveled, extra hours, tolls/parking, or driver allowances.
+                      </div>
                     </div>
                   </>
                 ) : (

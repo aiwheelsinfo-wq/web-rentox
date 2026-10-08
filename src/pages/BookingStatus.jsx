@@ -5,6 +5,8 @@ import { AppContext } from '../context/AppContext';
 import { endpoints } from '../config/api';
 import { generateInvoiceHtml } from '../utils/generateInvoiceHtml';
 import { parseRoute } from '../utils/routeHelper';
+import TripReviewModal from '../components/TripReviewModal';
+import ReportDriverModal from '../components/ReportDriverModal';
 
 const BookingStatus = () => {
   const { id } = useParams();
@@ -26,6 +28,15 @@ const BookingStatus = () => {
   const [copiedOtp, setCopiedOtp] = useState(false);
   const [copiedEndOtp, setCopiedEndOtp] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+
+  // Trip Feedback & Review States
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [tripReview, setTripReview] = useState(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
+
+  // Safety & Incident Report States
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [incidentReport, setIncidentReport] = useState(null);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -53,6 +64,13 @@ const BookingStatus = () => {
         } else {
           setLoading(false);
         }
+        // Fetch review if completed
+        const isComp = (response.data.booking_status || '').toLowerCase().includes('complet');
+        if (isComp) {
+          fetchReviewDetails(id);
+        }
+        // Fetch incident report status if any
+        fetchIncidentDetails(id);
       } else {
         setErrorMsg(response.data.error || 'Failed to read booking record.');
         setLoading(false);
@@ -60,6 +78,29 @@ const BookingStatus = () => {
     } catch (e) {
       setErrorMsg('Failed to connect to the server.');
       setLoading(false);
+    }
+  };
+
+  const fetchIncidentDetails = async (bookingId) => {
+    try {
+      const res = await axios.get(`${endpoints.getTripIncidents}?booking_id=${bookingId}`);
+      if (res.data && res.data.success && res.data.has_reported) {
+        setIncidentReport(res.data.latest_report);
+      }
+    } catch (err) {
+      console.error('Error fetching incident reports:', err);
+    }
+  };
+
+  const fetchReviewDetails = async (bookingId) => {
+    try {
+      const res = await axios.get(`${endpoints.getTripReview}?booking_id=${bookingId}`);
+      if (res.data && res.data.success) {
+        setHasReviewed(Boolean(res.data.has_reviewed));
+        setTripReview(res.data.review);
+      }
+    } catch (err) {
+      console.error('Error fetching trip review:', err);
     }
   };
 
@@ -878,6 +919,123 @@ const BookingStatus = () => {
               </div>
             </div>
 
+            {/* Trip Rating & Feedback Section (Completed Trips) */}
+            {((booking.booking_status || '').toLowerCase().includes('complet')) && (
+              <div className="w-full">
+                {hasReviewed && tripReview ? (
+                  <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-4 shadow-2xs flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                        <i className="fas fa-star text-amber-500"></i> Your Trip Rating
+                      </span>
+                      <button
+                        onClick={() => setShowReviewModal(true)}
+                        className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline cursor-pointer"
+                      >
+                        Edit Review
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex text-amber-400 text-sm gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <i
+                            key={star}
+                            className={`fas fa-star ${
+                              star <= (tripReview.rating || 5) ? 'text-amber-400' : 'text-slate-200'
+                            }`}
+                          ></i>
+                        ))}
+                      </div>
+                      <span className="text-xs font-black text-slate-800">
+                        {tripReview.rating}.0 / 5.0
+                      </span>
+                    </div>
+
+                    {tripReview.tags && (
+                      <p className="text-[11px] font-semibold text-slate-600 bg-white/70 px-2.5 py-1 rounded-lg border border-amber-100">
+                        {tripReview.tags}
+                      </p>
+                    )}
+
+                    {tripReview.review_text && (
+                      <p className="text-xs text-slate-700 italic bg-white/70 p-2.5 rounded-lg border border-amber-100">
+                        "{tripReview.review_text}"
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 rounded-2xl p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 border border-amber-400">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white/95 text-amber-600 flex items-center justify-center text-lg font-black shrink-0 shadow-xs">
+                        <i className="fas fa-star"></i>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-950">
+                          How was your trip?
+                        </h4>
+                        <p className="text-[11px] text-amber-950/90 font-medium">
+                          Leave a rating to help us recognize good drivers.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowReviewModal(true)}
+                      className="w-full sm:w-auto bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <i className="fas fa-star text-amber-400 text-xs"></i>
+                      Rate Your Trip
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Safety & Incident Reporting */}
+            {incidentReport ? (
+              <div className="bg-rose-50/70 border border-rose-200/90 rounded-2xl p-4 shadow-2xs flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold uppercase text-rose-900 tracking-wider flex items-center gap-1.5">
+                    <i className="fas fa-shield-halved text-rose-600"></i> Safety Complaint
+                  </span>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white border border-rose-200 text-rose-800">
+                    {incidentReport.status}
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-slate-800 font-mono">
+                  Ticket #{incidentReport.ticket_no}
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">
+                  <strong>{incidentReport.incident_type}:</strong> "{incidentReport.description}"
+                </p>
+                {incidentReport.admin_action && (
+                  <div className="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2 mt-1">
+                    <strong>Admin Resolution:</strong> {incidentReport.admin_action}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowReportModal(true)}
+                className="text-left border border-slate-200/90 hover:border-rose-300 hover:bg-rose-50/30 rounded-2xl p-3.5 transition-all w-full flex items-center justify-between bg-white cursor-pointer shadow-2xs group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0 text-xs group-hover:scale-105 transition-transform">
+                    <i className="fas fa-triangle-exclamation"></i>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 group-hover:text-rose-900">
+                      Report Driver / Safety Issue
+                    </p>
+                    <p className="text-[10.5px] text-slate-400 mt-0.2">
+                      Faced rash driving, disturbance, or overcharging?
+                    </p>
+                  </div>
+                </div>
+                <i className="fas fa-chevron-right text-xs text-slate-300 group-hover:text-rose-500 transition-colors"></i>
+              </button>
+            )}
+
             {/* Action 1: Download Invoice Button */}
             <button
               onClick={handleDownloadInvoice}
@@ -1089,6 +1247,30 @@ const BookingStatus = () => {
           </div>
         </div>
       )}
+
+      {/* ── Trip Feedback / Review Modal ── */}
+      <TripReviewModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        booking={booking}
+        driver={driver}
+        existingReview={tripReview}
+        onReviewSubmitted={(newReview) => {
+          setHasReviewed(true);
+          setTripReview(newReview);
+        }}
+      />
+
+      {/* ── Report Driver / Safety Incident Modal ── */}
+      <ReportDriverModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        booking={booking}
+        driver={driver}
+        onReportSubmitted={(newReport) => {
+          setIncidentReport(newReport);
+        }}
+      />
 
     </div>
   );

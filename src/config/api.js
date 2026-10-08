@@ -28,6 +28,10 @@ export const endpoints = {
   getBookingConfig: `${API_BASE_URL}/get_booking_config.php`,
   agentApi: `${API_BASE_URL}/agent_api.php`,
   getServiceStatus: `${API_BASE_URL}/get_service_status.php`,
+  submitTripReview: `${API_BASE_URL}/submit_trip_review.php`,
+  getTripReview: `${API_BASE_URL}/get_trip_review.php`,
+  submitIncidentReport: `${API_BASE_URL}/submit_incident_report.php`,
+  getTripIncidents: `${API_BASE_URL}/get_trip_incidents.php`,
 };
 
 // Create axios instance with default configurations

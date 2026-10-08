@@ -409,9 +409,19 @@ const History = () => {
                           )}
                         </div>
 
+                        {isCompleted && (
+                          <button
+                            onClick={() => handleTrackBooking(booking.id)}
+                            className="w-auto md:w-full bg-amber-400 hover:bg-amber-500 text-slate-950 transition-all font-black text-xs px-4 py-2.5 rounded-xl shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <i className="fas fa-star text-xs"></i>
+                            Rate & Review
+                          </button>
+                        )}
+
                         <button
                           onClick={() => handleTrackBooking(booking.id)}
-                          className="w-auto md:w-full bg-[#1C1F26] text-white hover:bg-gray-800 transition-all font-bold text-xs px-5 py-3 rounded-xl shadow-2xs h-11 flex items-center justify-center gap-1.5"
+                          className="w-auto md:w-full bg-[#1C1F26] text-white hover:bg-gray-800 transition-all font-bold text-xs px-5 py-3 rounded-xl shadow-2xs h-11 flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           {!isCompleted && !isCancelled ? (
                             <>Track Booking <i className="fas fa-chevron-right text-3xs text-amber-400"></i></>

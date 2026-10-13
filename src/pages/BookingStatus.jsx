@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
 import { endpoints } from '../config/api';
@@ -11,7 +11,11 @@ import ReportDriverModal from '../components/ReportDriverModal';
 const BookingStatus = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') || '';
   const { phoneNumber, isLoggedIn } = useContext(AppContext);
+
+  const [unauthorizedInfo, setUnauthorizedInfo] = useState(null);
 
   const [booking, setBooking] = useState(null);
   const [driver, setDriver] = useState(null);
@@ -39,7 +43,7 @@ const BookingStatus = () => {
   const [incidentReport, setIncidentReport] = useState(null);
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!id) {
       navigate('/profile');
       return;
     }
@@ -47,36 +51,82 @@ const BookingStatus = () => {
     // Auto-refresh every 15 seconds to catch driver assignment / status updates
     const interval = setInterval(fetchBookingDetails, 15000);
     return () => clearInterval(interval);
-  }, [id, isLoggedIn]);
+  }, [id]);
 
   const fetchBookingDetails = async () => {
     setErrorMsg('');
     try {
-      const response = await axios.get(`${endpoints.getInvoiceData}?bookingId=${id}`);
+      const cleanPhone = (phoneNumber || '').replace(/\D/g, '').slice(-10);
+      const url = `${endpoints.getInvoiceData}?bookingId=${id}${cleanPhone ? `&phone=${cleanPhone}` : ''}${token ? `&token=${token}` : ''}`;
+      const response = await axios.get(url);
       if (response.data && !response.data.error) {
-        setBooking(response.data);
-        if (response.data.otp) setOtp(response.data.otp);
-        if (response.data.end_otp) setEndOtp(response.data.end_otp);
-        if (response.data.gps_accumulated_km !== undefined) setGpsAccumulatedKm(response.data.gps_accumulated_km);
+        const data = response.data;
+        const bookingMobile = (data.mobile || '').replace(/\D/g, '').slice(-10);
+        const bookerId = (data.booker_id || '').replace(/\D/g, '').slice(-10);
+        const expectedToken = data.tracking_token || '';
+
+        // Ownership Guard: If logged in with a DIFFERENT mobile than the booking
+        if (isLoggedIn && cleanPhone && cleanPhone !== bookingMobile && cleanPhone !== bookerId) {
+          setUnauthorizedInfo({
+            type: 'different_account',
+            currentPhone: cleanPhone,
+            ownerMasked: bookingMobile ? `${bookingMobile.slice(0, 5)}*****` : 'Customer'
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Token Guard: If NOT logged in, require a valid token from WhatsApp/Email
+        if (!isLoggedIn && (!token || (expectedToken && token !== expectedToken))) {
+          setUnauthorizedInfo({
+            type: 'require_login'
+          });
+          setLoading(false);
+          return;
+        }
+
+        setUnauthorizedInfo(null);
+        setBooking(data);
+        if (data.otp) setOtp(data.otp);
+        if (data.end_otp) setEndOtp(data.end_otp);
+        if (data.gps_accumulated_km !== undefined) setGpsAccumulatedKm(data.gps_accumulated_km);
         fetchOtp();
-        if (response.data.driver_id && response.data.driver_id.trim() !== '') {
-          fetchDriverDetails(response.data.driver_id);
+        if (data.driver_id && data.driver_id.trim() !== '') {
+          fetchDriverDetails(data.driver_id);
         } else {
           setLoading(false);
         }
         // Fetch review if completed
-        const isComp = (response.data.booking_status || '').toLowerCase().includes('complet');
+        const isComp = (data.booking_status || '').toLowerCase().includes('complet');
         if (isComp) {
           fetchReviewDetails(id);
         }
         // Fetch incident report status if any
         fetchIncidentDetails(id);
       } else {
-        setErrorMsg(response.data.error || 'Failed to read booking record.');
+        if (response.data?.unauthorized) {
+          const cleanPhone = (phoneNumber || '').replace(/\D/g, '').slice(-10);
+          setUnauthorizedInfo({
+            type: 'different_account',
+            currentPhone: cleanPhone,
+            ownerMasked: response.data.booking_mobile_masked || 'Customer'
+          });
+        } else {
+          setErrorMsg(response.data?.error || 'Failed to read booking record.');
+        }
         setLoading(false);
       }
     } catch (e) {
-      setErrorMsg('Failed to connect to the server.');
+      if (e.response?.status === 403 && e.response?.data?.unauthorized) {
+        const cleanPhone = (phoneNumber || '').replace(/\D/g, '').slice(-10);
+        setUnauthorizedInfo({
+          type: 'different_account',
+          currentPhone: cleanPhone,
+          ownerMasked: e.response.data.booking_mobile_masked || 'Customer'
+        });
+      } else {
+        setErrorMsg('Failed to connect to the server.');
+      }
       setLoading(false);
     }
   };
@@ -143,7 +193,7 @@ const BookingStatus = () => {
 
     const body = new URLSearchParams();
     body.append('booking_id', id);
-    body.append('phone_number', phoneNumber);
+    body.append('phone_number', phoneNumber || booking?.mobile || '');
     body.append('reason', cancelReason);
 
     try {
@@ -279,6 +329,70 @@ const BookingStatus = () => {
           <p className="text-slate-500 font-semibold text-xs mt-4 uppercase tracking-wider">
             Loading trip status...
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (unauthorizedInfo) {
+    if (unauthorizedInfo.type === 'require_login') {
+      return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 font-sans">
+          <div className="max-w-md w-full bg-white text-center rounded-2xl p-8 border border-slate-200 shadow-md">
+            <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto mb-4">
+              <i className="fas fa-shield-alt text-blue-600 text-2xl"></i>
+            </div>
+            <h3 className="text-base font-bold text-slate-900">Login Required</h3>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              Please log in to your Rentox account to view booking #{id}, or open the direct secure tracking link received on WhatsApp.
+            </p>
+            <button
+              onClick={() => {
+                const targetUrl = `/status/${id}${token ? `?token=${token}` : ''}`;
+                navigate(`/profile?redirect=${encodeURIComponent(targetUrl)}`);
+              }}
+              className="mt-6 w-full bg-[#1E3A8A] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#172554] transition shadow-sm"
+            >
+              Log In with Mobile Number
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 font-sans">
+        <div className="max-w-md w-full bg-white text-center rounded-2xl p-8 border border-slate-200 shadow-md">
+          <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-4">
+            <i className="fas fa-user-lock text-amber-600 text-2xl"></i>
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Different Account Logged In</h3>
+          <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+            You are currently logged in with <strong>+91 {unauthorizedInfo.currentPhone}</strong>.
+          </p>
+          <div className="text-xs text-slate-500 mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-left">
+            <p className="font-semibold text-slate-700 mb-1">🔒 Security Notice:</p>
+            This booking (<strong>#{id}</strong>) belongs to mobile number <strong>+91 {unauthorizedInfo.ownerMasked}</strong>. For passenger safety and privacy, trip details cannot be displayed across different mobile accounts.
+          </div>
+          <div className="mt-6 flex flex-col gap-2.5">
+            <button
+              onClick={() => {
+                localStorage.removeItem('cust_phone_number');
+                const targetUrl = `/status/${id}${token ? `?token=${token}` : ''}`;
+                navigate(`/profile?redirect=${encodeURIComponent(targetUrl)}`);
+              }}
+              className="w-full bg-[#1E3A8A] text-white py-3 rounded-xl text-xs font-bold hover:bg-[#172554] transition shadow-sm"
+            >
+              <i className="fas fa-sign-out-alt mr-2"></i>
+              Switch Account / Log In
+            </button>
+            <button
+              onClick={() => navigate('/history')}
+              className="w-full bg-slate-100 text-slate-700 py-2.5 rounded-xl text-xs font-semibold hover:bg-slate-200 transition"
+            >
+              Back to My Bookings
+            </button>
+          </div>
         </div>
       </div>
     );

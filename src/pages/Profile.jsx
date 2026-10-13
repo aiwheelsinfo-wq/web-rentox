@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { AppContext } from '../context/AppContext';
@@ -34,6 +34,8 @@ const heroBgStyle = {
 const Profile = () => {
   useTicketFonts();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
   const {
     isLoggedIn,
     phoneNumber,
@@ -86,12 +88,16 @@ const Profile = () => {
 
   useEffect(() => {
     if (isLoggedIn) {
+      if (redirectUrl) {
+        navigate(redirectUrl);
+        return;
+      }
       fetchProfile();
       if (phoneNumber) {
         fetchAgentStatus(phoneNumber);
       }
     }
-  }, [isLoggedIn, phoneNumber, fetchAgentStatus]);
+  }, [isLoggedIn, phoneNumber, fetchAgentStatus, redirectUrl, navigate]);
 
   const fetchProfile = async () => {
     setFetchingProfile(true);
@@ -120,6 +126,9 @@ const Profile = () => {
         loginUser(targetPhone, 'agent');
         setShowRoleModal(false);
         setSuccessMsg(`Welcome back! Logged in as Verified Agent (${res.agent?.agency_name || ''})`);
+        if (redirectUrl) {
+          navigate(redirectUrl);
+        }
       } else if (res.registered && res.status === 'pending') {
         setUserRole('customer');
         setShowRoleModal(false);
@@ -1024,6 +1033,9 @@ const Profile = () => {
                     loginUser(pendingLoginPhone || phone, 'customer');
                     setShowRoleModal(false);
                     setSuccessMsg('Logged in as Customer successfully!');
+                    if (redirectUrl) {
+                      navigate(redirectUrl);
+                    }
                   }}
                   className="p-4 bg-gray-50 hover:bg-brandBlue/5 border-2 border-gray-200 hover:border-brandBlue rounded-2xl flex items-center justify-between text-left transition-all group"
                 >
@@ -1274,6 +1286,9 @@ const Profile = () => {
                 onClick={() => {
                   setShowPendingModal(false);
                   loginUser(pendingLoginPhone || phone || phoneNumber, 'customer');
+                  if (redirectUrl) {
+                    navigate(redirectUrl);
+                  }
                 }}
                 className="w-full py-3 rounded-xl bg-brandCharcoal hover:bg-gray-800 text-white font-extrabold text-xs transition-all"
               >

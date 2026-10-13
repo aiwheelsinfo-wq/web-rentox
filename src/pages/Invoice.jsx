@@ -171,8 +171,16 @@ const Invoice = () => {
   const roundTripBaseAdvance = (dailyLimit * 4.0 * days) + earlyMorningFee;
   const roundTripAdvance = roundTripBaseAdvance;
 
+  const isOneWay = (tripType === 'One-way' || tripType === 'One-Way');
+  const hasOneWayAdvance = isOneWay && Boolean(selectedCar?.advance_payment_active) && parseFloat(selectedCar?.advance_amount || 0) > 0;
+
   let payableNow, advanceAmount, gstAmount, remainingBalance;
-  if (isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') {
+  if (hasOneWayAdvance) {
+    advanceAmount = parseFloat(selectedCar.advance_amount);
+    payableNow = advanceAmount;
+    remainingBalance = parseFloat(selectedCar.remaining_balance || (tripFare - advanceAmount));
+    gstAmount = 0;
+  } else if (isLocalTaxi || isOneWay || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') {
     payableNow = 0;
     advanceAmount = 0;
     gstAmount = 0;
@@ -278,8 +286,12 @@ const Invoice = () => {
     body.append('toll_charge', '0');
     const finalTotalAmount = tripFare;
     body.append('total_amount', finalTotalAmount.toFixed(2));
-    const isPayToDriver = tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip';
+    const isPayToDriver = !hasOneWayAdvance && (isLocalTaxi || isOneWay || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip');
     body.append('payment_type', isPayToDriver ? 'Pay to Driver' : 'Advance');
+    if (hasOneWayAdvance) {
+      body.append('paid_amount', advanceAmount.toFixed(2));
+      body.append('remaining_balance', remainingBalance.toFixed(2));
+    }
     body.append('agent_commission', userRole === 'agent' ? currentCommission.toFixed(2) : '0');
     body.append('city', city);
     const isLocalTaxiTrip = tripType === 'Local-taxi';
@@ -818,7 +830,7 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    {(isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
+                    {(!hasOneWayAdvance && (isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip')) ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
                   </>
                 )}
               </button>
@@ -1037,7 +1049,35 @@ const Invoice = () => {
               {/* Breakdown Panel */}
               <div className="bg-brandBgLight rounded-xl p-4 border border-brandAmber/20 mt-2 flex flex-col gap-2.5">
                 <span className="text-3xs font-extrabold text-brandAmber uppercase tracking-wider">Advance Checkout Breakdown</span>
-                {(tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') ? (
+                {hasOneWayAdvance ? (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Advance Booking Fee (Online)</span>
+                      <span className="font-semibold text-brandBlue">₹{Math.round(advanceAmount).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Remaining Balance to Driver</span>
+                      <span className="font-semibold text-gray-700">₹{Math.round(remainingBalance).toLocaleString('en-IN')}</span>
+                    </div>
+                    <hr className="border-brandAmber/20" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-brandBlue">Payable Now (Online)</span>
+                      <span className="text-base font-black text-brandBlue">₹{Math.round(payableNow).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between text-3xs text-gray-500 mt-1">
+                      <span>Pay to Driver on Trip End:</span>
+                      <span className="font-bold text-brandCharcoal">₹{Math.round(remainingBalance).toLocaleString('en-IN')} (Cash/UPI)</span>
+                    </div>
+                    <div className="text-4xs text-blue-900 mt-1.5 leading-relaxed bg-blue-50 p-2.5 rounded-lg border border-blue-200/60">
+                      <div className="flex items-start gap-1.5">
+                        <i className="fas fa-shield-alt text-blue-600 mt-0.5"></i>
+                        <div>
+                          <strong>Secure Online Booking:</strong> Pay ₹{Math.round(advanceAmount).toLocaleString('en-IN')} now to lock in your driver. Pay remaining ₹{Math.round(remainingBalance).toLocaleString('en-IN')} directly to the driver at the end of the trip.
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') ? (
                   <>
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-500">Advance Required</span>

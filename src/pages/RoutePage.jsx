@@ -197,21 +197,21 @@ const RoutePage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Left Column: Heading & Key Value Props */}
             <div className="lg:col-span-7">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-3xs font-black uppercase tracking-wider mb-4">
+              <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-3xs font-black uppercase tracking-wider mb-4">
                 <i className="fas fa-shield-alt text-amber-400"></i>
                 Guaranteed Lowest One-Way Fare
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
                 {route.fromShort} to {route.toShort} <span className="text-amber-400">Cab Booking</span>
               </h1>
 
-              <p className="text-sm sm:text-base text-slate-300 mt-4 leading-relaxed max-w-2xl font-normal">
+              <p className="text-xs sm:text-base text-slate-300 mt-2 sm:mt-4 leading-relaxed max-w-2xl font-normal hidden sm:block">
                 {route.tagline}. Travel comfortably with verified professional chauffeurs, sanitized AC vehicles, and transparent billing.
               </p>
 
-              {/* Quick Trip Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
+              {/* Quick Trip Badges (Desktop Only) */}
+              <div className="hidden lg:grid grid-cols-4 gap-3 mt-8">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center backdrop-blur-sm">
                   <div className="text-3xs text-slate-400 uppercase font-bold tracking-wider">Distance</div>
                   <div className="text-base sm:text-lg font-black text-white mt-0.5">~{route.distanceKm} km</div>
@@ -334,6 +334,28 @@ const RoutePage = () => {
                     <span><i className="fas fa-check-circle text-emerald-500 mr-1"></i>Free Cancellation</span>
                     <span><i className="fas fa-check-circle text-emerald-500 mr-1"></i>AC Guaranteed</span>
                     <span><i className="fas fa-check-circle text-emerald-500 mr-1"></i>24/7 Helpline</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Quick Badges (Shown below booking card on mobile) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:hidden gap-2 mt-4">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+                  <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Distance</div>
+                  <div className="text-sm font-black text-white mt-0.5">~{route.distanceKm} km</div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+                  <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Travel Time</div>
+                  <div className="text-sm font-black text-white mt-0.5">{route.durationHours}</div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+                  <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Starting At</div>
+                  <div className="text-sm font-black text-amber-400 mt-0.5">₹{route.startingFare}</div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+                  <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Rating</div>
+                  <div className="text-sm font-black text-emerald-400 mt-0.5 flex items-center justify-center gap-1">
+                    <i className="fas fa-star text-[10px]"></i> 4.9/5
                   </div>
                 </div>
               </div>

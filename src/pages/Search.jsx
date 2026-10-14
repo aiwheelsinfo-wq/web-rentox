@@ -915,27 +915,27 @@ const Search = () => {
       `}</style>
 
       {/* ── UNIFIED HERO & BOOKING SECTION (Matching Route Page Aesthetic) ── */}
-      <section className="bg-[#1C1F26] text-white pt-8 sm:pt-12 pb-14 sm:pb-20 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+      <section className="bg-[#1C1F26] text-white pt-6 sm:pt-12 pb-12 sm:pb-20 px-3 sm:px-6 lg:px-8 border-b border-slate-800">
         <div className="max-w-[1180px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-10 items-center">
             
             {/* Left Column: Heading & Value Props */}
             <div className="lg:col-span-5 text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-3xs font-black uppercase tracking-wider mb-4">
+              <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-3xs font-black uppercase tracking-wider mb-2.5 sm:mb-4">
                 <i className="fas fa-shield-alt text-amber-400"></i>
                 Guaranteed Lowest One-Way Fare
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-black text-white tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-4xl lg:text-[44px] font-black text-white tracking-tight leading-tight">
                 Reliable Rides. <span className="text-amber-400">Every Time.</span>
               </h1>
 
-              <p className="text-sm sm:text-base text-slate-300 mt-4 leading-relaxed max-w-xl font-normal">
+              <p className="text-xs sm:text-base text-slate-300 mt-2 sm:mt-4 leading-relaxed max-w-xl font-normal hidden sm:block">
                 Doorstep outstation &amp; city cab bookings across Maharashtra &amp; Kerala. Verified chauffeurs, sanitized AC vehicles, zero hidden surge, and guaranteed on-time pickups.
               </p>
 
-              {/* Quick Value Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 mt-8">
+              {/* Quick Value Badges (Desktop View - Visible on lg screens) */}
+              <div className="hidden lg:grid grid-cols-2 gap-3 mt-8">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-center backdrop-blur-sm">
                   <div className="text-3xs text-slate-400 uppercase font-bold tracking-wider">Outstation From</div>
                   <div className="text-base sm:text-lg font-black text-amber-400 mt-0.5">₹1,599</div>
@@ -959,7 +959,7 @@ const Search = () => {
 
             {/* Right Column: Instant Booking Box */}
             <div id="booking-widget" className="lg:col-span-7">
-              <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-2xl border border-slate-100 text-slate-800">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl border border-slate-100 text-slate-800">
                 
                 {/* Trip Type Tabs Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-5">
@@ -1533,6 +1533,29 @@ const Search = () => {
             )}
           </form>
         </div>
+
+        {/* Mobile Trust Badges (Shown below the booking box on mobile screens) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:hidden gap-2 mt-4">
+          <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+            <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Outstation From</div>
+            <div className="text-sm font-black text-amber-400 mt-0.5">₹1,599</div>
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+            <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Rating</div>
+            <div className="text-sm font-black text-emerald-400 mt-0.5 flex items-center justify-center gap-1">
+              <i className="fas fa-star text-[10px]"></i> 4.9/5
+            </div>
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+            <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Verified Drivers</div>
+            <div className="text-sm font-black text-white mt-0.5">100% Vetted</div>
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+            <div className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Live Support</div>
+            <div className="text-sm font-black text-sky-400 mt-0.5">24x7 Helpline</div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

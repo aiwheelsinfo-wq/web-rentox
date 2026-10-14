@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
 import { endpoints } from '../config/api';
@@ -1614,34 +1614,37 @@ const Search = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-          {POPULAR_ROUTES.map((route, i) => (
-            <div
-              key={i}
-              onClick={() => handleSelectRoute(route.from, route.to)}
-              className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-sky-300 transition-all duration-200 cursor-pointer flex flex-col justify-between group"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-1 mb-2">
-                  <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-md">
-                    {route.tag}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-semibold">{route.distance}</span>
+          {POPULAR_ROUTES.map((route, i) => {
+            const slug = `${route.from.toLowerCase()}-to-${route.to.toLowerCase()}-cabs`;
+            return (
+              <Link
+                key={i}
+                to={`/cabs/${slug}`}
+                className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-sky-300 transition-all duration-200 cursor-pointer flex flex-col justify-between group no-underline text-inherit"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-2">
+                    <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-md">
+                      {route.tag}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-semibold">{route.distance}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-slate-900 my-1">
+                    <span className="truncate">{route.from}</span>
+                    <i className="fas fa-arrow-right text-[10px] text-amber-500 flex-shrink-0"></i>
+                    <span className="truncate">{route.to}</span>
+                  </div>
+                  <div className="text-[10.5px] text-slate-400 font-medium">Est. {route.time} travel</div>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-extrabold text-slate-900 my-1">
-                  <span className="truncate">{route.from}</span>
-                  <i className="fas fa-arrow-right text-[10px] text-amber-500 flex-shrink-0"></i>
-                  <span className="truncate">{route.to}</span>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-[#008CFF] group-hover:text-[#1E3A8A]">
+                  <span>View Route & Fares</span>
+                  <i className="fas fa-chevron-right text-[9px]"></i>
                 </div>
-                <div className="text-[10.5px] text-slate-400 font-medium">Est. {route.time} travel</div>
-              </div>
-
-              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-[#008CFF] group-hover:text-[#1E3A8A]">
-                <span>View Route</span>
-                <i className="fas fa-chevron-right text-[9px]"></i>
-              </div>
-            </div>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

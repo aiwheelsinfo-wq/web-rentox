@@ -1,0 +1,16 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Allow: /cabs/
+Allow: /privacy
+Allow: /help
+
+# Disallow private user-specific and transaction pages from search crawler indexes
+Disallow: /invoice
+Disallow: /booking-success
+Disallow: /status/
+Disallow: /history
+Disallow: /profile
+
+# Sitemap index
+Sitemap: https://www.rentox.co.in/sitemap.xml

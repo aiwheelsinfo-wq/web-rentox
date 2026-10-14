@@ -192,7 +192,8 @@ const Search = () => {
     toLat, setToLat,
     toLng, setToLng,
     intermediateStops, setIntermediateStops,
-    dropAddress, setDropAddress
+    dropAddress, setDropAddress,
+    setCalculatedDistanceKm
   } = useContext(AppContext);
 
   const [fromSuggestions, setFromSuggestions] = useState([]);
@@ -507,6 +508,11 @@ const Search = () => {
               const el = data.rows[0].elements[0];
               setRouteDistance(el.distance.text);
               setRouteDuration(el.duration.text);
+              if (el.distance && el.distance.value) {
+                const km = el.distance.value / 1000;
+                if (setCalculatedDistanceKm) setCalculatedDistanceKm(km);
+                localStorage.setItem('search_calculatedDistanceKm', String(km));
+              }
             }
           }
         );

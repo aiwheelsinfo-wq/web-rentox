@@ -16,6 +16,7 @@ const RoutePage = () => {
     setFromLng,
     setToLat,
     setToLng,
+    setCalculatedDistanceKm,
     isLoggedIn
   } = useContext(AppContext);
 
@@ -165,6 +166,10 @@ const RoutePage = () => {
     if (route.toLat && route.toLng) {
       setToLat(route.toLat);
       setToLng(route.toLng);
+    }
+    if (route.distanceKm) {
+      if (setCalculatedDistanceKm) setCalculatedDistanceKm(route.distanceKm);
+      localStorage.setItem('search_calculatedDistanceKm', String(route.distanceKm));
     }
 
     if (!isLoggedIn) {

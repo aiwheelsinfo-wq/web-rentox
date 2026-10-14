@@ -84,6 +84,8 @@ export const AppProvider = ({ children }) => {
   };
 
   const getInitialPickupTime = () => {
+    const saved = localStorage.getItem('search_pickupTime');
+    if (saved) return saved;
     const now = new Date();
     let hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
@@ -97,6 +99,12 @@ export const AppProvider = ({ children }) => {
   const [pickupTime, setPickupTime] = useState(getInitialPickupTime);
   const [returnDate, setReturnDate] = useState(() => localStorage.getItem('search_returnDate') || '');
   const [returnTime, setReturnTime] = useState(() => localStorage.getItem('search_returnTime') || '10:00 AM');
+
+  // Road distance state persisted across page reloads
+  const [calculatedDistanceKm, setCalculatedDistanceKm] = useState(() => {
+    const saved = localStorage.getItem('search_calculatedDistanceKm');
+    return saved ? parseFloat(saved) : null;
+  });
 
   // Lat/Lng coordinates for location estimation (persisted)
   const [fromLat, setFromLat] = useState(() => {
@@ -210,6 +218,14 @@ export const AppProvider = ({ children }) => {
   }, [dropAddress]);
 
   useEffect(() => {
+    if (calculatedDistanceKm !== null && calculatedDistanceKm !== undefined && calculatedDistanceKm > 0) {
+      localStorage.setItem('search_calculatedDistanceKm', String(calculatedDistanceKm));
+    } else {
+      localStorage.removeItem('search_calculatedDistanceKm');
+    }
+  }, [calculatedDistanceKm]);
+
+  useEffect(() => {
     if (tempBookingId && tempBookingId !== '347') {
       localStorage.setItem('search_tempBookingId', tempBookingId);
     } else {
@@ -310,6 +326,8 @@ export const AppProvider = ({ children }) => {
       setIntermediateStops,
       dropAddress,
       setDropAddress,
+      calculatedDistanceKm,
+      setCalculatedDistanceKm,
       selectedCar,
       setSelectedCar,
       tempBookingId,

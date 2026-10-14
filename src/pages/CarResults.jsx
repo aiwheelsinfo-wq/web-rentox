@@ -31,6 +31,8 @@ const CarResults = () => {
     fromLng,
     toLat,
     toLng,
+    calculatedDistanceKm,
+    setCalculatedDistanceKm,
   } = useContext(AppContext);
 
   const [cars, setCars] = useState([]);
@@ -40,10 +42,14 @@ const CarResults = () => {
   const [maxPriceFilter, setMaxPriceFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  const [distanceKm, setDistanceKm] = useState(null);   // null = still checking
+  const [distanceKm, setDistanceKm] = useState(() => {
+    if (calculatedDistanceKm && calculatedDistanceKm > 0) return calculatedDistanceKm;
+    const saved = localStorage.getItem('search_calculatedDistanceKm');
+    return saved ? parseFloat(saved) : null;
+  });
   const [distChecked, setDistChecked] = useState(false);  // have we finished the check?
 
-  // â”€â”€ Google Distance Matrix check (mirrors Flutter _getDistanceFromGoogle) â”€â”€
+  // ── Google Distance Matrix check (mirrors Flutter _getDistanceFromGoogle) ──
   useEffect(() => {
     if (tripType === 'Local-Duty') {
       // Local Duty has no distance restriction
@@ -84,6 +90,8 @@ const CarResults = () => {
                 const meters = data.rows[0].elements[0].distance.value;
                 const km = meters / 1000;
                 setDistanceKm(km);
+                if (setCalculatedDistanceKm) setCalculatedDistanceKm(km);
+                localStorage.setItem('search_calculatedDistanceKm', String(km));
               } else {
                 // Can't determine — allow booking (don't block on API failure)
                 setDistanceKm(999);
@@ -110,8 +118,8 @@ const CarResults = () => {
   }, [tripType, tempBookingId, distanceKm]);
 
   const fetchCars = async () => {
-    if ((tripType === 'Local-taxi' || tripType === 'Local Taxi') && distanceKm === null) {
-      // Wait for distanceKm to be resolved by Google Maps API first
+    if (distanceKm === null && tripType !== 'Local-Duty' && fromAddress && toAddress) {
+      // Wait for distanceKm to be resolved first before querying car prices
       return;
     }
     setLoading(true);

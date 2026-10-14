@@ -908,95 +908,91 @@ const Search = () => {
         .agni-input:focus { border-color: #008CFF !important; box-shadow: 0 0 0 4px rgba(0,140,255,0.10); }
       `}</style>
 
-      {/* ── HERO SECTION ─────────────────────────────────────────────────── */}
-      <div
-        className="relative pt-6 sm:pt-8 md:pt-10 pb-20 sm:pb-24 md:pb-28 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `linear-gradient(100deg, rgba(8,20,40,0.92) 0%, rgba(8,20,40,0.8) 40%, rgba(8,20,40,0.4) 75%, rgba(8,20,40,0.15) 100%), url(${HERO_IMAGE_URL})`,
-        }}
-      >
-        <div className="max-w-[1180px] mx-auto px-4 sm:px-6">
-          <div className="agni-fade max-w-[700px]">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full mb-3 backdrop-blur-md">
-              <i className="fas fa-car-side text-[#7ab8ff] text-xs"></i>
-              <span className="text-[10px] sm:text-xs font-bold text-sky-50 tracking-wider uppercase">RENTOX CAR RENTAL</span>
-            </div>
+      {/* ── UNIFIED HERO & BOOKING SECTION (Matching Route Page Aesthetic) ── */}
+      <section className="bg-[#1C1F26] text-white pt-8 sm:pt-12 pb-14 sm:pb-20 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+        <div className="max-w-[1180px] mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            
+            {/* Left Column: Heading & Value Props */}
+            <div className="lg:col-span-5 text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-3xs font-black uppercase tracking-wider mb-4">
+                <i className="fas fa-shield-alt text-amber-400"></i>
+                Guaranteed Lowest One-Way Fare
+              </div>
 
-            <h1 className="agni-hero-title font-extrabold text-white text-2xl sm:text-3xl md:text-4xl lg:text-[40px] leading-[1.15] tracking-tight mb-2">
-              Reliable Rides. <span className="text-[#008CFF]">Every Time.</span>
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-xl mb-4">
-              Outstation &amp; local cabs at fair, transparent prices — safe rides, professional drivers, on time, always.
-            </p>
+              <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-black text-white tracking-tight leading-tight">
+                Reliable Rides. <span className="text-amber-400">Every Time.</span>
+              </h1>
 
-            {/* Compact Trust Badges */}
-            <div className="flex flex-wrap gap-2.5 sm:gap-3">
-              {[
-                { icon: 'fa-shield-halved', color: '#5fb0ff', title: 'Safe & Secure', sub: 'Verified Drivers' },
-                { icon: 'fa-tag', color: '#FFC94D', title: 'Best Prices', sub: 'Transparent Pricing' },
-                { icon: 'fa-headset', color: '#4ADE80', title: '24/7 Support', sub: "We're here for you" },
-              ].map((b, i) => (
-                <div key={i} className="flex items-center gap-2.5 bg-black/30 border border-white/15 rounded-xl py-1.5 px-3 backdrop-blur-sm">
-                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white flex-shrink-0 text-xs">
-                    <i className={`fas ${b.icon}`} style={{ color: b.color }}></i>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-white leading-tight">{b.title}</div>
-                    <div className="text-[10px] text-gray-300">{b.sub}</div>
+              <p className="text-sm sm:text-base text-slate-300 mt-4 leading-relaxed max-w-xl font-normal">
+                Doorstep outstation &amp; city cab bookings across Maharashtra &amp; Kerala. Verified chauffeurs, sanitized AC vehicles, zero hidden surge, and guaranteed on-time pickups.
+              </p>
+
+              {/* Quick Value Badges */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 mt-8">
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-center backdrop-blur-sm">
+                  <div className="text-3xs text-slate-400 uppercase font-bold tracking-wider">Outstation From</div>
+                  <div className="text-base sm:text-lg font-black text-amber-400 mt-0.5">₹1,599</div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-center backdrop-blur-sm">
+                  <div className="text-3xs text-slate-400 uppercase font-bold tracking-wider">Customer Rating</div>
+                  <div className="text-base sm:text-lg font-black text-emerald-400 mt-0.5 flex items-center justify-center gap-1">
+                    <i className="fas fa-star text-xs"></i> 4.9/5
                   </div>
                 </div>
-              ))}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-center backdrop-blur-sm">
+                  <div className="text-3xs text-slate-400 uppercase font-bold tracking-wider">Verified Drivers</div>
+                  <div className="text-base sm:text-lg font-black text-white mt-0.5">100% Vetted</div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-center backdrop-blur-sm">
+                  <div className="text-3xs text-slate-400 uppercase font-bold tracking-wider">Customer Support</div>
+                  <div className="text-base sm:text-lg font-black text-sky-400 mt-0.5">24x7 Helpline</div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* ── BOOKING WIDGET (Primary Action, High Visual Priority) ────────── */}
-      <div id="booking-widget" className="max-w-[1180px] mx-auto px-4 sm:px-6 relative -mt-14 sm:-mt-16 md:-mt-20 z-10">
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200/90 overflow-hidden agni-fade">
-
-          {/* Trip Type Tabs */}
-          <div className="grid grid-cols-2 md:flex border-b border-gray-100 bg-slate-50/80 p-1 gap-1">
-            {tripTabs.map((tab) => {
-              const active = tripType === tab.key;
-              const isEnabled = isServiceEnabled(tab.key);
-              const info = getServiceInfo(tab.key);
-
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  className="agni-tab-btn cursor-pointer rounded-xl"
-                  onClick={() => setTripType(tab.key)}
-                  style={{
-                    flex: 1,
-                    padding: '9px 8px',
-                    border: 'none',
-                    background: active ? 'white' : 'transparent',
-                    textAlign: 'center',
-                    position: 'relative',
-                    borderBottom: active ? '2px solid #008CFF' : '2px solid transparent',
-                    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <i className={`fas ${tab.icon}`} style={{ color: active ? '#008CFF' : '#64748B', fontSize: 12 }}></i>
-                    <span className="text-[12px] sm:text-[13px] font-bold" style={{ color: active ? '#008CFF' : '#334155' }}>{tab.label}</span>
-                    {!isEnabled && (
-                      <span className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-2xs">
-                        {info.badge_text || 'Coming Soon'}
-                      </span>
-                    )}
+            {/* Right Column: Instant Booking Box */}
+            <div id="booking-widget" className="lg:col-span-7">
+              <div className="bg-white rounded-3xl p-5 sm:p-7 shadow-2xl border border-slate-100 text-slate-800">
+                
+                {/* Trip Type Tabs Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-5">
+                  <div className="font-black text-xs sm:text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                    <i className="fas fa-car-side text-amber-500 text-base"></i>
+                    <span>Instant Cab Booking</span>
                   </div>
-                  <div className="text-[9px] sm:text-[10px] text-gray-400 mt-0.5">{tab.sub}</div>
-                </button>
-              );
-            })}
-          </div>
+                  <div className="grid grid-cols-2 sm:flex bg-slate-100 p-1 rounded-2xl gap-1">
+                    {tripTabs.map((tab) => {
+                      const active = tripType === tab.key;
+                      const isEnabled = isServiceEnabled(tab.key);
+                      const info = getServiceInfo(tab.key);
 
-          {/* Form */}
-          <form onSubmit={handleSearch} className="p-4 sm:p-5 md:p-6">
+                      return (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => setTripType(tab.key)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                            active
+                              ? 'bg-[#1E3A8A] text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                          }`}
+                        >
+                          <i className={`fas ${tab.icon} text-3xs ${active ? 'text-amber-400' : 'text-slate-400'}`}></i>
+                          <span>{tab.label}</span>
+                          {!isEnabled && (
+                            <span className="text-[7.5px] font-black uppercase px-1 py-0.2 rounded-full bg-amber-500 text-white">
+                              {info.badge_text || 'Soon'}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleSearch} className="p-0">
             {!isServiceEnabled(tripType) ? (
               <div className="py-10 px-4 sm:px-8 text-center flex flex-col items-center justify-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-orange-500/15 to-amber-100 flex items-center justify-center mb-4 ring-8 ring-amber-50/50">
@@ -1498,42 +1494,43 @@ const Search = () => {
               </div>
             )}
 
-            {/* Bottom row: USPs + Search Button */}
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
-              <div className="hidden lg:flex items-center gap-5">
-                {[
-                  { icon: 'fa-mobile-screen', color: '#008CFF', title: 'Easy Booking', sub: 'Quick & hassle-free' },
-                  { icon: 'fa-bolt', color: '#FFB300', title: 'Instant Confirmation', sub: 'Get details instantly' },
-                ].map((b, i) => (
-                  <div key={i} className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: b.color + '15' }}>
-                      <i className={`fas ${b.icon}`} style={{ color: b.color, fontSize: 12 }}></i>
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 leading-tight">{b.title}</div>
-                      <div className="text-[10px] text-slate-400">{b.sub}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
+            {/* CTA Button + Trust Bullet Points */}
+            <div className="pt-2">
               <button
                 type="submit"
-                className="agni-cta w-full lg:w-auto px-8 py-3 bg-[#1E3A8A] hover:bg-[#172554] text-white border-none rounded-xl text-xs font-extrabold tracking-wider cursor-pointer shadow-md shadow-blue-900/10 hover:brightness-105 transition-all duration-200 flex items-center justify-center gap-2 h-11"
+                className="w-full py-4 bg-[#F5A623] hover:bg-[#e09612] text-slate-950 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition shadow-lg shadow-amber-500/20 hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer"
                 disabled={loading}
               >
                 {loading ? (
-                  <><i className="fas fa-circle-notch fa-spin"></i> Searching...</>
+                  <><i className="fas fa-circle-notch fa-spin"></i> Searching Available Cabs...</>
                 ) : (
-                  <>SEARCH CABS <i className="fas fa-arrow-right text-xs"></i></>
+                  <>
+                    <span>CHECK AVAILABLE CABS &amp; FARES</span>
+                    <i className="fas fa-arrow-right text-xs"></i>
+                  </>
                 )}
               </button>
+
+              <div className="grid grid-cols-3 gap-2 pt-4 mt-4 border-t border-slate-100 text-center text-3xs sm:text-2xs font-bold text-slate-500">
+                <div className="flex items-center justify-center gap-1.5">
+                  <i className="fas fa-check-circle text-emerald-500"></i> Free Cancellation
+                </div>
+                <div className="flex items-center justify-center gap-1.5">
+                  <i className="fas fa-check-circle text-emerald-500"></i> AC Guaranteed
+                </div>
+                <div className="flex items-center justify-center gap-1.5">
+                  <i className="fas fa-check-circle text-emerald-500"></i> 24/7 Helpline
+                </div>
+              </div>
             </div>
               </>
             )}
           </form>
         </div>
       </div>
+    </div>
+  </div>
+</section>
 
       {/* ── POPULAR DESTINATIONS IN MAHARASHTRA ─────────────────────────── */}
       <div className="max-w-[1180px] mx-auto px-4 sm:px-6 mt-16 sm:mt-20">

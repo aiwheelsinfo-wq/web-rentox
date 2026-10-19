@@ -1243,7 +1243,7 @@ const Invoice = () => {
                   </div>
                   <ul className="text-4xs text-amber-950/80 font-medium space-y-1 pl-3.5 list-disc">
                     <li>Early Morning Allowance (1:00 AM – {tripType === 'Round-Trip' ? '6:30 AM' : '6:00 AM'}): ₹500 extra to be paid to the driver.</li>
-                    <li>Late Arrival Allowance (after 11:45 PM): ₹500 extra to be paid to the driver.</li>
+                    <li>Late Arrival Allowance (after 11:00 PM): ₹500 extra to be paid to the driver.</li>
                   </ul>
                 </div>
               )}

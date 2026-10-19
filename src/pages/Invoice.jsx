@@ -156,7 +156,9 @@ const Invoice = () => {
   };
 
   const days = calculateDays();
-  const earlyMorningFee = (isEarlyMorning(pickupTime, tripType) && (tripType === 'One-Way' || tripType === 'Round-Trip')) ? 300 : 0;
+  const driverAllowancePerDay = parseFloat(selectedCar?.driverAllowance || 400);
+  const dynamicAllowanceAmt = parseFloat(selectedCar?.driverAllowance || 500);
+  const earlyMorningFee = (isEarlyMorning(pickupTime, tripType) && (tripType === 'One-Way' || tripType === 'Round-Trip')) ? dynamicAllowanceAmt : 0;
   const rawBaseFare = selectedCar ? parseFloat(selectedCar.discounted_price || selectedCar.baseAmount) : 0;
   const trafficSurcharge = selectedCar ? parseFloat(selectedCar.traffic_surcharge || 0) : 0;
   const baseFareOnly = Math.max(0, rawBaseFare - trafficSurcharge);
@@ -172,7 +174,6 @@ const Invoice = () => {
     : 0;
 
   // Total Trip Fare (includes base km charge + driver allowance + agent commission + early morning fee)
-  const driverAllowancePerDay = parseFloat(selectedCar?.driverAllowance || 400);
   const roundTripEstimatedFare = (dailyLimit * parseFloat(selectedCar?.kmRate || 13) * days) + (driverAllowancePerDay * days) + currentCommission + earlyMorningFee;
   const tripFare = tripType === 'Round-Trip' ? roundTripEstimatedFare : (rawBaseFare + currentCommission + earlyMorningFee);
   
@@ -1065,7 +1066,7 @@ const Invoice = () => {
                     {earlyMorningFee > 0 && (
                       <div className="flex justify-between text-amber-800 font-semibold">
                         <span className="flex items-center gap-1"><i className="fas fa-sun text-xs text-amber-500"></i> Early Morning Fee (1AM-6:30AM)</span>
-                        <span>+ {"\u20B9"}300</span>
+                        <span>+ {"\u20B9"}{Math.round(earlyMorningFee)}</span>
                       </div>
                     )}
                     {userRole === 'agent' && currentCommission > 0 && (
@@ -1126,7 +1127,7 @@ const Invoice = () => {
                     {earlyMorningFee > 0 && (
                       <div className="flex justify-between text-amber-800 font-semibold">
                         <span className="flex items-center gap-1"><i className="fas fa-sun text-xs text-amber-500"></i> Early Morning Allowance (1AM-6AM)</span>
-                        <span>+ {"\u20B9"}300</span>
+                        <span>+ {"\u20B9"}{Math.round(earlyMorningFee)}</span>
                       </div>
                     )}
                     {!selectedCar?.originalBaseAmount && (
@@ -1242,8 +1243,8 @@ const Invoice = () => {
                     <span>Driver Allowance Terms & Conditions</span>
                   </div>
                   <ul className="text-4xs text-amber-950/80 font-medium space-y-1 pl-3.5 list-disc">
-                    <li>Early Morning Allowance (1:00 AM – {tripType === 'Round-Trip' ? '6:30 AM' : '6:00 AM'}): ₹500 extra to be paid to the driver.</li>
-                    <li>Late Arrival Allowance (after 11:00 PM): ₹500 extra to be paid to the driver.</li>
+                    <li>Early Morning Allowance (1:00 AM – {tripType === 'Round-Trip' ? '6:30 AM' : '6:00 AM'}): ₹{Math.round(dynamicAllowanceAmt)} extra to be paid to the driver.</li>
+                    <li>Late Arrival Allowance (after 11:00 PM): ₹{Math.round(dynamicAllowanceAmt)} extra to be paid to the driver.</li>
                   </ul>
                 </div>
               )}

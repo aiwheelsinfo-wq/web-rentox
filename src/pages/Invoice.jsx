@@ -40,6 +40,11 @@ const Invoice = () => {
   const [pincode, setPincode] = useState('');
   const [custMobile, setCustMobile] = useState('');
   
+  // Passenger / Traveler States (Optional)
+  const [passengerName, setPassengerName] = useState('');
+  const [passengerAge, setPassengerAge] = useState('');
+  const [passengerPhone, setPassengerPhone] = useState('');
+  
   // GST States
   const [includeGst, setIncludeGst] = useState(false);
   const [gstNumber, setGstNumber] = useState('');
@@ -120,7 +125,7 @@ const Invoice = () => {
     return diffDays <= 0 ? 1 : diffDays;
   };
 
-  const isEarlyMorning = (timeStr) => {
+  const isEarlyMorning = (timeStr, currentTripType = tripType) => {
     if (!timeStr) return false;
     try {
       const clean = timeStr.trim().toUpperCase();
@@ -140,6 +145,10 @@ const Invoice = () => {
         hour = parseInt(parts[0], 10);
         if (parts.length > 1) minute = parseInt(parts[1], 10);
       }
+      // For Round-Trip: Early Morning is 1:00 AM to 6:30 AM
+      if (currentTripType === 'Round-Trip' || currentTripType === 'Round-trip') {
+        return (hour >= 1 && hour < 6) || (hour === 6 && minute <= 30);
+      }
       return (hour >= 1 && hour < 6) || (hour === 6 && minute === 0);
     } catch (_) {
       return false;
@@ -147,7 +156,7 @@ const Invoice = () => {
   };
 
   const days = calculateDays();
-  const earlyMorningFee = (isEarlyMorning(pickupTime) && (tripType === 'One-Way' || tripType === 'Round-Trip')) ? 300 : 0;
+  const earlyMorningFee = (isEarlyMorning(pickupTime, tripType) && (tripType === 'One-Way' || tripType === 'Round-Trip')) ? 300 : 0;
   const rawBaseFare = selectedCar ? parseFloat(selectedCar.discounted_price || selectedCar.baseAmount) : 0;
   const trafficSurcharge = selectedCar ? parseFloat(selectedCar.traffic_surcharge || 0) : 0;
   const baseFareOnly = Math.max(0, rawBaseFare - trafficSurcharge);
@@ -210,6 +219,19 @@ const Invoice = () => {
       if (!businessPincode.trim() || businessPincode.trim().length !== 6) return setErrorMsg('Please enter a valid 6-digit business pincode.');
     }
 
+    if (passengerPhone.trim()) {
+      if (!/^\d+$/.test(passengerPhone.trim()) || passengerPhone.trim().length !== 10) {
+        return setErrorMsg('Please enter a valid 10-digit mobile number for the passenger, or leave it blank.');
+      }
+    }
+
+    if (passengerAge.trim()) {
+      const parsedAge = parseInt(passengerAge.trim(), 10);
+      if (isNaN(parsedAge) || parsedAge <= 0 || parsedAge > 120) {
+        return setErrorMsg('Please enter a valid age between 1 and 120 for the passenger, or leave it blank.');
+      }
+    }
+
     setShowConfirmModal(true);
   };
 
@@ -241,7 +263,11 @@ const Invoice = () => {
           to_lat: toLat || null,
           to_lng: toLng || null,
           date: pickupDate,
-          tripTime: pickupTime
+          tripTime: pickupTime,
+          passenger_name: passengerName.trim(),
+          passenger_age: passengerAge.trim(),
+          passenger_phone: passengerPhone.trim(),
+          is_booking_for_other: (passengerName.trim() || passengerPhone.trim() || passengerAge.trim()) ? 1 : 0
         }, {
           headers: { 'Content-Type': 'application/json' },
           timeout: 10000
@@ -324,6 +350,12 @@ const Invoice = () => {
     if (tripType === 'One-way' && tempBookingId && tempBookingId !== '347') {
       body.append('bookingId', tempBookingId);
     }
+
+    // Optional Passenger / Traveler info
+    body.append('passenger_name', passengerName.trim());
+    body.append('passenger_age', passengerAge.trim());
+    body.append('passenger_phone', passengerPhone.trim());
+    body.append('is_booking_for_other', (passengerName.trim() || passengerPhone.trim() || passengerAge.trim()) ? '1' : '0');
 
     try {
       const response = await axios.post(endpoints.saveBooking, body, {
@@ -751,6 +783,78 @@ const Invoice = () => {
                 />
               </div>
 
+              {/* Optional Traveler / Passenger Details Card */}
+              <div className="bg-gradient-to-br from-slate-50 to-blue-50/20 rounded-2xl p-4 md:p-5 border border-slate-200 mt-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-blue-100 text-brandBlue flex items-center justify-center text-xs">
+                      <i className="fas fa-user-plus"></i>
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-brandCharcoal uppercase tracking-wider">
+                        Passenger / Traveler Info
+                      </span>
+                      <span className="ml-2 px-2 py-0.5 text-4xs font-extrabold bg-amber-100 text-amber-800 rounded-full border border-amber-200 uppercase tracking-wider">
+                        Optional
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-3xs text-gray-500 mb-3.5 leading-relaxed">
+                  Enter traveler details if you are booking for someone else or traveling with an accompanying passenger.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  <div>
+                    <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
+                      PASSENGER NAME <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={passengerName}
+                      onChange={(e) => setPassengerName(e.target.value)}
+                      placeholder="e.g. Rahul Sharma"
+                      className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-brandCharcoal outline-none focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
+                      AGE <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      value={passengerAge}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || (parseInt(val) >= 0 && parseInt(val) <= 120)) {
+                          setPassengerAge(val);
+                        }
+                      }}
+                      placeholder="e.g. 28"
+                      className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-brandCharcoal outline-none focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
+                      PHONE NUMBER <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={passengerPhone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setPassengerPhone(val);
+                      }}
+                      maxLength={10}
+                      placeholder="10-digit mobile"
+                      className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-brandCharcoal outline-none focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* GST Toggle */}
               <div className="border-t border-gray-100 pt-4 mt-2">
                 <label className="flex items-center gap-3 cursor-pointer">
@@ -960,7 +1064,7 @@ const Invoice = () => {
                     </div>
                     {earlyMorningFee > 0 && (
                       <div className="flex justify-between text-amber-800 font-semibold">
-                        <span className="flex items-center gap-1"><i className="fas fa-sun text-xs text-amber-500"></i> Early Morning Fee (1AM-6AM)</span>
+                        <span className="flex items-center gap-1"><i className="fas fa-sun text-xs text-amber-500"></i> Early Morning Fee (1AM-6:30AM)</span>
                         <span>+ {"\u20B9"}300</span>
                       </div>
                     )}
@@ -1138,8 +1242,8 @@ const Invoice = () => {
                     <span>Driver Allowance Terms & Conditions</span>
                   </div>
                   <ul className="text-4xs text-amber-950/80 font-medium space-y-1 pl-3.5 list-disc">
-                    <li>Early Morning Allowance (1:00 AM – 6:00 AM): ₹300 extra to be paid to the driver.</li>
-                    <li>Late Arrival Allowance (after 11:45 PM): ₹300 extra to be paid to the driver.</li>
+                    <li>Early Morning Allowance (1:00 AM – {tripType === 'Round-Trip' ? '6:30 AM' : '6:00 AM'}): ₹500 extra to be paid to the driver.</li>
+                    <li>Late Arrival Allowance (after 11:45 PM): ₹500 extra to be paid to the driver.</li>
                   </ul>
                 </div>
               )}
@@ -1170,6 +1274,12 @@ const Invoice = () => {
                   </>
                 )}
               </p>
+              {passengerName.trim() && (
+                <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-2.5 mt-2.5 text-2xs text-brandBlue font-bold text-left flex items-center gap-2">
+                  <i className="fas fa-user-check text-brandBlue text-xs flex-shrink-0"></i>
+                  <span className="truncate">Traveler: {passengerName.trim()} {passengerAge.trim() ? `(${passengerAge.trim()} yrs)` : ''} {passengerPhone.trim() ? `• ${passengerPhone.trim()}` : ''}</span>
+                </div>
+              )}
             </div>
             <div className="flex gap-3 mt-2">
               <button

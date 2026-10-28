@@ -335,7 +335,21 @@ const Invoice = () => {
     body.append('agent_commission', userRole === 'agent' ? currentCommission.toFixed(2) : '0');
     body.append('city', city);
     const isLocalTaxiTrip = tripType === 'Local-taxi';
-    if (tripType === 'Round-Trip') {
+    if (hasAdvance) {
+      // Option B: For Advance bookings, Driver earns the Remaining Balance (Total - Advance),
+      // and Rentox retains the Advance Paid online.
+      body.append('agni_amount', advanceAmount.toFixed(2));
+      body.append('vendor_amount', remainingBalance.toFixed(2));
+      if (tripType === 'Round-Trip') {
+        const dailyAllowance = (driverAllowancePerDay * days) + earlyMorningFee;
+        const baseFareTotal = dailyLimit * parseFloat(selectedCar.kmRate || 13) * days;
+        body.append('base_charge', baseFareTotal.toFixed(2));
+        body.append('driver_ta', dailyAllowance.toFixed(2));
+      } else {
+        body.append('base_charge', selectedCar.originalBaseAmount ? selectedCar.originalBaseAmount.toString() : selectedCar.baseAmount);
+        body.append('driver_ta', selectedCar.driverAllowance || '0');
+      }
+    } else if (tripType === 'Round-Trip') {
       const dailyAllowance = (driverAllowancePerDay * days) + earlyMorningFee;
       const baseFareTotal = dailyLimit * parseFloat(selectedCar.kmRate || 13) * days;
       const rentoxEarning = dailyLimit * 2.0 * days;

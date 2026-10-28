@@ -335,11 +335,13 @@ const Invoice = () => {
     body.append('agent_commission', userRole === 'agent' ? currentCommission.toFixed(2) : '0');
     body.append('city', city);
     const isLocalTaxiTrip = tripType === 'Local-taxi';
+    const effectiveAgentComm = userRole === 'agent' ? currentCommission : 0;
     if (hasAdvance) {
       // Option B: For Advance bookings, Driver earns the Remaining Balance (Total - Advance),
-      // and Rentox retains the Advance Paid online.
+      // strictly EXCLUDING any agent commission added by an agent.
+      const driverRemaining = Math.max(0, remainingBalance - effectiveAgentComm);
       body.append('agni_amount', advanceAmount.toFixed(2));
-      body.append('vendor_amount', remainingBalance.toFixed(2));
+      body.append('vendor_amount', driverRemaining.toFixed(2));
       if (tripType === 'Round-Trip') {
         const dailyAllowance = (driverAllowancePerDay * days) + earlyMorningFee;
         const baseFareTotal = dailyLimit * parseFloat(selectedCar.kmRate || 13) * days;

@@ -41,6 +41,7 @@ const Invoice = () => {
   const [custMobile, setCustMobile] = useState('');
   
   // Passenger / Traveler States (Optional)
+  const [showPassengerInfo, setShowPassengerInfo] = useState(false);
   const [passengerName, setPassengerName] = useState('');
   const [passengerAge, setPassengerAge] = useState('');
   const [passengerPhone, setPassengerPhone] = useState('');
@@ -182,7 +183,12 @@ const Invoice = () => {
   const roundTripAdvance = roundTripBaseAdvance;
 
   const isOneWay = (tripType === 'One-way' || tripType === 'One-Way');
+  const isRoundTrip = (tripType === 'Round-Trip' || tripType === 'Round-trip');
   const hasOneWayAdvance = isOneWay && Boolean(selectedCar?.advance_payment_active) && parseFloat(selectedCar?.advance_amount || 0) > 0;
+  const hasRoundTripAdvance = isRoundTrip && Boolean(selectedCar?.advance_payment_active) && (
+    (parseFloat(selectedCar?.advance_amount || 0) > 0) || (parseFloat(selectedCar?.advance_payment_value || 0) > 0)
+  );
+  const hasAdvance = hasOneWayAdvance || hasRoundTripAdvance;
 
   let payableNow, advanceAmount, gstAmount, remainingBalance;
   if (hasOneWayAdvance) {
@@ -190,7 +196,14 @@ const Invoice = () => {
     payableNow = advanceAmount;
     remainingBalance = parseFloat(selectedCar.remaining_balance || (tripFare - advanceAmount));
     gstAmount = 0;
-  } else if (isLocalTaxi || isOneWay || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip') {
+  } else if (hasRoundTripAdvance) {
+    const advType = selectedCar?.advance_payment_type || 'percentage';
+    const advVal = parseFloat(selectedCar?.advance_payment_value || 10);
+    advanceAmount = (advType === 'fixed') ? Math.min(tripFare, advVal) : Math.round(tripFare * (advVal / 100.0));
+    payableNow = advanceAmount;
+    remainingBalance = Math.max(0, tripFare - advanceAmount);
+    gstAmount = 0;
+  } else if (isLocalTaxi || isOneWay || tripType === 'Local-Duty' || tripType === 'Local-duty' || isRoundTrip) {
     payableNow = 0;
     advanceAmount = 0;
     gstAmount = 0;
@@ -220,13 +233,13 @@ const Invoice = () => {
       if (!businessPincode.trim() || businessPincode.trim().length !== 6) return setErrorMsg('Please enter a valid 6-digit business pincode.');
     }
 
-    if (passengerPhone.trim()) {
+    if (showPassengerInfo && passengerPhone.trim()) {
       if (!/^\d+$/.test(passengerPhone.trim()) || passengerPhone.trim().length !== 10) {
         return setErrorMsg('Please enter a valid 10-digit mobile number for the passenger, or leave it blank.');
       }
     }
 
-    if (passengerAge.trim()) {
+    if (showPassengerInfo && passengerAge.trim()) {
       const parsedAge = parseInt(passengerAge.trim(), 10);
       if (isNaN(parsedAge) || parsedAge <= 0 || parsedAge > 120) {
         return setErrorMsg('Please enter a valid age between 1 and 120 for the passenger, or leave it blank.');
@@ -265,10 +278,10 @@ const Invoice = () => {
           to_lng: toLng || null,
           date: pickupDate,
           tripTime: pickupTime,
-          passenger_name: passengerName.trim(),
-          passenger_age: passengerAge.trim(),
-          passenger_phone: passengerPhone.trim(),
-          is_booking_for_other: (passengerName.trim() || passengerPhone.trim() || passengerAge.trim()) ? 1 : 0
+          passenger_name: showPassengerInfo ? passengerName.trim() : '',
+          passenger_age: showPassengerInfo ? passengerAge.trim() : '',
+          passenger_phone: showPassengerInfo ? passengerPhone.trim() : '',
+          is_booking_for_other: (showPassengerInfo && (passengerName.trim() || passengerPhone.trim() || passengerAge.trim())) ? 1 : 0
         }, {
           headers: { 'Content-Type': 'application/json' },
           timeout: 10000
@@ -313,9 +326,9 @@ const Invoice = () => {
     body.append('toll_charge', '0');
     const finalTotalAmount = tripFare;
     body.append('total_amount', finalTotalAmount.toFixed(2));
-    const isPayToDriver = !hasOneWayAdvance && (isLocalTaxi || isOneWay || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip');
+    const isPayToDriver = !hasAdvance && (isLocalTaxi || isOneWay || tripType === 'Local-Duty' || tripType === 'Local-duty' || isRoundTrip);
     body.append('payment_type', isPayToDriver ? 'Pay to Driver' : 'Advance');
-    if (hasOneWayAdvance) {
+    if (hasAdvance) {
       body.append('paid_amount', advanceAmount.toFixed(2));
       body.append('remaining_balance', remainingBalance.toFixed(2));
     }
@@ -353,10 +366,11 @@ const Invoice = () => {
     }
 
     // Optional Passenger / Traveler info
-    body.append('passenger_name', passengerName.trim());
-    body.append('passenger_age', passengerAge.trim());
-    body.append('passenger_phone', passengerPhone.trim());
-    body.append('is_booking_for_other', (passengerName.trim() || passengerPhone.trim() || passengerAge.trim()) ? '1' : '0');
+    const hasPassenger = showPassengerInfo && Boolean(passengerName.trim() || passengerPhone.trim() || passengerAge.trim());
+    body.append('passenger_name', showPassengerInfo ? passengerName.trim() : '');
+    body.append('passenger_age', showPassengerInfo ? passengerAge.trim() : '');
+    body.append('passenger_phone', showPassengerInfo ? passengerPhone.trim() : '');
+    body.append('is_booking_for_other', hasPassenger ? '1' : '0');
 
     try {
       const response = await axios.post(endpoints.saveBooking, body, {
@@ -784,76 +798,161 @@ const Invoice = () => {
                 />
               </div>
 
-              {/* Optional Traveler / Passenger Details Card */}
-              <div className="bg-gradient-to-br from-slate-50 to-blue-50/20 rounded-2xl p-4 md:p-5 border border-slate-200 mt-1">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-blue-100 text-brandBlue flex items-center justify-center text-xs">
+              {/* Optional Traveler / Passenger Details Toggle & Card */}
+              <div className="border-t border-gray-100 pt-4 mt-2">
+                <div
+                  onClick={() => {
+                    const next = !showPassengerInfo;
+                    setShowPassengerInfo(next);
+                    if (!next) {
+                      setPassengerName('');
+                      setPassengerAge('');
+                      setPassengerPhone('');
+                    }
+                  }}
+                  className={`flex items-center justify-between p-3.5 sm:p-4 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                    showPassengerInfo
+                      ? 'bg-blue-50/50 border-brandBlue/40 shadow-xs'
+                      : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/70'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs transition-colors duration-200 ${
+                        showPassengerInfo
+                          ? 'bg-brandBlue text-white shadow-xs'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
                       <i className="fas fa-user-plus"></i>
                     </div>
                     <div>
-                      <span className="text-xs font-black text-brandCharcoal uppercase tracking-wider">
-                        Passenger / Traveler Info
-                      </span>
-                      <span className="ml-2 px-2 py-0.5 text-4xs font-extrabold bg-amber-100 text-amber-800 rounded-full border border-amber-200 uppercase tracking-wider">
-                        Optional
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-brandCharcoal">
+                          Booking for someone else?
+                        </span>
+                        <span className="text-[10px] font-semibold text-gray-400">
+                          (Optional)
+                        </span>
+                      </div>
+                      <p className="text-3xs text-gray-400 mt-0.5">
+                        Add passenger details so the driver can coordinate directly.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Toggle Switch & Button */}
+                  <div className="flex items-center gap-2.5">
+                    <span className={`text-3xs font-extrabold hidden sm:inline transition-colors ${
+                      showPassengerInfo ? 'text-brandBlue' : 'text-gray-400'
+                    }`}>
+                      {showPassengerInfo ? 'Passenger Added' : '+ Add Passenger'}
+                    </span>
+                    <div
+                      className={`w-11 h-6 rounded-full transition-colors duration-200 ease-in-out p-0.5 relative ${
+                        showPassengerInfo ? 'bg-brandBlue' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white shadow-xs transform transition-transform duration-200 ease-in-out ${
+                          showPassengerInfo ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
                     </div>
                   </div>
                 </div>
-                <p className="text-3xs text-gray-500 mb-3.5 leading-relaxed">
-                  Enter traveler details if you are booking for someone else or traveling with an accompanying passenger.
-                </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                  <div>
-                    <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
-                      PASSENGER NAME <span className="text-gray-400 font-normal lowercase">(optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={passengerName}
-                      onChange={(e) => setPassengerName(e.target.value)}
-                      placeholder="e.g. Rahul Sharma"
-                      className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-brandCharcoal outline-none focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
-                    />
+                {/* Expanded Passenger Card */}
+                {showPassengerInfo && (
+                  <div className="mt-3 bg-white rounded-xl p-4 sm:p-5 border border-blue-100/90 shadow-sm flex flex-col gap-3.5 transition-all">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <div className="flex items-center gap-1.5 text-3xs font-extrabold text-brandCharcoal uppercase tracking-wider">
+                        <i className="fas fa-id-card text-brandBlue"></i>
+                        <span>Traveler / Passenger Information</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPassengerName('');
+                          setPassengerAge('');
+                          setPassengerPhone('');
+                          setShowPassengerInfo(false);
+                        }}
+                        className="text-4xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <i className="fas fa-times"></i> Remove
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                      <div>
+                        <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
+                          PASSENGER NAME <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <i className="fas fa-user absolute left-3.5 text-gray-400 text-xs"></i>
+                          <input
+                            type="text"
+                            value={passengerName}
+                            onChange={(e) => setPassengerName(e.target.value)}
+                            placeholder="e.g. Rahul Sharma"
+                            className="w-full bg-gray-50/70 border border-gray-200 rounded-xl py-2.5 pl-9 pr-3 text-xs font-semibold text-brandCharcoal outline-none focus:bg-white focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
+                          AGE <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <i className="fas fa-calendar-alt absolute left-3.5 text-gray-400 text-xs"></i>
+                          <input
+                            type="number"
+                            min="1"
+                            max="120"
+                            value={passengerAge}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '' || (parseInt(val) >= 0 && parseInt(val) <= 120)) {
+                                setPassengerAge(val);
+                              }
+                            }}
+                            placeholder="e.g. 28"
+                            className="w-full bg-gray-50/70 border border-gray-200 rounded-xl py-2.5 pl-9 pr-3 text-xs font-semibold text-brandCharcoal outline-none focus:bg-white focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
+                          PHONE NUMBER <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <i className="fas fa-phone-alt absolute left-3.5 text-gray-400 text-xs"></i>
+                          <input
+                            type="tel"
+                            value={passengerPhone}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              setPassengerPhone(val);
+                            }}
+                            maxLength={10}
+                            placeholder="10-digit mobile"
+                            className="w-full bg-gray-50/70 border border-gray-200 rounded-xl py-2.5 pl-9 pr-3 text-xs font-semibold text-brandCharcoal outline-none focus:bg-white focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-4xs text-blue-900 bg-blue-50/80 rounded-lg p-2.5 border border-blue-100/80">
+                      <i className="fas fa-shield-alt text-brandBlue text-xs"></i>
+                      <span>
+                        Your driver will receive these passenger details directly via SMS and WhatsApp for smooth pickup coordination.
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
-                      AGE <span className="text-gray-400 font-normal lowercase">(optional)</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="120"
-                      value={passengerAge}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || (parseInt(val) >= 0 && parseInt(val) <= 120)) {
-                          setPassengerAge(val);
-                        }
-                      }}
-                      placeholder="e.g. 28"
-                      className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-brandCharcoal outline-none focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-3xs font-extrabold text-gray-500 uppercase mb-1.5">
-                      PHONE NUMBER <span className="text-gray-400 font-normal lowercase">(optional)</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={passengerPhone}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '');
-                        setPassengerPhone(val);
-                      }}
-                      maxLength={10}
-                      placeholder="10-digit mobile"
-                      className="w-full bg-white border border-gray-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-brandCharcoal outline-none focus:border-brandBlue focus:ring-1 focus:ring-brandBlue/30 transition-all"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* GST Toggle */}
@@ -935,7 +1034,7 @@ const Invoice = () => {
                   </>
                 ) : (
                   <>
-                    {(!hasOneWayAdvance && (isLocalTaxi || tripType === 'One-way' || tripType === 'One-Way' || tripType === 'Local-Duty' || tripType === 'Local-duty' || tripType === 'Round-Trip' || tripType === 'Round-trip')) ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
+                    {(!hasAdvance && (isLocalTaxi || isOneWay || tripType === 'Local-Duty' || tripType === 'Local-duty' || isRoundTrip)) ? 'CONFIRM BOOKING' : `PAY ADVANCE \u20B9${Math.round(payableNow)}`} <i className="fas fa-arrow-right"></i>
                   </>
                 )}
               </button>
@@ -1154,7 +1253,7 @@ const Invoice = () => {
               {/* Breakdown Panel */}
               <div className="bg-brandBgLight rounded-xl p-4 border border-brandAmber/20 mt-2 flex flex-col gap-2.5">
                 <span className="text-3xs font-extrabold text-brandAmber uppercase tracking-wider">Advance Checkout Breakdown</span>
-                {hasOneWayAdvance ? (
+                {hasAdvance ? (
                   <>
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-500">Advance Booking Fee (Online)</span>

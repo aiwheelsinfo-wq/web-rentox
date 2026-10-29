@@ -13,8 +13,9 @@ const INCIDENT_CATEGORIES = [
 ];
 
 const ReportDriverModal = ({ isOpen, onClose, booking, driver, onReportSubmitted }) => {
-  const [incidentType, setIncidentType] = useState('Reckless Driving / Overspeeding');
+  const [selectedCategories, setSelectedCategories] = useState(['Reckless Driving / Overspeeding']);
   const [severity, setSeverity] = useState('High');
+  const [userOverrodeSeverity, setUserOverrodeSeverity] = useState(false);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [ticketNo, setTicketNo] = useState('');
@@ -23,14 +24,50 @@ const ReportDriverModal = ({ isOpen, onClose, booking, driver, onReportSubmitted
 
   if (!isOpen) return null;
 
-  const handleSelectCategory = (cat) => {
-    setIncidentType(cat.id);
-    setSeverity(cat.severity);
+  const handleToggleCategory = (cat) => {
+    let next;
+    if (selectedCategories.includes(cat.id)) {
+      if (selectedCategories.length <= 1) {
+        setErrorMessage('Please keep at least one reason selected.');
+        setTimeout(() => setErrorMessage(''), 2000);
+        return;
+      }
+      next = selectedCategories.filter(id => id !== cat.id);
+    } else {
+      next = [...selectedCategories, cat.id];
+    }
+    setSelectedCategories(next);
+    setErrorMessage('');
+
+    if (!userOverrodeSeverity) {
+      const ranks = { Low: 1, Medium: 2, High: 3, Critical: 4 };
+      let maxRank = 1;
+      let highestSev = 'Low';
+      next.forEach(id => {
+        const found = INCIDENT_CATEGORIES.find(c => c.id === id);
+        const sev = found?.severity || 'Medium';
+        if ((ranks[sev] || 2) > maxRank) {
+          maxRank = ranks[sev];
+          highestSev = sev;
+        }
+      });
+      setSeverity(highestSev);
+    }
+  };
+
+  const handleSelectSeverity = (lvl) => {
+    setSeverity(lvl);
+    setUserOverrodeSeverity(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!booking) return;
+
+    if (!selectedCategories || selectedCategories.length === 0) {
+      setErrorMessage('Please select at least one reason.');
+      return;
+    }
 
     if (!description.trim()) {
       setErrorMessage('Please describe what occurred during the trip.');
@@ -46,7 +83,8 @@ const ReportDriverModal = ({ isOpen, onClose, booking, driver, onReportSubmitted
         customer_phone: booking.customer_number || booking.mobile || '',
         driver_id: driver?.phone_number || driver?.driver_id || booking.driver_id || '',
         driver_name: driver?.full_name || booking.driver_name || '',
-        incident_type: incidentType,
+        incident_type: selectedCategories.join(', '),
+        incident_types: selectedCategories,
         severity: severity,
         description: description.trim()
       };
@@ -132,24 +170,32 @@ const ReportDriverModal = ({ isOpen, onClose, booking, driver, onReportSubmitted
 
             {/* Incident Type Chips */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">
-                What issue did you experience?
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-slate-700">
+                  What went wrong?
+                </label>
+                <span className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                  {selectedCategories.length} selected
+                </span>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {INCIDENT_CATEGORIES.map((cat) => {
-                  const isSelected = incidentType === cat.id;
+                  const isSelected = selectedCategories.includes(cat.id);
                   return (
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => handleSelectCategory(cat)}
-                      className={`text-left p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                      onClick={() => handleToggleCategory(cat)}
+                      className={`text-left p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center justify-between ${
                         isSelected
-                          ? 'border-rose-500 bg-rose-50/70 text-rose-900 shadow-2xs'
+                          ? 'border-rose-500 bg-rose-50/70 text-rose-900 shadow-2xs ring-1 ring-rose-400'
                           : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                       }`}
                     >
-                      {cat.label}
+                      <span>{cat.label}</span>
+                      {isSelected && (
+                        <i className="fas fa-check-circle text-rose-600 text-sm ml-2 shrink-0"></i>
+                      )}
                     </button>
                   );
                 })}
@@ -168,7 +214,7 @@ const ReportDriverModal = ({ isOpen, onClose, booking, driver, onReportSubmitted
                     <button
                       key={lvl}
                       type="button"
-                      onClick={() => setSeverity(lvl)}
+                      onClick={() => handleSelectSeverity(lvl)}
                       className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                         isSelected
                           ? lvl === 'Critical'

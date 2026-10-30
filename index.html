@@ -67,11 +67,40 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Instant Premium Dark Preloader (Rendered in 10ms before JS bundle loads) -->
+      <div id="app-preloader" style="position:fixed;inset:0;background:#1C1F26;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+        <style>
+          @keyframes rentoxPulse {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.06); opacity: 1; filter: drop-shadow(0 0 20px rgba(245, 166, 35, 0.45)); }
+          }
+          @keyframes rentoxBar {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(30%); }
+            100% { transform: translateX(200%); }
+          }
+        </style>
+        <div style="position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;">
+          <div style="position:absolute;inset:-10px;border-radius:50%;background:radial-gradient(circle, rgba(245,166,35,0.2) 0%, transparent 70%);"></div>
+          <img src="https://agnicarrental.com/admin2025/images/pnglogoagni.png" alt="Rentox Logo" style="width:70px;height:auto;animation:rentoxPulse 2s ease-in-out infinite;" />
+        </div>
+        <div style="color:#FFFFFF;font-size:16px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">
+          Rentox <span style="color:#F5A623;">Car Rental</span>
+        </div>
+        <div style="color:#9CA3AF;font-size:12px;letter-spacing:0.5px;margin-bottom:20px;">
+          Loading your travel experience...
+        </div>
+        <div style="width:160px;height:3px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;position:relative;">
+          <div style="position:absolute;top:0;left:0;bottom:0;width:50%;background:linear-gradient(90deg, #F5A623, #FBBF24);border-radius:4px;animation:rentoxBar 1.4s ease-in-out infinite;"></div>
+        </div>
+      </div>
+    </div>
     <!-- Razorpay Checkout Web SDK -->
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script defer src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <!-- Google Maps Places SDK -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC41U3p08LqY8G15ruxDCEfTvBLkG_OrsM&libraries=places"></script>
+    <script defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC41U3p08LqY8G15ruxDCEfTvBLkG_OrsM&libraries=places"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+

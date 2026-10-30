@@ -48,6 +48,7 @@ const CarResults = () => {
     return saved ? parseFloat(saved) : null;
   });
   const [distChecked, setDistChecked] = useState(false);  // have we finished the check?
+  const [bookingCarId, setBookingCarId] = useState(null);
 
   // ── Google Distance Matrix check (mirrors Flutter _getDistanceFromGoogle) ──
   useEffect(() => {
@@ -237,7 +238,10 @@ const CarResults = () => {
     setSelectedTypeFilter(type);
   };
 
-  const selectCarAndBook = (car) => {
+  const selectCarAndBook = async (car) => {
+    const carKey = car.id || car.carType;
+    setBookingCarId(carKey);
+
     const details = getCarFareDetails(car);
     const updatedCar = {
       ...car,
@@ -247,7 +251,15 @@ const CarResults = () => {
       baseAmount: details.finalPrice.toString(),
     };
     setSelectedCar(updatedCar);
-    navigate('/invoice');
+
+    try {
+      // Smooth visual feedback for loading spinner before navigating to Invoice
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      navigate('/invoice');
+    } catch (err) {
+      console.error('Booking navigation error:', err);
+      setBookingCarId(null);
+    }
   };
 
   const getCarModelPlaceholder = (carType) => {
@@ -641,12 +653,36 @@ const CarResults = () => {
                       </div>
                     )}
 
-                    <button
-                      onClick={() => selectCarAndBook(car)}
-                      className="mt-4 bg-brandBlue text-white hover:bg-blue-600 transition-all font-extrabold text-xs px-6 py-3 rounded-xl shadow-sm tracking-wider w-full cursor-pointer hover:shadow-md active:scale-95"
-                    >
-                      BOOK NOW
-                    </button>
+                    {(() => {
+                      const isCurrentBooking = bookingCarId === (car.id || car.carType);
+                      const isAnyBooking = bookingCarId !== null;
+
+                      return (
+                        <button
+                          onClick={() => selectCarAndBook(car)}
+                          disabled={isAnyBooking}
+                          className={`mt-4 w-full py-3 px-6 rounded-xl font-extrabold text-xs tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm ${
+                            isCurrentBooking
+                              ? 'bg-blue-600 text-white opacity-95 cursor-wait shadow-md'
+                              : isAnyBooking
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : 'bg-brandBlue text-white hover:bg-blue-600 cursor-pointer hover:shadow-md active:scale-95'
+                          }`}
+                        >
+                          {isCurrentBooking ? (
+                            <>
+                              <i className="fas fa-circle-notch fa-spin text-sm"></i>
+                              <span>PROCEEDING...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>BOOK NOW</span>
+                              <i className="fas fa-arrow-right text-[11px]"></i>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               );

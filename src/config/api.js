@@ -35,8 +35,11 @@ export const endpoints = {
   getTripIncidents: `${API_BASE_URL}/get_trip_incidents.php`,
 };
 
-// Automatically attach JWT token to all requests if present in localStorage
+// Automatically attach JWT token & Mobile Client Key to all requests
+const CLIENT_KEY = 'rentox_m_app_sec_2025_9847267465';
+
 axios.interceptors.request.use((config) => {
+  config.headers['X-Rentox-Client-Key'] = CLIENT_KEY;
   const token = localStorage.getItem('rentox_jwt_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -49,10 +52,12 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/x-www-form-urlencoded',
+    'X-Rentox-Client-Key': CLIENT_KEY,
   },
 });
 
 apiClient.interceptors.request.use((config) => {
+  config.headers['X-Rentox-Client-Key'] = CLIENT_KEY;
   const token = localStorage.getItem('rentox_jwt_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -61,3 +66,4 @@ apiClient.interceptors.request.use((config) => {
 }, (error) => Promise.reject(error));
 
 export default apiClient;
+

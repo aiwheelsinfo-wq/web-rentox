@@ -225,8 +225,9 @@ const Profile = () => {
 
     setUpdatingProfile(true);
     try {
+      const activePhone = phoneNumber || profileData?.phone_number || profileData?.mobile || localStorage.getItem('user_phone') || '';
       const response = await axios.post(endpoints.customerReg, {
-        phone_number: phoneNumber,
+        phone_number: activePhone,
         name: editName,
         email: editEmail,
         city: editCity,
@@ -236,6 +237,9 @@ const Profile = () => {
       });
 
       if (response.data && response.data.status === 'success') {
+        if (response.data.token) {
+          localStorage.setItem('rentox_jwt_token', response.data.token);
+        }
         Swal.fire({
           icon: 'success',
           title: 'Updated!',
@@ -256,7 +260,8 @@ const Profile = () => {
       }
     } catch (err) {
       console.error('Update profile error:', err);
-      Swal.fire('Error', 'An error occurred while updating profile.', 'error');
+      const msg = err.response?.data?.message || err.message || 'An error occurred while updating profile.';
+      Swal.fire('Error', msg, 'error');
     } finally {
       setUpdatingProfile(false);
     }

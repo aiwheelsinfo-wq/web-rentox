@@ -758,120 +758,131 @@ const Search = () => {
     }
     if (!isLoggedIn) { navigate('/profile'); return; }
 
-    if (tripType === 'Local-taxi' || tripType === 'Local-Duty') {
-      const tripLabel = tripType === 'Local-Duty' ? 'Hourly Rental' : 'Local Taxi';
-      let activeList = boundaries;
-      if (activeList.length === 0) {
-        try {
-          const boundaryResp = await axios.get(endpoints.getCityBoundaries);
-          if (boundaryResp.data && boundaryResp.data.status === 'success') {
-            activeList = boundaryResp.data.cities || boundaryResp.data.data || [];
-            setBoundaries(activeList);
+    setLoading(true);
+
+    try {
+      if (tripType === 'Local-taxi' || tripType === 'Local-Duty') {
+        const tripLabel = tripType === 'Local-Duty' ? 'Hourly Rental' : 'Local Taxi';
+        let activeList = boundaries;
+        if (activeList.length === 0) {
+          try {
+            const boundaryResp = await axios.get(endpoints.getCityBoundaries);
+            if (boundaryResp.data && boundaryResp.data.status === 'success') {
+              activeList = boundaryResp.data.cities || boundaryResp.data.data || [];
+              setBoundaries(activeList);
+            }
+          } catch (err) {
+            console.warn('Boundary verification fetch error:', err);
           }
-        } catch (err) {
-          console.warn('Boundary verification fetch error:', err);
-        }
-      }
-
-      if (activeList.length > 0) {
-        const activeCities = activeList.filter(b => (b.status || 'active').toLowerCase() === 'active');
-        const fromCity = activeCities.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
-        if (!fromCity) {
-          const cityNames = activeCities.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune';
-          setErrorMsg(`${tripLabel} is not available for this pickup location. ${tripLabel} operates strictly within municipal boundaries (${cityNames}). Please choose One-Way.`);
-          return;
         }
 
-        if (tripType === 'Local-Duty') {
-          // Construct formatted multi-stop route
-          const fullRoute = buildRouteString(intermediateStops, dropAddress);
-          setToAddress(fullRoute);
-          localStorage.setItem('search_toAddress', fullRoute);
+        if (activeList.length > 0) {
+          const activeCities = activeList.filter(b => (b.status || 'active').toLowerCase() === 'active');
+          const fromCity = activeCities.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
+          if (!fromCity) {
+            const cityNames = activeCities.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune';
+            setErrorMsg(`${tripLabel} is not available for this pickup location. ${tripLabel} operates strictly within municipal boundaries (${cityNames}). Please choose One-Way.`);
+            setLoading(false);
+            return;
+          }
 
-          const cName = fromCity.city_name || fromCity.cityName || 'City';
-          // Check intermediate stops boundary
-          for (let i = 0; i < intermediateStops.length; i++) {
-            const stop = intermediateStops[i];
-            if (stop.lat && stop.lng) {
-              const isStopInside = checkCoordinatesInBoundary(stop.lat, stop.lng, fromCity);
-              if (!isStopInside) {
-                const sName = (stop.address || '').split(',')[0].trim() || `Stop ${i + 1}`;
-                setErrorMsg(`Stop ${i + 1} (${sName}) is outside the ${cName} Hourly Rental boundary.`);
+          if (tripType === 'Local-Duty') {
+            // Construct formatted multi-stop route
+            const fullRoute = buildRouteString(intermediateStops, dropAddress);
+            setToAddress(fullRoute);
+            localStorage.setItem('search_toAddress', fullRoute);
+
+            const cName = fromCity.city_name || fromCity.cityName || 'City';
+            // Check intermediate stops boundary
+            for (let i = 0; i < intermediateStops.length; i++) {
+              const stop = intermediateStops[i];
+              if (stop.lat && stop.lng) {
+                const isStopInside = checkCoordinatesInBoundary(stop.lat, stop.lng, fromCity);
+                if (!isStopInside) {
+                  const sName = (stop.address || '').split(',')[0].trim() || `Stop ${i + 1}`;
+                  setErrorMsg(`Stop ${i + 1} (${sName}) is outside the ${cName} Hourly Rental boundary.`);
+                  setLoading(false);
+                  return;
+                }
+              }
+            }
+            // Check final drop boundary if provided
+            if (dropAddress && dropAddress.trim().length > 0 && toLat && toLng) {
+              const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
+              if (!isToInside) {
+                const destShort = dropAddress.split(',')[0].trim();
+                setErrorMsg(`Drop location (${destShort}) is outside the ${cName} Hourly Rental boundary. For trips traveling outside the city boundary, please choose One-Way or Round-Trip.`);
+                setLoading(false);
+                return;
+              }
+            }
+          } else {
+            // Local Taxi single destination boundary check
+            if (toAddress && toAddress.trim().length > 0 && toLat && toLng) {
+              const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
+              if (!isToInside) {
+                const destShort = toAddress.split(',')[0].trim();
+                const cName = fromCity.city_name || fromCity.cityName;
+                setErrorMsg(`Drop location (${destShort}) is outside the ${cName} ${tripLabel} boundary. For trips traveling outside the city boundary, please choose One-Way or Round-Trip.`);
+                setLoading(false);
                 return;
               }
             }
           }
-          // Check final drop boundary if provided
-          if (dropAddress && dropAddress.trim().length > 0 && toLat && toLng) {
-            const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
-            if (!isToInside) {
-              const destShort = dropAddress.split(',')[0].trim();
-              setErrorMsg(`Drop location (${destShort}) is outside the ${cName} Hourly Rental boundary. For trips traveling outside the city boundary, please choose One-Way or Round-Trip.`);
-              return;
-            }
-          }
-        } else {
-          // Local Taxi single destination boundary check
-          if (toAddress && toAddress.trim().length > 0 && toLat && toLng) {
-            const isToInside = checkCoordinatesInBoundary(toLat, toLng, fromCity);
-            if (!isToInside) {
-              const destShort = toAddress.split(',')[0].trim();
-              const cName = fromCity.city_name || fromCity.cityName;
-              setErrorMsg(`Drop location (${destShort}) is outside the ${cName} ${tripLabel} boundary. For trips traveling outside the city boundary, please choose One-Way or Round-Trip.`);
-              return;
-            }
-          }
-        }
-      }
-    }
-
-    // Check if One-Way or Round-Trip pickup is within operational boundaries
-    if (tripType === 'One-way' || tripType === 'Round-Trip') {
-      let activeList = boundaries;
-      if (activeList.length === 0) {
-        try {
-          const boundaryResp = await axios.get(endpoints.getCityBoundaries);
-          if (boundaryResp.data && boundaryResp.data.status === 'success') {
-            activeList = boundaryResp.data.cities || boundaryResp.data.data || [];
-            setBoundaries(activeList);
-          }
-        } catch (err) {
-          console.warn('Boundary verification fetch error:', err);
         }
       }
 
-      if (activeList.length > 0 && fromLat && fromLng) {
-        const activeCities = activeList.filter(b => (b.status || 'active').toLowerCase() === 'active');
-        const fromCity = activeCities.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
-
-        if (!fromCity) {
-          const pickupCity = fromAddress.split(',')[0].trim() || 'This location';
-          const cityNames = activeCities.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune, Nashik, Aurangabad';
-          setErrorMsg(
-            `Pickup location "${pickupCity}" is outside Rentox's service boundary. Cab pickups are currently available from: ${cityNames}.`
-          );
-          return;
+      // Check if One-Way or Round-Trip pickup is within operational boundaries
+      if (tripType === 'One-way' || tripType === 'Round-Trip') {
+        let activeList = boundaries;
+        if (activeList.length === 0) {
+          try {
+            const boundaryResp = await axios.get(endpoints.getCityBoundaries);
+            if (boundaryResp.data && boundaryResp.data.status === 'success') {
+              activeList = boundaryResp.data.cities || boundaryResp.data.data || [];
+              setBoundaries(activeList);
+            }
+          } catch (err) {
+            console.warn('Boundary verification fetch error:', err);
+          }
         }
 
-        if (tripType !== 'Local-Duty' && toLat && toLng && toAddress && toAddress.trim().length > 0) {
-          const toCity = activeCities.find(b => checkCoordinatesInBoundary(toLat, toLng, b));
+        if (activeList.length > 0 && fromLat && fromLng) {
+          const activeCities = activeList.filter(b => (b.status || 'active').toLowerCase() === 'active');
+          const fromCity = activeCities.find(b => checkCoordinatesInBoundary(fromLat, fromLng, b));
 
-          if (toCity && (fromCity.id === toCity.id || fromCity.city_name === toCity.city_name)) {
-            const fromShort = fromAddress.split(',')[0].trim();
-            const toShort = toAddress.split(',')[0].trim();
-            const cName = fromCity.city_name || fromCity.cityName;
+          if (!fromCity) {
+            const pickupCity = fromAddress.split(',')[0].trim() || 'This location';
+            const cityNames = activeCities.map(b => b.city_name || b.cityName).join(', ') || 'Mumbai, Pune, Nashik, Aurangabad';
             setErrorMsg(
-              `This route (${fromShort} to ${toShort}) is an intra-city trip within ${cName} city limits. One-Way and Round-Trip are for outstation journeys. Please switch to Local Taxi for lower city rates and ₹0 advance!`
+              `Pickup location "${pickupCity}" is outside Rentox's service boundary. Cab pickups are currently available from: ${cityNames}.`
             );
+            setLoading(false);
             return;
           }
+
+          if (tripType !== 'Local-Duty' && toLat && toLng && toAddress && toAddress.trim().length > 0) {
+            const toCity = activeCities.find(b => checkCoordinatesInBoundary(toLat, toLng, b));
+
+            if (toCity && (fromCity.id === toCity.id || fromCity.city_name === toCity.city_name)) {
+              const fromShort = fromAddress.split(',')[0].trim();
+              const toShort = toAddress.split(',')[0].trim();
+              const cName = fromCity.city_name || fromCity.cityName;
+              setErrorMsg(
+                `This route (${fromShort} to ${toShort}) is an intra-city trip within ${cName} city limits. One-Way and Round-Trip are for outstation journeys. Please switch to Local Taxi for lower city rates and ₹0 advance!`
+              );
+              setLoading(false);
+              return;
+            }
+          }
         }
       }
-    }
 
-    try {
+      // Smooth visual feedback for loading spinner before results navigation
+      await new Promise((resolve) => setTimeout(resolve, 450));
       navigate('/results');
-    } catch {
+    } catch (err) {
+      console.error('Search error:', err);
       setErrorMsg('Navigation error. Please try again.');
     } finally {
       setLoading(false);
@@ -1504,11 +1515,16 @@ const Search = () => {
             <div className="pt-2">
               <button
                 type="submit"
-                className="w-full py-4 bg-[#F5A623] hover:bg-[#e09612] text-slate-950 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition shadow-lg shadow-amber-500/20 hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer"
+                className={`w-full py-4 bg-[#F5A623] hover:bg-[#e09612] text-slate-950 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition shadow-lg shadow-amber-500/20 hover:shadow-xl flex items-center justify-center gap-2.5 ${
+                  loading ? 'opacity-90 cursor-wait' : 'cursor-pointer'
+                }`}
                 disabled={loading}
               >
                 {loading ? (
-                  <><i className="fas fa-circle-notch fa-spin"></i> Searching Available Cabs...</>
+                  <>
+                    <i className="fas fa-circle-notch fa-spin text-base"></i>
+                    <span>SEARCHING AVAILABLE CABS &amp; FARES...</span>
+                  </>
                 ) : (
                   <>
                     <span>CHECK AVAILABLE CABS &amp; FARES</span>

@@ -26,6 +26,7 @@ const RoutePage = () => {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('10:00 AM');
   const [openFaq, setOpenFaq] = useState(0);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   // Dynamic Google SEO & Schema.org injection
   useEffect(() => {
@@ -151,7 +152,9 @@ const RoutePage = () => {
     );
   }
 
-  const handleBookNow = (carType) => {
+  const handleBookNow = async (carType) => {
+    setBookingLoading(true);
+
     // Populate AppContext with this route's coordinates and addresses
     setFromAddress(route.fromAddress);
     setToAddress(route.toAddress);
@@ -172,10 +175,17 @@ const RoutePage = () => {
       localStorage.setItem('search_calculatedDistanceKm', String(route.distanceKm));
     }
 
-    if (!isLoggedIn) {
-      navigate('/profile?redirect=/results');
-    } else {
-      navigate('/results');
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      if (!isLoggedIn) {
+        navigate('/profile?redirect=/results');
+      } else {
+        navigate('/results');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBookingLoading(false);
     }
   };
 
@@ -323,11 +333,23 @@ const RoutePage = () => {
 
                   <button
                     type="button"
+                    disabled={bookingLoading}
                     onClick={() => handleBookNow()}
-                    className="w-full mt-2 bg-[#F5A623] hover:bg-amber-500 text-slate-900 font-black text-xs py-3.5 rounded-xl uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2"
+                    className={`w-full mt-2 bg-[#F5A623] hover:bg-amber-500 text-slate-900 font-black text-xs py-3.5 rounded-xl uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${
+                      bookingLoading ? 'opacity-90 cursor-wait' : 'cursor-pointer'
+                    }`}
                   >
-                    <span>Check Available Cabs & Fares</span>
-                    <i className="fas fa-arrow-right text-xs"></i>
+                    {bookingLoading ? (
+                      <>
+                        <i className="fas fa-circle-notch fa-spin text-sm"></i>
+                        <span>Searching Available Cabs...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Check Available Cabs &amp; Fares</span>
+                        <i className="fas fa-arrow-right text-xs"></i>
+                      </>
+                    )}
                   </button>
 
                   <div className="flex items-center justify-center gap-4 text-3xs text-slate-500 pt-1">

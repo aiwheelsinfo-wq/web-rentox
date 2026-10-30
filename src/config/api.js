@@ -9,6 +9,7 @@ export const endpoints = {
   getPaymentConfig: `${API_BASE_URL}/get_razorpay_config.php`,
   checkPhoneStatus: `${API_BASE_URL}/check_phone_status.php`,
   sendOtp: `${API_BASE_URL}/send_otp.php`,
+  verifyOtp: `${API_BASE_URL}/verify_otp.php`,
   savePhone: `${API_BASE_URL}/savePhone.php`,
   selectCarCostList: `${API_BASE_URL}/selectCarCostList.php`,
   getInvoiceData: `${API_BASE_URL}/get_invoice_data.php`,
@@ -34,6 +35,15 @@ export const endpoints = {
   getTripIncidents: `${API_BASE_URL}/get_trip_incidents.php`,
 };
 
+// Automatically attach JWT token to all requests if present in localStorage
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('rentox_jwt_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
+
 // Create axios instance with default configurations
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -41,5 +51,13 @@ const apiClient = axios.create({
     'Content-Type': 'application/x-www-form-urlencoded',
   },
 });
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('rentox_jwt_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
 
 export default apiClient;

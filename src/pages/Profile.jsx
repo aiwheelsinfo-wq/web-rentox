@@ -51,7 +51,6 @@ const Profile = () => {
 
   const [phone, setPhone] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [typedOtp, setTypedOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -123,7 +122,7 @@ const Profile = () => {
     try {
       const res = await fetchAgentStatus(targetPhone);
       if (res.registered && res.status === 'approved') {
-        loginUser(targetPhone, 'agent');
+        loginUser(targetPhone, 'agent', pendingToken);
         setShowRoleModal(false);
         setSuccessMsg(`Welcome back! Logged in as Verified Agent (${res.agent?.agency_name || ''})`);
         if (redirectUrl) {
@@ -263,6 +262,8 @@ const Profile = () => {
     }
   };
 
+  const [pendingToken, setPendingToken] = useState(() => localStorage.getItem('rentox_jwt_token') || '');
+
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -279,22 +280,22 @@ const Profile = () => {
     }
 
     setLoading(true);
-    const otpVal = Math.floor(1000 + Math.random() * 9000).toString();
-    setGeneratedOtp(otpVal);
 
     try {
-      const fast2smsKey = 'p9J1ofaxrnDXePcsUTdlRu630Vg7KQiWMC24OEmjwFSByh8AH5R5n6sSBzCuvQATbf2g87hV9mtqd0GD';
-      const url = `${endpoints.sendOtp}?authorization=${fast2smsKey}&route=dlt&sender_id=agni&message=170275&variables_values=${otpVal}&flash=0&numbers=${phone}`;
+      // Secure server-side OTP dispatch (API key is hidden on backend, OTP is hashed in DB)
+      const response = await axios.post(endpoints.sendOtp, {
+        phone: phone.trim()
+      });
 
-      const response = await axios.get(url);
-      if (response.data) {
+      if (response.data && (response.data.status === 'success' || response.data.return === true)) {
         setOtpSent(true);
-        setSuccessMsg('OTP sent successfully to your mobile number via SMS and WhatsApp.');
+        setSuccessMsg(response.data.message || 'OTP sent successfully to your mobile number via SMS and WhatsApp.');
       } else {
-        setErrorMsg('Failed to send OTP. Please try again.');
+        setErrorMsg(response.data?.message || 'Failed to send OTP. Please try again.');
       }
-    } catch (e) {
-      setErrorMsg('Failed to communicate with OTP service.');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to communicate with OTP service.';
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
@@ -305,24 +306,42 @@ const Profile = () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (typedOtp !== generatedOtp) {
-      setErrorMsg('Incorrect OTP. Please enter the correct code.');
+    if (!typedOtp || typedOtp.trim().length < 4) {
+      setErrorMsg('Please enter the OTP received on your mobile.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const statusResponse = await axios.get(`${endpoints.checkPhoneStatus}?phone_number=${phone}`);
+      // Secure server-side verification issuing cryptographic JWT
+      const response = await axios.post(endpoints.verifyOtp, {
+        phone: phone.trim(),
+        otp: typedOtp.trim()
+      });
 
-      if (statusResponse.data && statusResponse.data.status === 'success') {
-        setPendingLoginPhone(phone);
-        setShowRoleModal(true);
+      if (response.data && response.data.status === 'success') {
+        const { is_registered, token, registration_token } = response.data;
+        if (token) {
+          localStorage.setItem('rentox_jwt_token', token);
+          setPendingToken(token);
+        }
+        if (registration_token) {
+          localStorage.setItem('rentox_reg_token', registration_token);
+        }
+
+        if (is_registered) {
+          setPendingLoginPhone(phone.trim());
+          setShowRoleModal(true);
+        } else {
+          setShowRegForm(true);
+        }
       } else {
-        setShowRegForm(true);
+        setErrorMsg(response.data?.message || 'Incorrect OTP. Please enter the correct code.');
       }
-    } catch (e) {
-      setErrorMsg('Error checking user registration state.');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Error verifying OTP. Please try again.';
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
@@ -339,34 +358,40 @@ const Profile = () => {
     setLoading(true);
 
     try {
+      const regToken = localStorage.getItem('rentox_reg_token');
       const response = await axios.post(endpoints.customerReg, {
-        name: regName,
-        email: regEmail,
-        phone_number: phone,
+        name: regName.trim(),
+        email: regEmail.trim(),
+        phone_number: phone.trim(),
         agent_id: 'Not Filled',
         city: 'Not Filled',
-        pincode: '0'
-      }, {
-        headers: { 'Content-Type': 'application/json' }
+        pincode: '0',
+        reg_token: regToken
       });
 
       if (response.data && response.data.status === 'success') {
+        if (response.data.token) {
+          localStorage.setItem('rentox_jwt_token', response.data.token);
+          setPendingToken(response.data.token);
+        }
+
         if (referralCode.trim()) {
           const refBody = new URLSearchParams();
-          refBody.append('customer_number', phone);
-          refBody.append('referred_by', referralCode);
+          refBody.append('customer_number', phone.trim());
+          refBody.append('referred_by', referralCode.trim());
           await axios.post(endpoints.customerReferral, refBody, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
           });
         }
 
-        setPendingLoginPhone(phone);
+        setPendingLoginPhone(phone.trim());
         setShowRoleModal(true);
       } else {
-        setErrorMsg(response.data.message || 'Failed to complete registration.');
+        setErrorMsg(response.data?.message || 'Failed to complete registration.');
       }
-    } catch (e) {
-      setErrorMsg('Error registering profile. Please try again.');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Error registering profile. Please try again.';
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
@@ -1030,7 +1055,7 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    loginUser(pendingLoginPhone || phone, 'customer');
+                    loginUser(pendingLoginPhone || phone, 'customer', pendingToken);
                     setShowRoleModal(false);
                     setSuccessMsg('Logged in as Customer successfully!');
                     if (redirectUrl) {
@@ -1285,7 +1310,7 @@ const Profile = () => {
                 type="button"
                 onClick={() => {
                   setShowPendingModal(false);
-                  loginUser(pendingLoginPhone || phone || phoneNumber, 'customer');
+                  loginUser(pendingLoginPhone || phone || phoneNumber, 'customer', pendingToken);
                   if (redirectUrl) {
                     navigate(redirectUrl);
                   }

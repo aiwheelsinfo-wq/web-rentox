@@ -260,11 +260,14 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('agent_commission', String(agentCommission));
   }, [agentCommission]);
 
-  const loginUser = (phone, role = 'customer') => {
+  const loginUser = (phone, role = 'customer', token = null) => {
     const savedStatus = localStorage.getItem('rentox_agent_status');
     const effectiveRole = (role === 'agent' && savedStatus !== 'approved') ? 'customer' : role;
     localStorage.setItem('cust_phone_number', phone);
     localStorage.setItem('user_role', effectiveRole);
+    if (token) {
+      localStorage.setItem('rentox_jwt_token', token);
+    }
     setPhoneNumber(phone);
     setUserRole(effectiveRole);
     setIsLoggedIn(true);
@@ -277,6 +280,8 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem('rentox_agent_status');
     localStorage.removeItem('rentox_agent_profile');
     localStorage.removeItem('rentox_agent_wallet');
+    localStorage.removeItem('rentox_jwt_token');
+    localStorage.removeItem('rentox_reg_token');
     setPhoneNumber('');
     setUserRole('customer');
     setAgentCommission(0);

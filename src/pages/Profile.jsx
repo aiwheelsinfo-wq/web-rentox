@@ -306,8 +306,8 @@ const Profile = () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!typedOtp || typedOtp.trim().length < 4) {
-      setErrorMsg('Please enter the OTP received on your mobile.');
+    if (!typedOtp || typedOtp.trim().length !== 6) {
+      setErrorMsg('Please enter the 6-digit OTP received on your mobile.');
       return;
     }
 
@@ -992,11 +992,13 @@ const Profile = () => {
                     <label className="mb-1 block text-3xs font-bold uppercase tracking-wider text-gray-400">Enter OTP</label>
                     <input
                       type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
                       value={typedOtp}
-                      onChange={(e) => setTypedOtp(e.target.value)}
-                      maxLength={4}
+                      onChange={(e) => setTypedOtp(e.target.value.replace(/\D/g, ''))}
+                      maxLength={6}
                       required
-                      placeholder="0000"
+                      placeholder="000000"
                       className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3.5 px-4 text-center text-xl font-bold tracking-[0.4em] text-brandCharcoal outline-none focus:border-amber-400 focus:bg-white transition-all"
                     />
                     <p className="mt-2 text-center text-xs text-gray-400">Code sent to +91 {phone}</p>

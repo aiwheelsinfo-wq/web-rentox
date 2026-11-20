@@ -440,7 +440,7 @@ const Invoice = () => {
         currency: "INR",
         name: "Rentox Car Rental",
         description: `Advance Booking for Trip #${bookingId}`,
-        image: "https://agnicarrental.com/admin2025/images/pnglogoagni.png",
+        image: "https://www.rentox.co.in/images/rentox_logo.png",
         handler: async function (response) {
           setLoading(true);
           try {

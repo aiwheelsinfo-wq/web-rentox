@@ -942,7 +942,7 @@ const Search = () => {
               </h1>
 
               <p className="text-xs sm:text-base text-slate-300 mt-2 sm:mt-4 leading-relaxed max-w-xl font-normal hidden sm:block">
-                Doorstep outstation &amp; city cab bookings across Maharashtra &amp; Kerala. Verified chauffeurs, sanitized AC vehicles, zero hidden surge, and guaranteed on-time pickups.
+               Doorstep outstation, intercity & city cab bookings across India. Verified chauffeurs, sanitized AC vehicles, transparent pricing, zero hidden charges, and guaranteed on-time pickups.
               </p>
 
               {/* Quick Value Badges (Desktop View - Visible on lg screens) */}

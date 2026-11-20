@@ -81,15 +81,12 @@ const Header = () => {
           </button>
 
           {/* Rentox Logo */}
-          <Link to="/" className="flex items-center gap-2 no-underline flex-shrink-0">
+          <Link to="/" className="flex items-center no-underline flex-shrink-0 py-1">
             <img
-              src="https://agnicarrental.com/admin2025/images/pnglogoagni.png"
-              alt="Rentox Car Rental"
-              className="h-8 sm:h-9 w-auto object-contain"
+              src="/images/rentox_logo.png"
+              alt="Rentox Private Limited"
+              className="h-9 sm:h-10 w-auto object-contain"
             />
-            <span className="font-black text-base sm:text-lg tracking-tight text-[#0F172A] inline-flex items-center gap-1">
-              RENTOX <span className="text-[#FFB000]">CAR RENTAL</span>
-            </span>
           </Link>
         </div>
 
@@ -233,15 +230,12 @@ const Header = () => {
             <div>
               {/* Drawer Top Header */}
               <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/90">
-                <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 no-underline">
+                <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center no-underline py-1">
                   <img
-                    src="https://agnicarrental.com/admin2025/images/pnglogoagni.png"
-                    alt="Rentox Car Rental"
-                    className="h-8 w-auto object-contain"
+                    src="/images/rentox_logo.png"
+                    alt="Rentox Private Limited"
+                    className="h-8 sm:h-9 w-auto object-contain"
                   />
-                  <span className="font-black text-sm tracking-tight text-[#0F172A] inline-flex items-center gap-1">
-                    RENTOX <span className="text-[#FFB000]">CAR RENTAL</span>
-                  </span>
                 </Link>
 
                 <button
